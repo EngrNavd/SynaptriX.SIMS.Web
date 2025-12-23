@@ -1,15 +1,33 @@
-﻿export interface CustomerDto {
-  id: string;
+﻿// src/types/customer.types.ts
+
+// API Response structure from your .NET backend
+export interface ApiResponse<T = any> {
+  success: boolean;
+  message: string;
+  data: T;
+  errors?: string[];
+}
+
+// Paged request DTO
+export interface PagedRequestDto {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+}
+
+// Match EXACTLY with your .NET CustomerDto
+export interface CustomerDto {
+  id: string; // GUID from .NET
   customerCode: string;
   fullName: string;
   email: string;
-  mobile: string;
+  mobile: string; // Note: lowercase 'mobile' but backend uses 'Mobile'
   address: string;
   city: string;
   state: string;
   country: string;
   postalCode: string;
-  dateOfBirth?: string;
+  dateOfBirth?: string; // ISO string from backend
   gender?: string;
   occupation?: string;
   company?: string;
@@ -23,25 +41,27 @@
   createdAt: string;
 }
 
+// Match EXACTLY with your .NET CreateCustomerDto
 export interface CreateCustomerDto {
   customerCode: string;
   fullName: string;
-  email?: string;
-  mobile: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  country?: string;
-  postalCode?: string;
-  dateOfBirth?: string;
+  email: string; // Empty string allowed for optional
+  mobile: string; // REQUIRED
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  postalCode: string;
+  dateOfBirth?: string; // ISO string
   gender?: string;
   occupation?: string;
   company?: string;
   taxNumber?: string;
-  creditLimit?: number;
+  creditLimit: number;
   notes?: string;
 }
 
+// Match EXACTLY with your .NET UpdateCustomerDto
 export interface UpdateCustomerDto {
   fullName?: string;
   email?: string;
@@ -49,16 +69,53 @@ export interface UpdateCustomerDto {
   address?: string;
   city?: string;
   state?: string;
-  country?: string;
-  postalCode?: string;
   creditLimit?: number;
   notes?: string;
 }
 
-export interface CustomerListDto {
+// For GET /customers response - your backend returns array directly
+export interface CustomerListResponse {
   customers: CustomerDto[];
   totalCount: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
+  page?: number;
+  pageSize?: number;
+  totalPages?: number;
+}
+
+// Statistics DTO from your backend
+export interface CustomerStatisticsDto {
+  totalCustomers: number;
+  totalCreditLimit: number;
+  totalOutstandingBalance: number;
+  customersWithCredit: number;
+  averageCreditLimit: number;
+  topSpender?: string;
+  totalPurchaseAmount: number;
+  last30DaysCustomers: number;
+  customersWithMobile: number;
+}
+
+// Additional request/response types for your backend endpoints
+export interface UpdateBalanceRequest {
+  amount: number;
+  description: string;
+}
+
+export interface CheckMobileAvailabilityRequest {
+  mobileNumber: string;
+}
+
+export interface MobileValidationResult {
+  original: string;
+  formatted: string;
+  isValid: boolean;
+  isUaeNumber: boolean;
+  validationMessage: string;
+}
+
+export interface MobileAvailabilityResult {
+  mobileNumber: string;
+  isAvailable: boolean;
+  existingCustomerId?: string;
+  existingCustomerName?: string;
 }

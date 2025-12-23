@@ -31,7 +31,7 @@ interface CustomerFormProps {
 const defaultValues: CreateCustomerDto = {
   customerCode: '',
   fullName: '',
-  email: '',
+  email: '', // Empty string for optional
   mobile: '',
   address: '',
   city: '',
@@ -89,19 +89,29 @@ export default function CustomerForm({
     }
   }, [mobileValue, setValue, clearErrors]);
 
-  const handleFormSubmit = async (data: CreateCustomerDto) => {
-    // Validate mobile number
-    if (!UAEUtils.isValidUaePhone(data.mobile)) {
-      setError('mobile', { message: 'Please enter a valid UAE mobile number' });
-      return;
-    }
+	const handleFormSubmit = async (data: CreateCustomerDto) => {
+	  // Validate mobile number
+	  if (!UAEUtils.isValidUaePhone(data.mobile)) {
+		setError('mobile', { message: 'Please enter a valid UAE mobile number' });
+		return;
+	  }
 
-    // Validate TRN if provided
-    if (data.taxNumber && !UAEUtils.validateTRN(data.taxNumber)) {
-      setError('taxNumber', { message: 'Invalid UAE TRN. Must be 15 digits starting with 1' });
-      return;
-    }
-
+	  // Validate TRN if provided
+	  if (data.taxNumber && !UAEUtils.validateTRN(data.taxNumber)) {
+		setError('taxNumber', { message: 'Invalid UAE TRN. Must be 15 digits starting with 1' });
+		return;
+	  }
+	  
+	// Ensure all required fields have values (even if empty strings for optional ones)
+	  const submitData: CreateCustomerDto = {
+		...data,
+		email: data.email || '', // Convert undefined to empty string
+		address: data.address || '',
+		city: data.city || '',
+		state: data.state || '',
+		country: data.country || 'United Arab Emirates',
+		postalCode: data.postalCode || '',
+	  };
     await onSubmit(data);
   };
 

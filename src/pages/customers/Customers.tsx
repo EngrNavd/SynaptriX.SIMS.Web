@@ -67,12 +67,12 @@ export default function Customers() {
   });
 
   // Extract data from response - Handle both array and CustomerListDto
-  const customers = Array.isArray(response?.data) 
-    ? response.data 
-    : response?.data?.customers || [];
-  
-  const totalCount = response?.data?.totalCount || customers.length || 0;
+	const customers = response?.success && Array.isArray(response.data) 
+	  ? response.data 
+	  : [];
 
+	const totalCount = customers.length || 0;
+	
   // Delete customer mutation
   const deleteMutation = useMutation({
     mutationFn: (id: string) => customersApi.deleteCustomer(id),
