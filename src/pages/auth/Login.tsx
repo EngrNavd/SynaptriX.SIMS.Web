@@ -1,158 +1,161 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Container,
+  Box,
   Paper,
+  Typography,
   TextField,
   Button,
-  Typography,
-  Box,
-  InputAdornment,
-  IconButton,
+  Alert,
+  CircularProgress,
 } from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
-import { useForm } from 'react-hook-form';
+import { Lock } from '@mui/icons-material';
 import { useAuthStore } from '@/stores/auth.store';
+import { authApi } from '@/api/auth.api';
 import toast from 'react-hot-toast';
-
-interface LoginForm {
-  username: string;
-  password: string;
-}
 
 export default function Login() {
   const navigate = useNavigate();
+  const [username, setUsername] = useState('superadmin');
+  const [password, setPassword] = useState('Admin@2024');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const { login } = useAuthStore();
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginForm>({
-    defaultValues: {
-      username: 'superadmin',
-      password: 'Admin@2024',
-    },
-  });
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
+  setIsLoading(true);
 
-  const onSubmit = async (data: LoginForm) => {
-    try {
-      setLoading(true);
+  try {
+    console.log('Attempting login with:', { username, password });
+    
+    // Make login API call
+    const response = await authApi.login({ username, password });
+    
+    console.log('API Response:', response);
+    
+    // Now response is already the extracted data (ApiResponse)
+    if (response.success && response.data) {
+      const { token, refreshToken, user } = response.data;
       
-      // Mock login for now - we'll add real API later
-      if (data.username === 'superadmin' && data.password === 'Admin@2024') {
-        const mockUser = {
-          id: '1',
-          username: 'superadmin',
-          email: 'admin@synaptrix.ae',
-          firstName: 'Super',
-          lastName: 'Admin',
-          role: 'Admin',
-          tenantId: 'tenant-1',
-        };
-        
-        login(mockUser, 'mock-token-123');
-        toast.success('Login successful!');
-        navigate('/dashboard');
-      } else {
-        toast.error('Invalid credentials. Use superadmin/Admin@2024');
-      }
-    } catch (err) {
-      toast.error('Login failed. Please try again.');
-    } finally {
-      setLoading(false);
+      console.log('Login successful:', { token, refreshToken, user });
+      
+      // Save to auth store
+      login(user, token, refreshToken);
+      
+      // Show success message
+      toast.success(response.message || 'Login successful');
+      
+      // Navigate to dashboard
+      navigate('/dashboard');
+    } else {
+      const errorMsg = response.message || 'Login failed';
+      console.error('Login failed:', errorMsg);
+      setError(errorMsg);
+      toast.error(errorMsg);
     }
-  };
+  } catch (error: any) {
+    console.error('Login catch error:', error);
+    
+    // Error already handled by axios interceptor
+    const errorMessage = error.message || 'An error occurred during login';
+    setError(errorMessage);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
-    <Container component="main" maxWidth="xs">
-      <Box
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#f5f5f5',
+        p: 2,
+      }}
+    >
+      <Paper
+        elevation={3}
         sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
+          p: 4,
+          width: '100%',
+          maxWidth: 400,
+          borderRadius: 2,
         }}
       >
-        <Paper
-          elevation={3}
-          sx={{
-            padding: 4,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            width: '100%',
-            borderRadius: 2,
-          }}
-        >
-          <Typography component="h1" variant="h5" sx={{ mb: 1, fontWeight: 'bold' }}>
+        <Box sx={{ textAlign: 'center', mb: 3 }}>
+          <Lock sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
+          <Typography variant="h4" fontWeight="bold" gutterBottom>
             SynaptriX SIMS
           </Typography>
-          <Typography variant="subtitle1" sx={{ mb: 3, color: 'text.secondary' }}>
-            Smart Inventory Management System
+          <Typography variant="body1" color="text.secondary">
+            Sign in to your account
           </Typography>
+        </Box>
 
-          <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ width: '100%' }}>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              label="Username"
-              autoComplete="username"
-              autoFocus
-              {...register('username', { required: 'Username is required' })}
-              error={!!errors.username}
-              helperText={errors.username?.message}
-              disabled={loading}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              label="Password"
-              type={showPassword ? 'text' : 'password'}
-              autoComplete="current-password"
-              {...register('password', { required: 'Password is required' })}
-              error={!!errors.password}
-              helperText={errors.password?.message}
-              disabled={loading}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowPassword(!showPassword)}
-                      edge="end"
-                      disabled={loading}
-                    >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2, py: 1.5 }}
-              disabled={loading}
-            >
-              {loading ? 'Signing In...' : 'Sign In'}
-            </Button>
-            
-            <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 2 }}>
-              Demo Credentials: superadmin / Admin@2024
-            </Typography>
-          </Box>
-        </Paper>
-        
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>
-          © {new Date().getFullYear()} SynaptriX SIMS • UAE Inventory Management System
-        </Typography>
-      </Box>
-    </Container>
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <TextField
+            fullWidth
+            label="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            margin="normal"
+            required
+            disabled={isLoading}
+            autoComplete="username"
+            autoFocus
+          />
+          
+          <TextField
+            fullWidth
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            margin="normal"
+            required
+            disabled={isLoading}
+            autoComplete="current-password"
+          />
+
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            size="large"
+            disabled={isLoading}
+            sx={{ mt: 3, py: 1.5 }}
+          >
+            {isLoading ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              'Sign In'
+            )}
+          </Button>
+        </form>
+
+        <Box sx={{ mt: 3, textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            Default credentials:
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Username: <strong>superadmin</strong>
+          </Typography>
+          <br />
+          <Typography variant="caption" color="text.secondary">
+            Password: <strong>Admin@2024</strong>
+          </Typography>
+        </Box>
+      </Paper>
+    </Box>
   );
 }

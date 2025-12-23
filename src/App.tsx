@@ -10,11 +10,7 @@ import AuthLayout from './layouts/AuthLayout';
 // Pages
 import Login from './pages/auth/Login';
 import Dashboard from './pages/dashboard/Dashboard';
-// Note: We'll create these pages later
-// import Customers from './pages/customers/Customers';
-// import Products from './pages/products/Products';
-// import Invoices from './pages/invoices/Invoices';
-// import Sales from './pages/sales/Sales';
+import Customers from './pages/customers/Customers';
 
 // Components
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -120,8 +116,8 @@ function App() {
               <Route element={<MainLayout />}>
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/customers" element={<Customers />} />
                 {/* Add other routes as we build them */}
-                {/* <Route path="/customers" element={<Customers />} /> */}
                 {/* <Route path="/products" element={<Products />} /> */}
                 {/* <Route path="/invoices" element={<Invoices />} /> */}
                 {/* <Route path="/sales" element={<Sales />} /> */}

@@ -1,0 +1,95 @@
+import { CustomerDto } from '@/types';
+
+export const mockCustomers: CustomerDto[] = [
+  {
+    id: '1',
+    customerCode: 'CUST-001',
+    fullName: 'Ahmed Al Maktoum',
+    email: 'ahmed@example.com',
+    mobile: '+971501234567',
+    address: 'Dubai Marina, Dubai',
+    city: 'Dubai',
+    state: 'Dubai',
+    country: 'United Arab Emirates',
+    postalCode: '12345',
+    dateOfBirth: '1985-05-15',
+    gender: 'Male',
+    occupation: 'Business Owner',
+    company: 'Al Maktoum Trading',
+    taxNumber: '123456789012345',
+    creditLimit: 50000,
+    currentBalance: 15000,
+    lastPurchaseDate: '2024-01-15',
+    totalPurchaseAmount: 125000,
+    totalPurchases: 25,
+    notes: 'VIP Customer - Regular buyer',
+    createdAt: '2023-01-10T10:00:00Z',
+  },
+  {
+    id: '2',
+    customerCode: 'CUST-002',
+    fullName: 'Fatima Al Qasimi',
+    email: 'fatima@example.com',
+    mobile: '+971551234567',
+    address: 'Khalifa City, Abu Dhabi',
+    city: 'Abu Dhabi',
+    state: 'Abu Dhabi',
+    country: 'United Arab Emirates',
+    postalCode: '54321',
+    creditLimit: 20000,
+    currentBalance: 0,
+    lastPurchaseDate: '2024-01-10',
+    totalPurchaseAmount: 45000,
+    totalPurchases: 12,
+    notes: 'Prefers email communication',
+    createdAt: '2023-02-15T10:00:00Z',
+  },
+  {
+    id: '3',
+    customerCode: 'CUST-003',
+    fullName: 'Mohammed Al Shamsi',
+    email: 'mohammed@example.com',
+    mobile: '+971521234567',
+    address: 'Al Nahda, Sharjah',
+    city: 'Sharjah',
+    state: 'Sharjah',
+    country: 'United Arab Emirates',
+    postalCode: '67890',
+    dateOfBirth: '1990-08-22',
+    gender: 'Male',
+    occupation: 'Engineer',
+    company: 'Emirates Engineering',
+    creditLimit: 10000,
+    currentBalance: 5000,
+    lastPurchaseDate: '2024-01-05',
+    totalPurchaseAmount: 75000,
+    totalPurchases: 18,
+    createdAt: '2023-03-20T10:00:00Z',
+  },
+];
+
+// Mock API functions
+export const mockCustomersApi = {
+  getCustomers: () => Promise.resolve({
+    success: true,
+    data: mockCustomers,
+    message: 'Customers retrieved successfully',
+  }),
+  
+  createCustomer: (data: any) => Promise.resolve({
+    success: true,
+    data: { ...data, id: Date.now().toString(), createdAt: new Date().toISOString() },
+    message: 'Customer created successfully',
+  }),
+  
+  updateCustomer: (id: string, data: any) => Promise.resolve({
+    success: true,
+    data: { ...mockCustomers.find(c => c.id === id), ...data },
+    message: 'Customer updated successfully',
+  }),
+  
+  deleteCustomer: (id: string) => Promise.resolve({
+    success: true,
+    message: 'Customer deleted successfully',
+  }),
+};
