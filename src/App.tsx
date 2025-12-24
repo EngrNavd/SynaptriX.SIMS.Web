@@ -99,6 +99,15 @@ function App() {
           position="top-right"
           toastOptions={{
             duration: 4000,
+			 success: {
+            duration: 3000,
+			  },
+			  error: {
+				duration: 4000, // 4 seconds for errors (a bit longer)
+			  },
+			  loading: {
+				duration: Infinity, // Loading toasts stay until manually removed
+			  },
             style: {
               borderRadius: '8px',
             },
