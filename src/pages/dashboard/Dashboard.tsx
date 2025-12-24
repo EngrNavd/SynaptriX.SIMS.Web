@@ -425,8 +425,7 @@ export default function Dashboard() {
       {/* API Note */}
       <Alert severity="info" sx={{ mt: 4, borderRadius: 2 }}>
         <Typography variant="body2">
-          <strong>Note:</strong> Dashboard shows demo data. Connect to your .NET API endpoints 
-          to display real-time sales, inventory, and customer statistics.
+          <strong>Note:</strong> Dashboard shows demo data for now. Once operational, will display real-time sales, inventory, and customer statistics.
         </Typography>
       </Alert>
     </Box>

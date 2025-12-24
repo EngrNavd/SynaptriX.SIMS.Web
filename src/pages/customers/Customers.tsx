@@ -14,6 +14,17 @@ import {
   Alert,
   Chip,
   CircularProgress,
+  Grid,
+  Card,
+  CardContent,
+  Badge,
+  Tabs,
+  Tab,
+  Menu,
+  MenuItem,
+  Divider,
+  Avatar,
+  LinearProgress,
 } from '@mui/material';
 import {
   Search,
@@ -30,6 +41,18 @@ import {
   Work,
   Assignment,
   Clear,
+  FilterList,
+  Download,
+  MoreVert,
+  TrendingUp,
+  TrendingDown,
+  AccountCircle,
+  Payment,
+  ShoppingCart,
+  AttachMoney,
+  AccessTime,
+  CreditScore,
+  Warning,
 } from '@mui/icons-material';
 import { DataGrid, GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -38,6 +61,7 @@ import { UAEUtils } from '@/utils/uae.utils';
 import CustomerForm from '@/components/customers/CustomerForm';
 import toast from 'react-hot-toast';
 import type { CustomerDto } from '@/types';
+import { format } from 'date-fns';
 
 export default function Customers() {
   const [search, setSearch] = useState('');
@@ -47,23 +71,24 @@ export default function Customers() {
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerDto | null>(null);
   const [isEdit, setIsEdit] = useState(false);
   const [viewMode, setViewMode] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
+  const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   
   const queryClient = useQueryClient();
   
   // Debounced version of search
   const [debouncedSearch, setDebouncedSearch] = useState(search);
   
-    useEffect(() => {
+  useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
-    }, 500); // Wait 500ms after user stops typing
+    }, 500);
 
-    // Cleanup: clear timer if user types again
     return () => {
       clearTimeout(timer);
-		};
-	}, [search]); // Run when search changes
-
+    };
+  }, [search]);
 
   // Fetch customers
   const { 
@@ -72,118 +97,130 @@ export default function Customers() {
     error,
     refetch 
   } = useQuery({
-    queryKey: ['customers', page, pageSize, debouncedSearch],
+    queryKey: ['customers', page, pageSize, debouncedSearch, statusFilter],
     queryFn: () => customersApi.getCustomers({
-      page: page + 1, // Convert to 1-based for backend
+      page: page + 1,
       pageSize,
       search: debouncedSearch || undefined,
     }),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 
-  // Extract data from response - Handle both array and CustomerListDto
-	const customers = response?.success && Array.isArray(response.data) 
-	  ? response.data 
-	  : [];
+  // Fetch customer statistics
+  const { data: statsResponse } = useQuery({
+    queryKey: ['customer-statistics'],
+    queryFn: () => customersApi.getStatistics(),
+  });
 
-	const totalCount = customers.length || 0;
-	
+  const customers = response?.success && Array.isArray(response.data) 
+    ? response.data 
+    : [];
+
+  // Filter customers by status
+  const filteredCustomers = customers.filter(customer => {
+    if (statusFilter === 'all') return true;
+    if (statusFilter === 'active') return customer.currentBalance <= 0;
+    if (statusFilter === 'owing') return customer.currentBalance > 0;
+    if (statusFilter === 'credit') return customer.creditLimit > 0;
+    return true;
+  });
+
+  const totalCount = filteredCustomers.length || 0;
+  
+  // Calculate statistics
+  const calculateStats = () => {
+    const totalCustomers = customers.length;
+    const activeCustomers = customers.filter(c => c.currentBalance <= 0).length;
+    const owingCustomers = customers.filter(c => c.currentBalance > 0).length;
+    const creditCustomers = customers.filter(c => c.creditLimit > 0).length;
+    const totalOutstanding = customers.reduce((sum, c) => sum + (c.currentBalance > 0 ? c.currentBalance : 0), 0);
+    const totalCreditLimit = customers.reduce((sum, c) => sum + c.creditLimit, 0);
+    
+    return {
+      totalCustomers,
+      activeCustomers,
+      owingCustomers,
+      creditCustomers,
+      totalOutstanding,
+      totalCreditLimit,
+    };
+  };
+
+  const stats = calculateStats();
+
   // Delete customer mutation
   const deleteMutation = useMutation({
     mutationFn: (id: string) => customersApi.deleteCustomer(id),
     onSuccess: (response) => {
       if (response.success) {
         queryClient.invalidateQueries({ queryKey: ['customers'] });
-        toast.success(response.message || 'Customer deleted successfully');
+        queryClient.invalidateQueries({ queryKey: ['customer-statistics'] });
+        toast.success('Customer deactivated successfully');
       } else {
-        toast.error(response.message || 'Failed to delete customer');
+        toast.error(response.message || 'Failed to deactivate customer');
       }
     },
     onError: (error: any) => {
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to delete customer';
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to deactivate customer';
       toast.error(errorMessage);
     },
   });
 
   // Create/Update mutation
-	const saveMutation = useMutation({
-	mutationFn: async (data: any) => {
-    console.log('Mutation Function Called with data:', data);
-    
-    if (isEdit && selectedCustomer) {
-      // For update: send all fields except customerCode
-      const updateData = {
-        fullName: data.fullName || '',
-        email: data.email || '',
-        mobile: data.mobile || '',
-        address: data.address || '',
-        city: data.city || '',
-        state: data.state || '',
-        country: data.country || 'United Arab Emirates',
-        postalCode: data.postalCode || '',
-        dateOfBirth: data.dateOfBirth || null,
-        gender: data.gender || '',
-        occupation: data.occupation || '',
-        company: data.company || '',
-        taxNumber: data.taxNumber || '',
-        creditLimit: data.creditLimit || 0,
-        notes: data.notes || '',
-      };
-      
-      console.log('Sending Update Data:', {
-        customerId: selectedCustomer.id,
-        updateData
-      });
-      
-      return await customersApi.updateCustomer(selectedCustomer.id, updateData);
-    } else {
-      // For create: send all fields including customerCode
-      console.log('Sending Create Data:', data);
-      return await customersApi.createCustomer(data);
-    }
-  },
-  onSuccess: (response) => {
-    console.log('Mutation Success Response:', response);
-    
-    if (response.success) {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-      toast.success(response.message || (isEdit ? 'Customer updated successfully' : 'Customer created successfully'));
-      handleCloseDialog();
-    } else {
-      // Handle validation errors
-      if (response.errors && response.errors.length > 0) {
-        response.errors.forEach((err: string) => toast.error(err));
+  const saveMutation = useMutation({
+    mutationFn: async (data: any) => {
+      if (isEdit && selectedCustomer) {
+        const updateData = {
+          fullName: data.fullName || '',
+          email: data.email || '',
+          mobile: data.mobile || '',
+          address: data.address || '',
+          city: data.city || '',
+          state: data.state || '',
+          country: data.country || 'United Arab Emirates',
+          postalCode: data.postalCode || '',
+          dateOfBirth: data.dateOfBirth || null,
+          gender: data.gender || '',
+          occupation: data.occupation || '',
+          company: data.company || '',
+          taxNumber: data.taxNumber || '',
+          creditLimit: data.creditLimit || 0,
+          notes: data.notes || '',
+        };
+        
+        return await customersApi.updateCustomer(selectedCustomer.id, updateData);
       } else {
-        toast.error(response.message || 'Failed to save customer');
+        return await customersApi.createCustomer(data);
       }
-    }
-  },
-  onError: (error: any) => {
-    console.error('Mutation Error Object:', error);
-    console.error('Error Response:', error.response);
-    console.error('Error Config:', error.config);
-    
-    // Extract error message safely
-    let errorMessage = 'Failed to save customer';
-    
-    if (error.response?.data?.message) {
-      errorMessage = error.response.data.message;
-    } else if (error.message && typeof error.message === 'string' && error.message !== '[object Object]') {
-      errorMessage = error.message;
-    } else if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
-      errorMessage = error.response.data.errors.join(', ');
-    } else if (error.response?.data) {
-      // Try to stringify the error data
-      try {
-        errorMessage = JSON.stringify(error.response.data);
-      } catch {
-        errorMessage = 'Unknown error occurred';
+    },
+    onSuccess: (response) => {
+      if (response.success) {
+        queryClient.invalidateQueries({ queryKey: ['customers'] });
+        queryClient.invalidateQueries({ queryKey: ['customer-statistics'] });
+        toast.success(response.message || (isEdit ? 'Customer updated successfully' : 'Customer created successfully'));
+        handleCloseDialog();
+      } else {
+        if (response.errors && response.errors.length > 0) {
+          response.errors.forEach((err: string) => toast.error(err));
+        } else {
+          toast.error(response.message || 'Failed to save customer');
+        }
       }
-    }
-    
-    toast.error(errorMessage);
-  },
-});
+    },
+    onError: (error: any) => {
+      let errorMessage = 'Failed to save customer';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message && typeof error.message === 'string' && error.message !== '[object Object]') {
+        errorMessage = error.message;
+      } else if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+        errorMessage = error.response.data.errors.join(', ');
+      }
+      
+      toast.error(errorMessage);
+    },
+  });
 
   const handleOpenCreate = () => {
     setIsEdit(false);
@@ -207,7 +244,7 @@ export default function Customers() {
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this customer? This action cannot be undone.')) {
+    if (window.confirm('Are you sure you want to deactivate this customer? They will no longer appear in active lists.')) {
       deleteMutation.mutate(id);
     }
   };
@@ -223,196 +260,229 @@ export default function Customers() {
     await saveMutation.mutateAsync(data);
   };
 
-  // View customer details component - Updated to match your CustomerDto
+  const handleFilterClick = (event: React.MouseEvent<HTMLElement>) => {
+    setFilterAnchorEl(event.currentTarget);
+  };
+
+  const handleFilterClose = () => {
+    setFilterAnchorEl(null);
+  };
+
+  const handleStatusFilter = (status: string) => {
+    setStatusFilter(status);
+    setPage(0);
+    handleFilterClose();
+  };
+
+  // Enhanced Customer Details View
   const CustomerDetailsView = ({ customer }: { customer: CustomerDto }) => (
     <Box sx={{ p: 2 }}>
-      <Typography variant="h6" gutterBottom color="primary">
-        Customer Details
-      </Typography>
-      
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, mb: 3 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 4 }}>
+        <Avatar
+          sx={{
+            width: 80,
+            height: 80,
+            bgcolor: 'primary.main',
+            fontSize: 32,
+            fontWeight: 'bold',
+          }}
+        >
+          {customer.fullName.charAt(0)}
+        </Avatar>
         <Box>
-          <Typography variant="subtitle2" color="text.secondary">
-            <Assignment sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
-            Customer Code
-          </Typography>
-          <Typography variant="body1" fontWeight="medium">
-            {customer.customerCode || 'N/A'}
-          </Typography>
-        </Box>
-        
-        <Box>
-          <Typography variant="subtitle2" color="text.secondary">
-            Full Name
-          </Typography>
-          <Typography variant="body1" fontWeight="medium">
+          <Typography variant="h5" fontWeight="bold" gutterBottom>
             {customer.fullName}
           </Typography>
-        </Box>
-        
-        <Box>
-          <Typography variant="subtitle2" color="text.secondary">
-            <Phone sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
-            Mobile Number
-          </Typography>
-          <Typography variant="body1">
-            {UAEUtils.formatPhoneForDisplay(customer.mobile)}
-          </Typography>
-        </Box>
-        
-        <Box>
-          <Typography variant="subtitle2" color="text.secondary">
-            <Email sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
-            Email
-          </Typography>
-          <Typography variant="body1">
-            {customer.email || 'N/A'}
-          </Typography>
-        </Box>
-        
-        {customer.company && (
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary">
-              <Business sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
-              Company
-            </Typography>
-            <Typography variant="body1">{customer.company}</Typography>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <Chip 
+              icon={<Assignment />}
+              label={`Code: ${customer.customerCode || 'N/A'}`}
+              size="small"
+              variant="outlined"
+            />
+            <Chip 
+              icon={<Business />}
+              label={customer.company || 'No Company'}
+              size="small"
+              variant="outlined"
+            />
+            <Chip 
+              label={`Created: ${format(new Date(customer.createdAt), 'MMM dd, yyyy')}`}
+              size="small"
+              variant="outlined"
+            />
           </Box>
-        )}
-        
-        {customer.taxNumber && (
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary">
-              Tax Number (TRN)
-            </Typography>
-            <Typography variant="body1">{customer.taxNumber}</Typography>
-          </Box>
-        )}
-        
-        {customer.occupation && (
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary">
-              <Work sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
-              Occupation
-            </Typography>
-            <Typography variant="body1">{customer.occupation}</Typography>
-          </Box>
-        )}
-        
-        {customer.dateOfBirth && (
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary">
-              <Cake sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
-              Date of Birth
-            </Typography>
-            <Typography variant="body1">
-              {new Date(customer.dateOfBirth).toLocaleDateString()}
-            </Typography>
-          </Box>
-        )}
-        
-        <Box>
-          <Typography variant="subtitle2" color="text.secondary">
-            <LocationOn sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
-            Address
-          </Typography>
-          <Typography variant="body2">
-            {customer.address || 'N/A'}
-            {customer.city && `, ${customer.city}`}
-            {customer.state && `, ${customer.state}`}
-            {customer.postalCode && ` - ${customer.postalCode}`}
-          </Typography>
-        </Box>
-        
-        <Box>
-          <Typography variant="subtitle2" color="text.secondary">
-            Country
-          </Typography>
-          <Typography variant="body2">{customer.country}</Typography>
         </Box>
       </Box>
-      
-      <Typography variant="h6" gutterBottom color="primary" sx={{ mt: 3 }}>
-        Financial Information
-      </Typography>
-      
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
-        <Paper sx={{ p: 2, textAlign: 'center' }}>
-          <Typography variant="subtitle2" color="text.secondary">Current Balance</Typography>
-          <Typography 
-            variant="h5" 
-            fontWeight="bold"
-            color={customer.currentBalance > 0 ? 'error.main' : 'success.main'}
-          >
-            {UAEUtils.formatCurrency(customer.currentBalance)}
-          </Typography>
-        </Paper>
-        
-        <Paper sx={{ p: 2, textAlign: 'center' }}>
-          <Typography variant="subtitle2" color="text.secondary">Credit Limit</Typography>
-          <Typography variant="h5" fontWeight="bold">
-            {UAEUtils.formatCurrency(customer.creditLimit)}
-          </Typography>
-        </Paper>
-        
-        <Paper sx={{ p: 2, textAlign: 'center' }}>
-          <Typography variant="subtitle2" color="text.secondary">Available Credit</Typography>
-          <Typography 
-            variant="h5" 
-            fontWeight="bold"
-            color={customer.creditLimit - customer.currentBalance > 0 ? 'success.main' : 'error.main'}
-          >
-            {UAEUtils.formatCurrency(customer.creditLimit - customer.currentBalance)}
-          </Typography>
-        </Paper>
-      </Box>
-      
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, mt: 3 }}>
-        <Paper sx={{ p: 2, textAlign: 'center' }}>
-          <Typography variant="subtitle2" color="text.secondary">Total Purchases</Typography>
-          <Typography variant="h6" fontWeight="bold">
-            {customer.totalPurchases}
-          </Typography>
-        </Paper>
-        
-        <Paper sx={{ p: 2, textAlign: 'center' }}>
-          <Typography variant="subtitle2" color="text.secondary">Total Amount</Typography>
-          <Typography variant="h6" fontWeight="bold" color="primary">
-            {UAEUtils.formatCurrency(customer.totalPurchaseAmount)}
-          </Typography>
-        </Paper>
-      </Box>
-      
-      {customer.notes && (
-        <>
-          <Typography variant="h6" gutterBottom color="primary" sx={{ mt: 3 }}>
-            Notes
-          </Typography>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="body2">{customer.notes}</Typography>
-          </Paper>
-        </>
-      )}
-      
-      <Box sx={{ display: 'flex', gap: 2, mt: 3, flexWrap: 'wrap' }}>
-        <Chip 
-          label={`Created: ${new Date(customer.createdAt).toLocaleDateString()}`} 
-          variant="outlined" 
-          size="small" 
-        />
-        {customer.lastPurchaseDate && (
-          <Chip 
-            label={`Last Purchase: ${new Date(customer.lastPurchaseDate).toLocaleDateString()}`} 
-            variant="outlined" 
-            size="small" 
-          />
+
+      <Grid container spacing={3}>
+        {/* Contact Information */}
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card className="hover-card">
+            <CardContent>
+              <Typography variant="h6" fontWeight="bold" color="primary.main" gutterBottom>
+                Contact Information
+              </Typography>
+              <Box sx={{ display: 'grid', gap: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Phone color="action" />
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Mobile</Typography>
+                    <Typography variant="body1">{UAEUtils.formatPhoneForDisplay(customer.mobile)}</Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Email color="action" />
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Email</Typography>
+                    <Typography variant="body1">{customer.email || 'Not provided'}</Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <LocationOn color="action" />
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Address</Typography>
+                    <Typography variant="body2">
+                      {customer.address || 'Not provided'}
+                      {customer.city && `, ${customer.city}`}
+                      {customer.state && `, ${customer.state}`}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Personal Details */}
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card className="hover-card">
+            <CardContent>
+              <Typography variant="h6" fontWeight="bold" color="primary.main" gutterBottom>
+                Personal Details
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 6 }}>
+                  <Typography variant="caption" color="text.secondary">Occupation</Typography>
+                  <Typography variant="body2">{customer.occupation || 'Not specified'}</Typography>
+                </Grid>
+                <Grid size={{ xs: 6 }}>
+                  <Typography variant="caption" color="text.secondary">Gender</Typography>
+                  <Typography variant="body2">{customer.gender || 'Not specified'}</Typography>
+                </Grid>
+                <Grid size={{ xs: 6 }}>
+                  <Typography variant="caption" color="text.secondary">Date of Birth</Typography>
+                  <Typography variant="body2">
+                    {customer.dateOfBirth ? format(new Date(customer.dateOfBirth), 'MMM dd, yyyy') : 'Not specified'}
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 6 }}>
+                  <Typography variant="caption" color="text.secondary">Tax Number</Typography>
+                  <Typography variant="body2">{customer.taxNumber || 'Not provided'}</Typography>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Financial Overview */}
+        <Grid size={{ xs: 12 }}>
+          <Card className="hover-card">
+            <CardContent>
+              <Typography variant="h6" fontWeight="bold" color="primary.main" gutterBottom>
+                Financial Overview
+              </Typography>
+              <Grid container spacing={3}>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'background.default' }}>
+                    <Typography variant="caption" color="text.secondary">Current Balance</Typography>
+                    <Typography 
+                      variant="h5" 
+                      fontWeight="bold"
+                      color={customer.currentBalance > 0 ? 'error.main' : 'success.main'}
+                      gutterBottom
+                    >
+                      {UAEUtils.formatCurrency(customer.currentBalance)}
+                    </Typography>
+                    {customer.currentBalance > 0 && (
+                      <Chip 
+                        icon={<Warning />}
+                        label="Payment Due"
+                        size="small"
+                        color="error"
+                        variant="outlined"
+                      />
+                    )}
+                  </Paper>
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'background.default' }}>
+                    <Typography variant="caption" color="text.secondary">Credit Limit</Typography>
+                    <Typography variant="h5" fontWeight="bold" gutterBottom>
+                      {UAEUtils.formatCurrency(customer.creditLimit)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {customer.creditLimit > 0 ? 'Active Credit' : 'No Credit'}
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'background.default' }}>
+                    <Typography variant="caption" color="text.secondary">Available Credit</Typography>
+                    <Typography 
+                      variant="h5" 
+                      fontWeight="bold"
+                      color={customer.creditLimit - customer.currentBalance > 0 ? 'success.main' : 'error.main'}
+                      gutterBottom
+                    >
+                      {UAEUtils.formatCurrency(customer.creditLimit - customer.currentBalance)}
+                    </Typography>
+                    <LinearProgress 
+                      variant="determinate" 
+                      value={customer.creditLimit > 0 ? ((customer.currentBalance / customer.creditLimit) * 100) : 0}
+                      sx={{ 
+                        height: 4,
+                        borderRadius: 2,
+                        backgroundColor: 'grey.200',
+                        '& .MuiLinearProgress-bar': {
+                          backgroundColor: customer.currentBalance > customer.creditLimit * 0.8 ? 'error.main' : 'warning.main',
+                        }
+                      }}
+                    />
+                  </Paper>
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'background.default' }}>
+                    <Typography variant="caption" color="text.secondary">Total Purchases</Typography>
+                    <Typography variant="h5" fontWeight="bold" gutterBottom>
+                      {customer.totalPurchases}
+                    </Typography>
+                    <Typography variant="body2" color="primary.main">
+                      {UAEUtils.formatCurrency(customer.totalPurchaseAmount)}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Notes Section */}
+        {customer.notes && (
+          <Grid size={{ xs: 12 }}>
+            <Card className="hover-card">
+              <CardContent>
+                <Typography variant="h6" fontWeight="bold" color="primary.main" gutterBottom>
+                  Notes
+                </Typography>
+                <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
+                  <Typography variant="body2">{customer.notes}</Typography>
+                </Paper>
+              </CardContent>
+            </Card>
+          </Grid>
         )}
-        <Chip 
-          label={customer.gender || 'Gender not specified'} 
-          variant="outlined" 
-          size="small" 
-        />
-      </Box>
+      </Grid>
     </Box>
   );
 
@@ -427,28 +497,38 @@ export default function Customers() {
     }
   };
 
-  // Columns for DataGrid - Updated to match your CustomerDto
+  // Columns for DataGrid
   const columns: GridColDef<CustomerDto>[] = [
     {
       field: 'customerCode',
       headerName: 'Code',
-      width: 120,
+      width: 100,
       renderCell: (params) => (
-        <Typography fontWeight="bold" color="primary">
-          {params.value || 'N/A'}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: 14 }}>
+            {params.row.fullName?.charAt(0)}
+          </Avatar>
+          <Typography variant="body2" fontWeight="bold" color="primary.main">
+            {params.value || 'N/A'}
+          </Typography>
+        </Box>
       ),
     },
     {
       field: 'fullName',
-      headerName: 'Name',
+      headerName: 'Customer',
       width: 200,
       renderCell: (params) => (
         <Box>
           <Typography fontWeight="medium">{params.value}</Typography>
           {params.row.company && (
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" color="text.secondary" display="block">
               {params.row.company}
+            </Typography>
+          )}
+          {params.row.city && (
+            <Typography variant="caption" color="text.secondary">
+              {params.row.city}
             </Typography>
           )}
         </Box>
@@ -456,37 +536,37 @@ export default function Customers() {
     },
     {
       field: 'mobile',
-      headerName: 'Mobile',
-      width: 180,
+      headerName: 'Contact',
+      width: 160,
       renderCell: (params) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Phone fontSize="small" color="action" />
-          <Typography variant="body2">{UAEUtils.formatPhoneForDisplay(params.value)}</Typography>
-        </Box>
-      ),
-    },
-    {
-      field: 'email',
-      headerName: 'Email',
-      width: 200,
-      renderCell: (params) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Email fontSize="small" color="action" />
-          <Typography variant="body2">{params.value || '-'}</Typography>
+        <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Phone fontSize="small" color="action" />
+            <Typography variant="body2">{UAEUtils.formatPhoneForDisplay(params.value)}</Typography>
+          </Box>
+          {params.row.email && (
+            <Typography variant="caption" color="text.secondary" display="block">
+              {params.row.email}
+            </Typography>
+          )}
         </Box>
       ),
     },
     {
       field: 'currentBalance',
       headerName: 'Balance',
-      width: 150,
+      width: 140,
       type: 'number',
       renderCell: (params) => (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AccountBalance fontSize="small" color="action" />
+          {params.value > 0 ? (
+            <TrendingUp fontSize="small" color="error" />
+          ) : (
+            <TrendingDown fontSize="small" color="success" />
+          )}
           <Typography
             fontWeight="bold"
-            color={params.value > 0 ? 'error.main' : params.value < 0 ? 'success.main' : 'text.primary'}
+            color={params.value > 0 ? 'error.main' : 'success.main'}
           >
             {UAEUtils.formatCurrency(params.value)}
           </Typography>
@@ -495,25 +575,16 @@ export default function Customers() {
     },
     {
       field: 'creditLimit',
-      headerName: 'Credit Limit',
-      width: 150,
+      headerName: 'Credit',
+      width: 120,
       type: 'number',
       renderCell: (params) => (
-        <Typography variant="body2">
-          {UAEUtils.formatCurrency(params.value)}
-        </Typography>
-      ),
-    },
-    {
-      field: 'city',
-      headerName: 'City',
-      width: 130,
-      renderCell: (params) => (
-        <Chip 
-          label={params.value || 'N/A'} 
-          size="small" 
-          variant="outlined"
-        />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <CreditScore fontSize="small" color="action" />
+          <Typography variant="body2">
+            {UAEUtils.formatCurrency(params.value)}
+          </Typography>
+        </Box>
       ),
     },
     {
@@ -523,52 +594,55 @@ export default function Customers() {
       valueGetter: (_, row) => getCustomerStatus(row),
       renderCell: (params) => {
         const status = params.value;
-        
         if (status === 'Owes Money') {
-          return <Chip label="Owes Money" color="warning" size="small" />;
+          return <Chip label="Owes Money" color="warning" size="small" icon={<Warning />} />;
         } else if (status === 'Active Credit') {
-          return <Chip label="Active Credit" color="success" size="small" />;
+          return <Chip label="Credit Active" color="success" size="small" icon={<Payment />} />;
         } else {
-          return <Chip label="Active" color="success" size="small" variant="outlined" />;
+          return <Chip label="Active" color="info" size="small" variant="outlined" />;
         }
       },
     },
     {
+      field: 'lastPurchaseDate',
+      headerName: 'Last Purchase',
+      width: 140,
+      valueGetter: (_, row) => row.lastPurchaseDate ? format(new Date(row.lastPurchaseDate), 'MMM dd') : 'Never',
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <ShoppingCart fontSize="small" color="action" />
+          <Typography variant="body2">{params.value}</Typography>
+        </Box>
+      ),
+    },
+    {
       field: 'actions',
       type: 'actions',
-      headerName: 'Actions',
-      width: 150,
+      headerName: '',
+      width: 100,
       getActions: (params) => [
-        <GridActionsCellItem
-          icon={<Visibility />}
-          label="View"
-          onClick={() => handleOpenView(params.row)}
-          showInMenu
-        />,
-        <GridActionsCellItem
-          icon={<Edit />}
-          label="Edit"
-          onClick={() => handleOpenEdit(params.row)}
-          showInMenu
-        />,
-        <GridActionsCellItem
-          icon={<Delete />}
-          label="Delete"
+        <IconButton size="small" onClick={() => handleOpenView(params.row)}>
+          <Visibility fontSize="small" />
+        </IconButton>,
+        <IconButton size="small" onClick={() => handleOpenEdit(params.row)}>
+          <Edit fontSize="small" />
+        </IconButton>,
+        <IconButton 
+          size="small" 
           onClick={() => handleDelete(params.row.id)}
-          showInMenu
           disabled={params.row.currentBalance > 0}
-        />,
+        >
+          <Delete fontSize="small" />
+        </IconButton>,
       ],
     },
   ];
 
-  // Handle search with debounce
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
-    setPage(0); // Reset to first page when searching
+    setPage(0);
   };
 
-  // Clear search
   const handleClearSearch = () => {
     setSearch('');
     setPage(0);
@@ -576,9 +650,9 @@ export default function Customers() {
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ mt: 2 }}>
+      <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>
         Error loading customers: {error.message}
-        <Button onClick={() => refetch()} sx={{ ml: 2 }} size="small">
+        <Button onClick={() => refetch()} sx={{ ml: 2 }} size="small" variant="outlined">
           Retry
         </Button>
       </Alert>
@@ -586,97 +660,212 @@ export default function Customers() {
   }
 
   return (
-    <Box>
+    <Box sx={{ p: 3 }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Box>
-          <Typography variant="h4" fontWeight="bold">
-            Customers
+          <Typography variant="h4" fontWeight="bold" color="primary.main" gutterBottom>
+            Customer Management
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Manage your customer database with UAE-specific features
+            Manage your customer in an effient way ..!!!
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={handleOpenCreate}
-          sx={{ height: 40 }}
-          disabled={saveMutation.isPending || deleteMutation.isPending}
-        >
-          Add Customer
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<Download />}
+            disabled={customers.length === 0}
+          >
+            Export
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={handleOpenCreate}
+            disabled={saveMutation.isPending || deleteMutation.isPending}
+            sx={{
+              background: 'linear-gradient(135deg, #0A2463 0%, #1E3A8A 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #07163E 0%, #0A2463 100%)',
+              },
+            }}
+          >
+            Add Customer
+          </Button>
+        </Box>
       </Box>
 
-      {/* Search Bar */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <TextField
-          fullWidth
-          placeholder="Search customers by name, mobile, email, or code..."
-          value={search}
-          onChange={handleSearchChange}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search />
-              </InputAdornment>
-            ),
-            endAdornment: (
-              <InputAdornment position="end">
-                {search && (
-                  <IconButton onClick={handleClearSearch} size="small">
-                    <Clear />
-                  </IconButton>
-                )}
-                {isLoading && (
-                  <CircularProgress size={20} />
-                )}
-              </InputAdornment>
-            ),
-          }}
-        />
+      {/* Stats Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+          <Card className="hover-card stat-card">
+            <CardContent sx={{ textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Total Customers
+              </Typography>
+              <Typography variant="h4" fontWeight="bold" color="primary.main">
+                {stats.totalCustomers}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                All time
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+          <Card className="hover-card stat-card">
+            <CardContent sx={{ textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Active
+              </Typography>
+              <Typography variant="h4" fontWeight="bold" color="success.main">
+                {stats.activeCustomers}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Current balance zero
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+          <Card className="hover-card stat-card">
+            <CardContent sx={{ textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Owing Money
+              </Typography>
+              <Typography variant="h4" fontWeight="bold" color="warning.main">
+                {stats.owingCustomers}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Outstanding balance
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+          <Card className="hover-card stat-card">
+            <CardContent sx={{ textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Credit Limit
+              </Typography>
+              <Typography variant="h4" fontWeight="bold" color="info.main">
+                {UAEUtils.formatCurrency(stats.totalCreditLimit)}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Total approved
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+          <Card className="hover-card stat-card">
+            <CardContent sx={{ textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Outstanding
+              </Typography>
+              <Typography variant="h4" fontWeight="bold" color="error.main">
+                {UAEUtils.formatCurrency(stats.totalOutstanding)}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                To collect
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Search and Filter Bar */}
+      <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <TextField
+            fullWidth
+            placeholder="Search customers by name, mobile, email, or code..."
+            value={search}
+            onChange={handleSearchChange}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search />
+                </InputAdornment>
+              ),
+              endAdornment: (
+                <InputAdornment position="end">
+                  {search && (
+                    <IconButton onClick={handleClearSearch} size="small">
+                      <Clear />
+                    </IconButton>
+                  )}
+                  {isLoading && (
+                    <CircularProgress size={20} />
+                  )}
+                </InputAdornment>
+              ),
+            }}
+            sx={{ flex: 1 }}
+          />
+          <Button
+            variant="outlined"
+            startIcon={<FilterList />}
+            onClick={handleFilterClick}
+            sx={{ whiteSpace: 'nowrap' }}
+          >
+            Filter
+          </Button>
+        </Box>
+
+        {/* Filter Menu */}
+        <Menu
+          anchorEl={filterAnchorEl}
+          open={Boolean(filterAnchorEl)}
+          onClose={handleFilterClose}
+        >
+          <MenuItem onClick={() => handleStatusFilter('all')} selected={statusFilter === 'all'}>
+            All Customers
+          </MenuItem>
+          <MenuItem onClick={() => handleStatusFilter('active')} selected={statusFilter === 'active'}>
+            <Chip label="Active" size="small" color="info" variant="outlined" sx={{ mr: 1 }} />
+            Active (No Balance)
+          </MenuItem>
+          <MenuItem onClick={() => handleStatusFilter('owing')} selected={statusFilter === 'owing'}>
+            <Chip label="Owing" size="small" color="warning" sx={{ mr: 1 }} />
+            Owes Money
+          </MenuItem>
+          <MenuItem onClick={() => handleStatusFilter('credit')} selected={statusFilter === 'credit'}>
+            <Chip label="Credit" size="small" color="success" sx={{ mr: 1 }} />
+            Credit Active
+          </MenuItem>
+        </Menu>
+
+        {/* Active Filters */}
+        {statusFilter !== 'all' && (
+          <Box sx={{ mt: 2, display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Typography variant="caption" color="text.secondary">
+              Active filter:
+            </Typography>
+            <Chip
+              label={
+                statusFilter === 'active' ? 'Active Customers' :
+                statusFilter === 'owing' ? 'Owes Money' :
+                'Credit Active'
+              }
+              size="small"
+              onDelete={() => setStatusFilter('all')}
+            />
+          </Box>
+        )}
       </Paper>
 
-      {/* Stats */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-        <Paper sx={{ p: 2, flex: 1 }}>
-          <Typography variant="body2" color="text.secondary">
-            Total Customers
-          </Typography>
-          <Typography variant="h4" fontWeight="bold">
-            {totalCount}
-          </Typography>
-        </Paper>
-        <Paper sx={{ p: 2, flex: 1 }}>
-          <Typography variant="body2" color="text.secondary">
-            Active Credit Accounts
-          </Typography>
-          <Typography variant="h4" fontWeight="bold" color="success.main">
-            {customers.filter(c => c.creditLimit > 0).length}
-          </Typography>
-        </Paper>
-        <Paper sx={{ p: 2, flex: 1 }}>
-          <Typography variant="body2" color="text.secondary">
-            Outstanding Balance
-          </Typography>
-          <Typography variant="h4" fontWeight="bold" color="error.main">
-            {UAEUtils.formatCurrency(
-              customers.reduce((sum, c) => sum + (c.currentBalance > 0 ? c.currentBalance : 0), 0)
-            )}
-          </Typography>
-        </Paper>
-      </Box>
-
       {/* Customer Table */}
-      <Paper sx={{ height: 600, width: '100%' }}>
+      <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
         <DataGrid
-          rows={customers}
+          rows={filteredCustomers}
           columns={columns}
           loading={isLoading}
           pagination
           paginationMode="server"
           rowCount={totalCount}
-          pageSizeOptions={[5, 10, 25, 50]}
+          pageSizeOptions={[10, 25, 50, 100]}
           paginationModel={{ page, pageSize }}
           onPaginationModelChange={(model) => {
             setPage(model.page);
@@ -687,58 +876,79 @@ export default function Customers() {
           sx={{
             border: 0,
             '& .MuiDataGrid-columnHeaders': {
-              backgroundColor: 'background.paper',
+              backgroundColor: '#F8FAFC',
               borderBottom: '2px solid',
               borderColor: 'divider',
             },
+            '& .MuiDataGrid-cell': {
+              borderBottom: '1px solid #E2E8F0',
+            },
+            '& .MuiDataGrid-row:hover': {
+              backgroundColor: 'rgba(10, 36, 99, 0.02)',
+            },
+          }}
+          slots={{
+            noRowsOverlay: () => (
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', p: 4 }}>
+                <AccountCircle sx={{ fontSize: 60, color: 'grey.400', mb: 2 }} />
+                <Typography color="text.secondary" gutterBottom>
+                  No customers found
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {search ? 'Try adjusting your search' : 'Add your first customer to get started'}
+                </Typography>
+              </Box>
+            ),
           }}
         />
       </Paper>
-
-      {/* Info Alert */}
-      <Alert severity="info" sx={{ mt: 3 }}>
-        <Typography variant="body2">
-          💡 <strong>UAE Features:</strong> Mobile numbers automatically format to +971 standard. 
-          TRN validation ensures compliance with UAE tax regulations. Customers with outstanding balances cannot be deleted.
-        </Typography>
-      </Alert>
 
       {/* Customer Dialog */}
       <Dialog
         open={openDialog}
         onClose={!saveMutation.isPending ? handleCloseDialog : undefined}
-        maxWidth="md"
+        maxWidth="lg"
         fullWidth
         scroll="paper"
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            overflow: 'hidden',
+          },
+        }}
       >
-        <DialogTitle>
-          {viewMode ? 'View Customer' : isEdit ? 'Edit Customer' : 'Add New Customer'}
-          {(saveMutation.isPending || deleteMutation.isPending) && (
-            <Typography variant="caption" sx={{ ml: 2, color: 'text.secondary' }}>
-              <CircularProgress size={12} sx={{ mr: 1 }} />
-              Processing...
+        <DialogTitle sx={{ backgroundColor: 'primary.main', color: 'white', py: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="h6" fontWeight="bold">
+              {viewMode ? 'Customer Details' : isEdit ? 'Edit Customer' : 'Add New Customer'}
             </Typography>
-          )}
+            {(saveMutation.isPending || deleteMutation.isPending) && (
+              <CircularProgress size={20} color="inherit" />
+            )}
+          </Box>
         </DialogTitle>
-        <DialogContent dividers>
+        <DialogContent dividers sx={{ p: 0 }}>
           {viewMode && selectedCustomer ? (
             <CustomerDetailsView customer={selectedCustomer} />
           ) : (
-            <CustomerForm
-              initialData={selectedCustomer}
-              onSubmit={handleSaveCustomer}
-              isLoading={saveMutation.isPending}
-              isEdit={isEdit}
-            />
+            <Box sx={{ p: 3 }}>
+              <CustomerForm
+                initialData={selectedCustomer}
+                onSubmit={handleSaveCustomer}
+                isLoading={saveMutation.isPending}
+                isEdit={isEdit}
+              />
+            </Box>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button 
-            onClick={handleCloseDialog}
-            disabled={saveMutation.isPending}
-          >
-            Cancel
-          </Button>
+		<DialogActions sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
+		  <Button 
+			onClick={handleCloseDialog}
+			disabled={saveMutation.isPending}
+			variant="outlined"
+		  >
+			Cancel
+		  </Button>
           {viewMode && selectedCustomer && (
             <>
               <Button 
@@ -749,10 +959,10 @@ export default function Customers() {
                 }}
                 disabled={saveMutation.isPending}
               >
-                Edit
+                Edit Details
               </Button>
               <Button 
-                variant="contained" 
+                variant="contained"
                 onClick={handleCloseDialog}
                 disabled={saveMutation.isPending}
               >
@@ -760,18 +970,24 @@ export default function Customers() {
               </Button>
             </>
           )}
-          {!viewMode && (
-            <Button 
-              variant="contained" 
-              type="submit"
-              form="customer-form"
-              disabled={saveMutation.isPending}
-              startIcon={saveMutation.isPending ? <CircularProgress size={16} /> : null}
-            >
-              {isEdit ? 'Update Customer' : 'Create Customer'}
-            </Button>
-          )}
-        </DialogActions>
+		  {!viewMode && (
+			<Button 
+			  variant="contained" 
+			  type="submit"
+			  form="customer-form"
+			  disabled={saveMutation.isPending}
+			  startIcon={saveMutation.isPending ? <CircularProgress size={16} /> : null}
+			  sx={{
+				background: 'linear-gradient(135deg, #0A2463 0%, #1E3A8A 100%)',
+				'&:hover': {
+				  background: 'linear-gradient(135deg, #07163E 0%, #0A2463 100%)',
+				},
+			  }}
+			>
+			  {isEdit ? 'Update Customer' : 'Create Customer'}
+			</Button>
+		  )}
+		</DialogActions>
       </Dialog>
     </Box>
   );

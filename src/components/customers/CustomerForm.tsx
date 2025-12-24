@@ -1,538 +1,394 @@
-// src/components/customers/CustomerForm.tsx
-
-import { useEffect, useState } from 'react';
+import React from 'react';
 import {
   Box,
-  Grid,
   TextField,
-  Button,
+  Grid,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Alert,
+  FormHelperText,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
   Typography,
-  Paper,
-  InputAdornment,
-  IconButton,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { useForm, Controller } from 'react-hook-form';
 import { UAEUtils } from '@/utils/uae.utils';
-import { CreateCustomerDto, UpdateCustomerDto } from '@/types';
+import type { CustomerDto, CreateCustomerDto, UpdateCustomerDto } from '@/types';
 
 interface CustomerFormProps {
-  initialData?: CreateCustomerDto | UpdateCustomerDto;
-  onSubmit: (data: any) => Promise<void>;
+  initialData?: CustomerDto | null;
+  onSubmit: (data: any) => void;
   isLoading?: boolean;
   isEdit?: boolean;
 }
 
-const defaultValues: CreateCustomerDto = {
-  customerCode: '',
-  fullName: '',
-  email: '',
-  mobile: '',
-  address: '',
-  city: '',
-  state: '',
-  country: 'United Arab Emirates',
-  postalCode: '',
-  dateOfBirth: undefined,
-  gender: '',
-  occupation: '',
-  company: '',
-  taxNumber: '',
-  creditLimit: 0,
-  notes: '',
-};
-
-export default function CustomerForm({
+const CustomerForm: React.FC<CustomerFormProps> = ({
   initialData,
   onSubmit,
   isLoading = false,
   isEdit = false,
-}: CustomerFormProps) {
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-    watch,
-    setError,
-    clearErrors,
-    reset,
-  } = useForm<CreateCustomerDto | UpdateCustomerDto>({
-    defaultValues: initialData || defaultValues,
+}) => {
+  const [formData, setFormData] = React.useState<CreateCustomerDto | UpdateCustomerDto>({
+    customerCode: initialData?.customerCode || '', // Will be auto-generated or disabled
+    fullName: initialData?.fullName || '',
+    email: initialData?.email || '',
+    mobile: initialData?.mobile || '',
+    address: initialData?.address || '',
+    emirate: initialData?.city || '', // Changed from city to emirate
+    state: initialData?.state || '',
+    country: initialData?.country || 'United Arab Emirates',
+    postalCode: initialData?.postalCode || '',
+    dateOfBirth: initialData?.dateOfBirth ? new Date(initialData.dateOfBirth) : null,
+    gender: initialData?.gender || '',
+    occupation: initialData?.occupation || '',
+    company: initialData?.company || '',
+    taxNumber: initialData?.taxNumber || '',
+    creditLimit: initialData?.creditLimit || 0,
+    notes: initialData?.notes || '',
   });
 
-  const [mobileError, setMobileError] = useState('');
-  const [mobileValid, setMobileValid] = useState(false);
-  const mobileValue = watch('mobile');
+  const [mobileError, setMobileError] = React.useState<string>('');
+  const [trnError, setTrnError] = React.useState<string>('');
 
-  // Initialize form with initialData
-  useEffect(() => {
-    if (initialData) {
-      reset(initialData);
-    }
-  }, [initialData, reset]);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
 
-  // Format mobile number for display
-  useEffect(() => {
-    if (mobileValue) {
-      const formatted = UAEUtils.formatPhoneNumber(mobileValue);
-      if (formatted !== mobileValue) {
-        setValue('mobile', formatted, { shouldValidate: true });
-      }
-      
-      const isValid = UAEUtils.isValidUaePhone(formatted);
-      setMobileValid(isValid);
-      
-      if (formatted && !isValid) {
-        setMobileError('Invalid UAE mobile number. Format: +971XXXXXXXXX');
+    // Real-time validation for mobile number
+    if (name === 'mobile') {
+      if (value && !UAEUtils.isValidUaeMobile(value)) {
+        setMobileError('Invalid UAE mobile number. Format: +9715XXXXXXXX');
       } else {
         setMobileError('');
-        clearErrors('mobile');
       }
     }
-  }, [mobileValue, setValue, clearErrors]);
 
-const handleFormSubmit = async (data: CreateCustomerDto | UpdateCustomerDto) => {
-  console.log('Form Submitted Data:', data);
-  
-  // Validate mobile number
-  if (!UAEUtils.isValidUaePhone(data.mobile)) {
-    setError('mobile', { message: 'Please enter a valid UAE mobile number' });
-    return;
-  }
-
-  // Validate TRN if provided
-  if (data.taxNumber && data.taxNumber.trim() !== '' && !UAEUtils.validateTRN(data.taxNumber)) {
-    setError('taxNumber', { message: 'Invalid UAE TRN. Must be 15 digits starting with 1' });
-    return;
-  }
-
-  // For create: ensure all required fields are present
-  if (!isEdit) {
-    const createData = data as CreateCustomerDto;
-    if (!createData.customerCode || createData.customerCode.trim() === '') {
-      setError('customerCode', { message: 'Customer code is required' });
-      return;
+    // Real-time validation for TRN
+    if (name === 'taxNumber' && value) {
+      if (!UAEUtils.isValidTrn(value)) {
+        setTrnError('Invalid UAE TRN. Must be 15 digits.');
+      } else {
+        setTrnError('');
+      }
     }
-  }
-
-  // Prepare data - ensure all fields have proper values
-  const submitData: any = {
-    ...data,
-    email: data.email || '',
-    address: data.address || '',
-    city: data.city || '',
-    state: data.state || '',
-    country: data.country || 'United Arab Emirates',
-    postalCode: data.postalCode || '',
-    dateOfBirth: data.dateOfBirth || null,
-    gender: data.gender || '',
-    occupation: data.occupation || '',
-    company: data.company || '',
-    taxNumber: data.taxNumber || '',
-    creditLimit: data.creditLimit || 0,
-    notes: data.notes || '',
   };
 
-  console.log('Final Submit Data:', submitData);
-  
-  await onSubmit(submitData);
-};
+  const handleSelectChange = (e: any) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleDateChange = (date: Date | null) => {
+    setFormData(prev => ({ ...prev, dateOfBirth: date }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate mobile number
+    if (formData.mobile && !UAEUtils.isValidUaeMobile(formData.mobile)) {
+      setMobileError('Invalid UAE mobile number');
+      return;
+    }
+
+    // Validate TRN if provided
+    if (formData.taxNumber && !UAEUtils.isValidTrn(formData.taxNumber)) {
+      setTrnError('Invalid UAE TRN');
+      return;
+    }
+
+    // Format mobile number for backend
+    const formattedData = {
+      ...formData,
+      mobile: formData.mobile ? UAEUtils.formatMobileForApi(formData.mobile) : '',
+	  // Send Emirate as City for now (temporary fix)
+	  city: formData.emirate, // Map emirate to city
+	  // Send a dummy code that backend will replace
+	  customerCode: isEdit ? formData.customerCode : "TEMP-CODE",
+      // Remove customerCode for create (backend will generate it)
+      ...(!isEdit && { customerCode: undefined }),
+      // For update, don't send customerCode at all
+      ...(isEdit && { customerCode: undefined }),
+    };
+
+    onSubmit(formattedData);
+  };
+
+  // UAE Emirates list
+  const emirates = [
+    'Abu Dhabi',
+    'Dubai',
+    'Sharjah',
+    'Ajman',
+    'Umm Al Quwain',
+    'Ras Al Khaimah',
+    'Fujairah'
+  ];
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box 
-        component="form" 
-        onSubmit={handleSubmit(handleFormSubmit)}
-        id="customer-form"
-      >
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h6" gutterBottom fontWeight="bold">
-            Basic Information
-          </Typography>
-          
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
-              <Controller
+      <form id="customer-form" onSubmit={handleSubmit}>
+        <Grid container spacing={3}>
+          {/* Customer Code - Only show for edit, not for create */}
+          {isEdit && initialData?.customerCode && (
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                fullWidth
+                label="Customer Code"
                 name="customerCode"
-                control={control}
-                rules={{ required: !isEdit ? 'Customer code is required' : false }}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label="Customer Code *"
-                    error={!!errors.customerCode}
-                    helperText={errors.customerCode?.message}
-                    disabled={isLoading || isEdit}
-                    InputProps={{
-                      readOnly: isEdit,
-                    }}
-                  />
-                )}
+                value={initialData.customerCode}
+                disabled
+                helperText="Customer code is auto-generated and cannot be changed"
               />
             </Grid>
-            
-            <Grid item xs={12} md={6}>
-              <Controller
-                name="fullName"
-                control={control}
-                rules={{ required: 'Full name is required' }}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label="Full Name *"
-                    error={!!errors.fullName}
-                    helperText={errors.fullName?.message}
-                    disabled={isLoading}
-                  />
-                )}
-              />
-            </Grid>
+          )}
 
-            <Grid item xs={12} md={6}>
-              <Controller
-                name="mobile"
-                control={control}
-                rules={{ 
-                  required: 'Mobile number is required',
-                  pattern: {
-                    value: /^\+971[0-9]{9}$/,
-                    message: 'Invalid UAE mobile format. Use +971XXXXXXXXX',
-                  },
-                }}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label="Mobile Number *"
-                    error={!!errors.mobile || !!mobileError}
-                    helperText={errors.mobile?.message || mobileError || 'Format: +971XXXXXXXXX'}
-                    disabled={isLoading}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          🇦🇪 +971
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                )}
-              />
-              {mobileValid && (
-                <Alert severity="success" sx={{ mt: 1, py: 0 }}>
-                  ✓ Valid UAE mobile number
-                </Alert>
-              )}
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Controller
-                name="email"
-                control={control}
-                rules={{ 
-                  pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: 'Invalid email address',
-                  },
-                }}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label="Email"
-                    type="email"
-                    error={!!errors.email}
-                    helperText={errors.email?.message}
-                    disabled={isLoading}
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Controller
-                name="taxNumber"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label="Tax Registration Number (TRN)"
-                    placeholder="15-digit UAE TRN"
-                    error={!!errors.taxNumber}
-                    helperText={errors.taxNumber?.message || 'Optional - 15 digits starting with 1'}
-                    disabled={isLoading}
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Controller
-                name="creditLimit"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label="Credit Limit (AED)"
-                    type="number"
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">AED</InputAdornment>
-                      ),
-                    }}
-                    disabled={isLoading}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
-                  />
-                )}
-              />
-            </Grid>
+          {/* Full Name - Required */}
+          <Grid size={{ xs: 12, md: isEdit ? 6 : 12 }}>
+            <TextField
+              fullWidth
+              label="Full Name *"
+              name="fullName"
+              value={formData.fullName}
+              onChange={handleChange}
+              required
+              disabled={isLoading}
+            />
           </Grid>
-        </Paper>
 
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h6" gutterBottom fontWeight="bold">
-            Personal Details
-          </Typography>
-          
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
-              <Controller
-                name="dateOfBirth"
-                control={control}
-                render={({ field }) => (
-                  <DatePicker
-                    label="Date of Birth"
-                    value={field.value ? new Date(field.value) : null}
-                    onChange={(date) => field.onChange(date?.toISOString())}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        error: !!errors.dateOfBirth,
-                        helperText: errors.dateOfBirth?.message,
-                      },
-                    }}
-                    disabled={isLoading}
-                  />
-                )}
-              />
-            </Grid>
+          {/* Mobile - Required with UAE validation */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              label="Mobile Number *"
+              name="mobile"
+              value={formData.mobile}
+              onChange={handleChange}
+              required
+              disabled={isLoading}
+              error={!!mobileError}
+              helperText={mobileError || "UAE format: +9715XXXXXXXX"}
+              placeholder="+9715XXXXXXXX"
+            />
+          </Grid>
 
-            <Grid item xs={12} md={6}>
-              <Controller
+          {/* Email - Optional */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              label="Email Address"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              disabled={isLoading}
+            />
+          </Grid>
+
+          {/* Company */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              label="Company"
+              name="company"
+              value={formData.company}
+              onChange={handleChange}
+              disabled={isLoading}
+            />
+          </Grid>
+
+          {/* Occupation */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              label="Occupation"
+              name="occupation"
+              value={formData.occupation}
+              onChange={handleChange}
+              disabled={isLoading}
+            />
+          </Grid>
+
+          {/* TRN with validation */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              label="Tax Registration Number (TRN)"
+              name="taxNumber"
+              value={formData.taxNumber}
+              onChange={handleChange}
+              disabled={isLoading}
+              error={!!trnError}
+              helperText={trnError || "UAE TRN: 15 digits"}
+              placeholder="123456789012345"
+              inputProps={{ maxLength: 15 }}
+            />
+          </Grid>
+
+          {/* Credit Limit */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              label="Credit Limit (AED)"
+              name="creditLimit"
+              type="number"
+              value={formData.creditLimit}
+              onChange={handleChange}
+              disabled={isLoading}
+              InputProps={{ inputProps: { min: 0, step: 100 } }}
+            />
+          </Grid>
+
+          {/* Gender */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <FormControl component="fieldset">
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Gender
+              </Typography>
+              <RadioGroup
+                row
                 name="gender"
-                control={control}
-                render={({ field }) => (
-                  <FormControl fullWidth>
-                    <InputLabel>Gender</InputLabel>
-                    <Select
-                      {...field}
-                      label="Gender"
-                      disabled={isLoading}
-                    >
-                      <MenuItem value="">Not specified</MenuItem>
-                      <MenuItem value="Male">Male</MenuItem>
-                      <MenuItem value="Female">Female</MenuItem>
-                    </Select>
-                  </FormControl>
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Controller
-                name="occupation"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label="Occupation"
-                    disabled={isLoading}
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Controller
-                name="company"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label="Company"
-                    disabled={isLoading}
-                  />
-                )}
-              />
-            </Grid>
+                value={formData.gender}
+                onChange={handleChange}
+              >
+                <FormControlLabel value="Male" control={<Radio />} label="Male" disabled={isLoading} />
+                <FormControlLabel value="Female" control={<Radio />} label="Female" disabled={isLoading} />
+                <FormControlLabel value="Other" control={<Radio />} label="Other" disabled={isLoading} />
+              </RadioGroup>
+            </FormControl>
           </Grid>
-        </Paper>
 
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h6" gutterBottom fontWeight="bold">
-            Address Details
-          </Typography>
-          
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <Controller
-                name="address"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label="Address"
-                    multiline
-                    rows={2}
-                    disabled={isLoading}
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <Controller
-                name="city"
-                control={control}
-                rules={{ required: 'City is required' }}
-                render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.city}>
-                    <InputLabel>City *</InputLabel>
-                    <Select
-                      {...field}
-                      label="City *"
-                      disabled={isLoading}
-                    >
-                      <MenuItem value="">Select City</MenuItem>
-                      {UAEUtils.getUAECities().map((city) => (
-                        <MenuItem key={city.value} value={city.label}>
-                          {city.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {errors.city && (
-                      <Typography variant="caption" color="error">
-                        {errors.city.message}
-                      </Typography>
-                    )}
-                  </FormControl>
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <Controller
-                name="state"
-                control={control}
-                rules={{ required: 'Emirate is required' }}
-                render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.state}>
-                    <InputLabel>Emirate *</InputLabel>
-                    <Select
-                      {...field}
-                      label="Emirate *"
-                      disabled={isLoading}
-                    >
-                      <MenuItem value="">Select Emirate</MenuItem>
-                      {UAEUtils.getUAEStates().map((state) => (
-                        <MenuItem key={state.value} value={state.label}>
-                          {state.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {errors.state && (
-                      <Typography variant="caption" color="error">
-                        {errors.state.message}
-                      </Typography>
-                    )}
-                  </FormControl>
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <Controller
-                name="postalCode"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label="Postal Code"
-                    disabled={isLoading}
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <Controller
-                name="country"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label="Country"
-                    value="United Arab Emirates"
-                    disabled
-                  />
-                )}
-              />
-            </Grid>
+          {/* Date of Birth */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <DatePicker
+              label="Date of Birth"
+              value={formData.dateOfBirth}
+              onChange={handleDateChange}
+              disabled={isLoading}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                },
+              }}
+            />
           </Grid>
-        </Paper>
 
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h6" gutterBottom fontWeight="bold">
-            Additional Information
-          </Typography>
-          
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <Controller
-                name="notes"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label="Notes"
-                    multiline
-                    rows={3}
-                    placeholder="Any additional notes about this customer..."
-                    disabled={isLoading}
-                  />
-                )}
-              />
-            </Grid>
+          {/* Address */}
+          <Grid size={{ xs: 12 }}>
+            <TextField
+              fullWidth
+              label="Address"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              disabled={isLoading}
+              multiline
+              rows={2}
+            />
           </Grid>
-        </Paper>
 
-        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}>
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={isLoading}
-            sx={{ minWidth: 120 }}
-          >
-            {isLoading ? 'Saving...' : isEdit ? 'Update Customer' : 'Create Customer'}
-          </Button>
-        </Box>
-      </Box>
+          {/* Emirates (Replaced City) */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <FormControl fullWidth disabled={isLoading}>
+              <InputLabel>Emirate *</InputLabel>
+              <Select
+                name="emirate"
+                value={formData.emirate}
+                onChange={handleSelectChange}
+                label="Emirate *"
+                required
+              >
+                <MenuItem value="">
+                  <em>Select Emirate</em>
+                </MenuItem>
+                {emirates.map((emirate) => (
+                  <MenuItem key={emirate} value={emirate}>
+                    {emirate}
+                  </MenuItem>
+                ))}
+              </Select>
+              <FormHelperText>Select the UAE emirate</FormHelperText>
+            </FormControl>
+          </Grid>
+
+          {/* Area/State within Emirate */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              label="Area / District"
+              name="state"
+              value={formData.state}
+              onChange={handleChange}
+              disabled={isLoading}
+              helperText="Specific area within the emirate"
+            />
+          </Grid>
+
+          {/* Postal Code */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              label="Postal Code"
+              name="postalCode"
+              value={formData.postalCode}
+              onChange={handleChange}
+              disabled={isLoading}
+            />
+          </Grid>
+
+          {/* Country (Fixed as UAE) */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              label="Country"
+              name="country"
+              value="United Arab Emirates"
+              disabled
+              helperText="System default: United Arab Emirates"
+            />
+          </Grid>
+
+          {/* Notes */}
+          <Grid size={{ xs: 12 }}>
+            <TextField
+              fullWidth
+              label="Notes"
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              disabled={isLoading}
+              multiline
+              rows={3}
+            />
+          </Grid>
+
+          {/* Form Submission Info */}
+          <Grid size={{ xs: 12 }}>
+            <Box sx={{ 
+              p: 2, 
+              bgcolor: 'info.light', 
+              borderRadius: 1,
+              borderLeft: '4px solid',
+              borderColor: 'info.main'
+            }}>
+              <Typography variant="body2">
+                <strong>Note:</strong> 
+                {isEdit 
+                  ? ' Customer code cannot be changed after creation.'
+                  : ' Customer code will be auto-generated by the system.'
+                }
+                {' '}Mobile numbers are automatically formatted to UAE standard (+971).
+              </Typography>
+            </Box>
+          </Grid>
+        </Grid>
+      </form>
     </LocalizationProvider>
   );
-}
+};
+
+export default CustomerForm;
