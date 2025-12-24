@@ -1,3 +1,5 @@
+// src/components/customers/CustomerForm.tsx
+
 import { useEffect, useState } from 'react';
 import {
   Box,
@@ -31,7 +33,7 @@ interface CustomerFormProps {
 const defaultValues: CreateCustomerDto = {
   customerCode: '',
   fullName: '',
-  email: '', // Empty string for optional
+  email: '',
   mobile: '',
   address: '',
   city: '',
@@ -61,7 +63,8 @@ export default function CustomerForm({
     watch,
     setError,
     clearErrors,
-  } = useForm<CreateCustomerDto>({
+    reset,
+  } = useForm<CreateCustomerDto | UpdateCustomerDto>({
     defaultValues: initialData || defaultValues,
   });
 
@@ -69,12 +72,19 @@ export default function CustomerForm({
   const [mobileValid, setMobileValid] = useState(false);
   const mobileValue = watch('mobile');
 
+  // Initialize form with initialData
+  useEffect(() => {
+    if (initialData) {
+      reset(initialData);
+    }
+  }, [initialData, reset]);
+
   // Format mobile number for display
   useEffect(() => {
     if (mobileValue) {
       const formatted = UAEUtils.formatPhoneNumber(mobileValue);
       if (formatted !== mobileValue) {
-        setValue('mobile', formatted);
+        setValue('mobile', formatted, { shouldValidate: true });
       }
       
       const isValid = UAEUtils.isValidUaePhone(formatted);
@@ -89,35 +99,59 @@ export default function CustomerForm({
     }
   }, [mobileValue, setValue, clearErrors]);
 
-	const handleFormSubmit = async (data: CreateCustomerDto) => {
-	  // Validate mobile number
-	  if (!UAEUtils.isValidUaePhone(data.mobile)) {
-		setError('mobile', { message: 'Please enter a valid UAE mobile number' });
-		return;
-	  }
+const handleFormSubmit = async (data: CreateCustomerDto | UpdateCustomerDto) => {
+  console.log('Form Submitted Data:', data);
+  
+  // Validate mobile number
+  if (!UAEUtils.isValidUaePhone(data.mobile)) {
+    setError('mobile', { message: 'Please enter a valid UAE mobile number' });
+    return;
+  }
 
-	  // Validate TRN if provided
-	  if (data.taxNumber && !UAEUtils.validateTRN(data.taxNumber)) {
-		setError('taxNumber', { message: 'Invalid UAE TRN. Must be 15 digits starting with 1' });
-		return;
-	  }
-	  
-	// Ensure all required fields have values (even if empty strings for optional ones)
-	  const submitData: CreateCustomerDto = {
-		...data,
-		email: data.email || '', // Convert undefined to empty string
-		address: data.address || '',
-		city: data.city || '',
-		state: data.state || '',
-		country: data.country || 'United Arab Emirates',
-		postalCode: data.postalCode || '',
-	  };
-    await onSubmit(data);
+  // Validate TRN if provided
+  if (data.taxNumber && data.taxNumber.trim() !== '' && !UAEUtils.validateTRN(data.taxNumber)) {
+    setError('taxNumber', { message: 'Invalid UAE TRN. Must be 15 digits starting with 1' });
+    return;
+  }
+
+  // For create: ensure all required fields are present
+  if (!isEdit) {
+    const createData = data as CreateCustomerDto;
+    if (!createData.customerCode || createData.customerCode.trim() === '') {
+      setError('customerCode', { message: 'Customer code is required' });
+      return;
+    }
+  }
+
+  // Prepare data - ensure all fields have proper values
+  const submitData: any = {
+    ...data,
+    email: data.email || '',
+    address: data.address || '',
+    city: data.city || '',
+    state: data.state || '',
+    country: data.country || 'United Arab Emirates',
+    postalCode: data.postalCode || '',
+    dateOfBirth: data.dateOfBirth || null,
+    gender: data.gender || '',
+    occupation: data.occupation || '',
+    company: data.company || '',
+    taxNumber: data.taxNumber || '',
+    creditLimit: data.creditLimit || 0,
+    notes: data.notes || '',
   };
 
+  console.log('Final Submit Data:', submitData);
+  
+  await onSubmit(submitData);
+};
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box component="form" onSubmit={handleSubmit(handleFormSubmit)}>
+      <Box 
+        component="form" 
+        onSubmit={handleSubmit(handleFormSubmit)}
+        id="customer-form"
+      >
         <Paper sx={{ p: 3, mb: 3 }}>
           <Typography variant="h6" gutterBottom fontWeight="bold">
             Basic Information
@@ -128,7 +162,7 @@ export default function CustomerForm({
               <Controller
                 name="customerCode"
                 control={control}
-                rules={{ required: 'Customer code is required' }}
+                rules={{ required: !isEdit ? 'Customer code is required' : false }}
                 render={({ field }) => (
                   <TextField
                     {...field}
@@ -136,7 +170,10 @@ export default function CustomerForm({
                     label="Customer Code *"
                     error={!!errors.customerCode}
                     helperText={errors.customerCode?.message}
-                    disabled={isLoading}
+                    disabled={isLoading || isEdit}
+                    InputProps={{
+                      readOnly: isEdit,
+                    }}
                   />
                 )}
               />
@@ -190,7 +227,7 @@ export default function CustomerForm({
                 )}
               />
               {mobileValid && (
-                <Alert severity="success" sx={{ mt: 1 }}>
+                <Alert severity="success" sx={{ mt: 1, py: 0 }}>
                   ✓ Valid UAE mobile number
                 </Alert>
               )}
@@ -370,13 +407,13 @@ export default function CustomerForm({
               <Controller
                 name="city"
                 control={control}
+                rules={{ required: 'City is required' }}
                 render={({ field }) => (
-                  <FormControl fullWidth>
+                  <FormControl fullWidth error={!!errors.city}>
                     <InputLabel>City *</InputLabel>
                     <Select
                       {...field}
                       label="City *"
-                      required
                       disabled={isLoading}
                     >
                       <MenuItem value="">Select City</MenuItem>
@@ -386,6 +423,11 @@ export default function CustomerForm({
                         </MenuItem>
                       ))}
                     </Select>
+                    {errors.city && (
+                      <Typography variant="caption" color="error">
+                        {errors.city.message}
+                      </Typography>
+                    )}
                   </FormControl>
                 )}
               />
@@ -395,13 +437,13 @@ export default function CustomerForm({
               <Controller
                 name="state"
                 control={control}
+                rules={{ required: 'Emirate is required' }}
                 render={({ field }) => (
-                  <FormControl fullWidth>
+                  <FormControl fullWidth error={!!errors.state}>
                     <InputLabel>Emirate *</InputLabel>
                     <Select
                       {...field}
                       label="Emirate *"
-                      required
                       disabled={isLoading}
                     >
                       <MenuItem value="">Select Emirate</MenuItem>
@@ -411,6 +453,11 @@ export default function CustomerForm({
                         </MenuItem>
                       ))}
                     </Select>
+                    {errors.state && (
+                      <Typography variant="caption" color="error">
+                        {errors.state.message}
+                      </Typography>
+                    )}
                   </FormControl>
                 )}
               />

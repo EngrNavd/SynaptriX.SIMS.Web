@@ -17,17 +17,17 @@ export interface PagedRequestDto {
 
 // Match EXACTLY with your .NET CustomerDto
 export interface CustomerDto {
-  id: string; // GUID from .NET
-  customerCode: string;
+  id: string;
+  customerCode: string; // Immutable - never sent in updates
   fullName: string;
   email: string;
-  mobile: string; // Note: lowercase 'mobile' but backend uses 'Mobile'
+  mobile: string;
   address: string;
   city: string;
   state: string;
   country: string;
   postalCode: string;
-  dateOfBirth?: string; // ISO string from backend
+  dateOfBirth?: string;
   gender?: string;
   occupation?: string;
   company?: string;
@@ -45,14 +45,14 @@ export interface CustomerDto {
 export interface CreateCustomerDto {
   customerCode: string;
   fullName: string;
-  email: string; // Empty string allowed for optional
-  mobile: string; // REQUIRED
+  email: string;
+  mobile: string;
   address: string;
   city: string;
   state: string;
   country: string;
   postalCode: string;
-  dateOfBirth?: string; // ISO string
+  dateOfBirth?: string;
   gender?: string;
   occupation?: string;
   company?: string;
@@ -69,6 +69,13 @@ export interface UpdateCustomerDto {
   address?: string;
   city?: string;
   state?: string;
+  country?: string;
+  postalCode?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  occupation?: string;
+  company?: string;
+  taxNumber?: string;
   creditLimit?: number;
   notes?: string;
 }

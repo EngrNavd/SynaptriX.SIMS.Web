@@ -1,4 +1,3 @@
-// src/api/customers.api.ts
 import axiosClient, { extractResponseData } from './axiosClient';
 import { ApiUtils } from '@/utils/api.utils';
 import { 
@@ -46,19 +45,50 @@ export const customersApi = {
 
   // Create new customer
   createCustomer: async (data: CreateCustomerDto): Promise<ApiResponse<CustomerDto>> => {
-    const backendData = ApiUtils.prepareRequestData(data);
-    const response = await axiosClient.post('/customers', backendData);
-    const extracted = extractResponseData(response);
-    return ApiUtils.processApiResponse<CustomerDto>(extracted, false);
+    try {
+      const backendData = ApiUtils.prepareRequestData(data);
+      console.log('Create Customer - Backend Data:', backendData);
+      
+      const response = await axiosClient.post('/customers', backendData);
+      const extracted = extractResponseData(response);
+      return ApiUtils.processApiResponse<CustomerDto>(extracted, false);
+    } catch (error: any) {
+      console.error('Create Customer API Error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to create customer',
+        data: null as any,
+        errors: error.response?.data?.errors || [error.message]
+      };
+    }
   },
 
-  // Update customer
-  updateCustomer: async (id: string, data: UpdateCustomerDto): Promise<ApiResponse<CustomerDto>> => {
-    const backendData = ApiUtils.prepareRequestData(data);
-    const response = await axiosClient.put(`/customers/${id}`, backendData);
-    const extracted = extractResponseData(response);
-    return ApiUtils.processApiResponse<CustomerDto>(extracted, false);
-  },
+  // Update customer - FIXED with proper error handling
+	updateCustomer: async (id: string, data: UpdateCustomerDto): Promise<ApiResponse<CustomerDto>> => {
+	  try {
+		// Convert frontend DTO to backend DTO
+		const backendData = ApiUtils.toUpdateCustomerDto(data);
+		
+		console.log('Update Customer - Original Data:', data);
+		console.log('Update Customer - Backend Data:', backendData);
+		
+		// Remove the JSON.parse(JSON.stringify()) line - let axios handle serialization
+		const response = await axiosClient.put(`/customers/${id}`, backendData);
+		const extracted = extractResponseData(response);
+		
+		return ApiUtils.processApiResponse<CustomerDto>(extracted, false);
+	  } catch (error: any) {
+		console.error('Update Customer API Error:', error);
+		
+		// Return a proper error response
+		return {
+		  success: false,
+		  message: error.response?.data?.message || error.message || 'Failed to update customer',
+		  data: null as any,
+		  errors: error.response?.data?.errors || [error.message || 'Unknown error']
+		};
+	  }
+	},
 
   // Delete customer
   deleteCustomer: async (id: string): Promise<ApiResponse> => {

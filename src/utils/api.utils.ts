@@ -1,5 +1,4 @@
-// src/utils/api.utils.ts
-import { ApiResponse } from '@/types';
+import { ApiResponse, UpdateCustomerDto } from '@/types';
 import toast from 'react-hot-toast';
 
 export class ApiUtils {
@@ -133,6 +132,51 @@ export class ApiUtils {
         result['fullName'] = value;
       } else {
         result[camelKey] = value;
+      }
+    }
+    
+    return result;
+  }
+
+  /**
+   * Convert UpdateCustomerDto to backend DTO
+   */
+  static toUpdateCustomerDto(data: UpdateCustomerDto): any {
+    const result: any = {};
+    
+    // List of ALL fields allowed in update (everything except customerCode)
+    const allowedFields = [
+      'fullName', 'email', 'mobile', 'address', 'city', 'state',
+      'country', 'postalCode', 'dateOfBirth', 'gender', 'occupation',
+      'company', 'taxNumber', 'creditLimit', 'notes'
+    ];
+    
+    for (const [key, value] of Object.entries(data)) {
+      // Skip if field not allowed or value is undefined/null
+      if (!allowedFields.includes(key) || value === undefined || value === null) {
+        continue;
+      }
+      
+      const pascalKey = key.charAt(0).toUpperCase() + key.slice(1);
+      
+      // Special handling for specific fields
+      if (key === 'mobile' && value) {
+        result['Mobile'] = this.formatMobileForApi(value as string);
+      } else if (key === 'dateOfBirth' && value) {
+        try {
+          const date = new Date(value as string);
+          if (!isNaN(date.getTime())) {
+            result['DateOfBirth'] = date.toISOString();
+          }
+        } catch {
+          result['DateOfBirth'] = value;
+        }
+      } else if (key === 'creditLimit') {
+        result['CreditLimit'] = Number(value);
+      } else if (key === 'taxNumber') {
+        result['TaxNumber'] = value;
+      } else {
+        result[pascalKey] = value;
       }
     }
     

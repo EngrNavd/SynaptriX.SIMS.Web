@@ -91,33 +91,84 @@ export default function Customers() {
   });
 
   // Create/Update mutation
-  const saveMutation = useMutation({
-    mutationFn: (data: any) => {
-      if (isEdit && selectedCustomer) {
-        return customersApi.updateCustomer(selectedCustomer.id, data);
+	const saveMutation = useMutation({
+	mutationFn: async (data: any) => {
+    console.log('Mutation Function Called with data:', data);
+    
+    if (isEdit && selectedCustomer) {
+      // For update: send all fields except customerCode
+      const updateData = {
+        fullName: data.fullName || '',
+        email: data.email || '',
+        mobile: data.mobile || '',
+        address: data.address || '',
+        city: data.city || '',
+        state: data.state || '',
+        country: data.country || 'United Arab Emirates',
+        postalCode: data.postalCode || '',
+        dateOfBirth: data.dateOfBirth || null,
+        gender: data.gender || '',
+        occupation: data.occupation || '',
+        company: data.company || '',
+        taxNumber: data.taxNumber || '',
+        creditLimit: data.creditLimit || 0,
+        notes: data.notes || '',
+      };
+      
+      console.log('Sending Update Data:', {
+        customerId: selectedCustomer.id,
+        updateData
+      });
+      
+      return await customersApi.updateCustomer(selectedCustomer.id, updateData);
+    } else {
+      // For create: send all fields including customerCode
+      console.log('Sending Create Data:', data);
+      return await customersApi.createCustomer(data);
+    }
+  },
+  onSuccess: (response) => {
+    console.log('Mutation Success Response:', response);
+    
+    if (response.success) {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      toast.success(response.message || (isEdit ? 'Customer updated successfully' : 'Customer created successfully'));
+      handleCloseDialog();
+    } else {
+      // Handle validation errors
+      if (response.errors && response.errors.length > 0) {
+        response.errors.forEach((err: string) => toast.error(err));
       } else {
-        return customersApi.createCustomer(data);
+        toast.error(response.message || 'Failed to save customer');
       }
-    },
-    onSuccess: (response) => {
-      if (response.success) {
-        queryClient.invalidateQueries({ queryKey: ['customers'] });
-        toast.success(response.message || (isEdit ? 'Customer updated' : 'Customer created'));
-        handleCloseDialog();
-      } else {
-        // Handle validation errors
-        if (response.errors && response.errors.length > 0) {
-          response.errors.forEach((err: string) => toast.error(err));
-        } else {
-          toast.error(response.message || 'Failed to save customer');
-        }
+    }
+  },
+  onError: (error: any) => {
+    console.error('Mutation Error Object:', error);
+    console.error('Error Response:', error.response);
+    console.error('Error Config:', error.config);
+    
+    // Extract error message safely
+    let errorMessage = 'Failed to save customer';
+    
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.message && typeof error.message === 'string' && error.message !== '[object Object]') {
+      errorMessage = error.message;
+    } else if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+      errorMessage = error.response.data.errors.join(', ');
+    } else if (error.response?.data) {
+      // Try to stringify the error data
+      try {
+        errorMessage = JSON.stringify(error.response.data);
+      } catch {
+        errorMessage = 'Unknown error occurred';
       }
-    },
-    onError: (error: any) => {
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to save customer';
-      toast.error(errorMessage);
-    },
-  });
+    }
+    
+    toast.error(errorMessage);
+  },
+});
 
   const handleOpenCreate = () => {
     setIsEdit(false);
