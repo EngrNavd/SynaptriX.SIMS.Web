@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -49,6 +49,21 @@ export default function Customers() {
   const [viewMode, setViewMode] = useState(false);
   
   const queryClient = useQueryClient();
+  
+  // Debounced version of search
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+  
+    useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500); // Wait 500ms after user stops typing
+
+    // Cleanup: clear timer if user types again
+    return () => {
+      clearTimeout(timer);
+		};
+	}, [search]); // Run when search changes
+
 
   // Fetch customers
   const { 
@@ -57,11 +72,11 @@ export default function Customers() {
     error,
     refetch 
   } = useQuery({
-    queryKey: ['customers', page, pageSize, search],
+    queryKey: ['customers', page, pageSize, debouncedSearch],
     queryFn: () => customersApi.getCustomers({
       page: page + 1, // Convert to 1-based for backend
       pageSize,
-      search: search || undefined,
+      search: debouncedSearch || undefined,
     }),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

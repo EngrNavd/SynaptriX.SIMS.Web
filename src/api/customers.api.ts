@@ -14,19 +14,29 @@ import {
 
 export const customersApi = {
   // Get all customers with pagination
-  getCustomers: async (params: PagedRequestDto): Promise<ApiResponse<CustomerDto[]>> => {
-    const apiParams = ApiUtils.preparePaginationParams(
-      params.page || 1,
-      params.pageSize || 10,
-      { search: params.search }
-    );
-    
-    const response = await axiosClient.get('/customers', { params: apiParams });
-    const extracted = extractResponseData(response);
-    
-    // Process the response to convert backend DTOs to frontend DTOs
-    return ApiUtils.processApiResponse<CustomerDto[]>(extracted, true);
-  },
+ getCustomers: async (params: PagedRequestDto): Promise<ApiResponse<CustomerDto[]>> => {
+  // Build query parameters properly
+  const queryParams: Record<string, any> = {
+    page: params.page || 1,
+    pageSize: params.pageSize || 10,
+  };
+  
+  // Only add search if it has value
+  if (params.search && params.search.trim()) {
+    queryParams.search = params.search.trim();
+  }
+  
+  console.log('API Call - getCustomers params:', queryParams);
+  
+  const response = await axiosClient.get('/customers', { 
+    params: queryParams 
+  });
+  
+  const extracted = extractResponseData(response);
+  console.log('API Response - getCustomers:', extracted);
+  
+  return ApiUtils.processApiResponse<CustomerDto[]>(extracted, true);
+},
 
   // Get single customer by ID
   getCustomer: async (id: string): Promise<ApiResponse<CustomerDto>> => {
