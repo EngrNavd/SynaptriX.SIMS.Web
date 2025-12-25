@@ -1,142 +1,108 @@
+import React from 'react';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster } from 'react-hot-toast';
-
-// Layouts
-import MainLayout from './layouts/MainLayout';
-import AuthLayout from './layouts/AuthLayout';
+import theme from './theme';
+import Layout from './components/layout/Layout';
 
 // Pages
 import Login from './pages/auth/Login';
 import Dashboard from './pages/dashboard/Dashboard';
 import Customers from './pages/customers/Customers';
+import Products from './pages/products/Products';
+import Orders from './pages/orders/Orders';
+import Settings from './pages/settings/Settings';
 
-// Components
-import ProtectedRoute from './components/auth/ProtectedRoute';
-
-// Create theme
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
-      light: '#42a5f5',
-      dark: '#1565c0',
-    },
-    secondary: {
-      main: '#9c27b0',
-      light: '#ba68c8',
-      dark: '#7b1fa2',
-    },
-    background: {
-      default: '#f5f5f5',
-      paper: '#ffffff',
-    },
-  },
-  typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-    h1: {
-      fontSize: '2.5rem',
-      fontWeight: 600,
-    },
-    h2: {
-      fontSize: '2rem',
-      fontWeight: 600,
-    },
-    h3: {
-      fontSize: '1.75rem',
-      fontWeight: 600,
-    },
-  },
-  shape: {
-    borderRadius: 8,
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: 'none',
-          fontWeight: 500,
-          borderRadius: 8,
-        },
-      },
-    },
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          borderRadius: 12,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        },
-      },
-    },
-    MuiPaper: {
-      styleOverrides: {
-        root: {
-          borderRadius: 12,
-        },
-      },
-    },
-  },
-});
-
-// Create query client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000,
+      retry: 1,
     },
   },
 });
+
+// Protected Route Wrapper
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const isAuthenticated = !!localStorage.getItem('accessToken');
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return <>{children}</>;
+};
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <Toaster 
+        <Router>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/login" element={<Login />} />
+            
+            {/* Protected Routes - Layout is the parent */}
+            <Route path="/" element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="customers" element={<Customers />} />
+              <Route path="products" element={<Products />} />
+              <Route path="orders" element={<Orders />} />
+              <Route path="settings" element={<Settings />} />
+              {/* Handle /invoices route from the menu */}
+              <Route path="invoices" element={
+                <div style={{ padding: '40px', textAlign: 'center' }}>
+                  <h2>Invoices Module</h2>
+                  <p style={{ color: '#666' }}>This module is coming soon.</p>
+                  <p style={{ color: '#999', fontSize: '14px' }}>
+                    Manage and generate customer invoices with VAT compliance.
+                  </p>
+                </div>
+              } />
+            </Route>
+            
+            {/* Catch all - redirect to login */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </Router>
+        
+        <Toaster
           position="top-right"
           toastOptions={{
-            duration: 4000,
-			 success: {
             duration: 3000,
-			  },
-			  error: {
-				duration: 4000, // 4 seconds for errors (a bit longer)
-			  },
-			  loading: {
-				duration: Infinity, // Loading toasts stay until manually removed
-			  },
             style: {
+              background: '#1E293B',
+              color: '#FFFFFF',
               borderRadius: '8px',
+              border: '1px solid #334155',
+            },
+            success: {
+              iconTheme: {
+                primary: '#10B981',
+                secondary: '#FFFFFF',
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: '#EF4444',
+                secondary: '#FFFFFF',
+              },
             },
           }}
         />
-        <Router>
-          <Routes>
-            {/* Auth Routes */}
-            <Route element={<AuthLayout />}>
-              <Route path="/login" element={<Login />} />
-            </Route>
-
-            {/* Protected Routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route element={<MainLayout />}>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/customers" element={<Customers />} />
-                {/* Add other routes as we build them */}
-                {/* <Route path="/products" element={<Products />} /> */}
-                {/* <Route path="/invoices" element={<Invoices />} /> */}
-                {/* <Route path="/sales" element={<Sales />} /> */}
-              </Route>
-            </Route>
-
-            {/* 404 */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </Router>
+        
+        {process.env.NODE_ENV === 'development' && (
+          <ReactQueryDevtools initialIsOpen={false} />
+        )}
       </ThemeProvider>
     </QueryClientProvider>
   );

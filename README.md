@@ -30,9 +30,18 @@ Smart Inventory Management System for UAE Businesses
 - npm 9+
 - Backend API running on http://localhost:5050
 
+
+## 📦 Dependencies installation
+
+- npm install
+- npm install @tanstack/react-query @tanstack/react-query-devtools react-hot-toast lodash formik yup @types/lodash
+- 
+
 ## 🏁 Getting Started
 
 ### 1. Clone the repository
 ```bash
 git clone <repository-url>
 cd SynaptriX.SIMS.Web
+Using powershell, install the Dependencies.
+Run the application via command "npm run dev"

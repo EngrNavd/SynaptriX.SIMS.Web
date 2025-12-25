@@ -28,17 +28,15 @@ import {
   Notifications,
   AccountCircle,
   Business,
+  ShoppingCart,
 } from '@mui/icons-material';
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, NavLink, Outlet } from 'react-router-dom'; // Added Outlet
 
 const drawerWidth = 280;
 
-interface LayoutProps {
-  children: ReactNode;
-}
-
-const Layout = ({ children }: LayoutProps) => {
+// Remove the children prop since we'll use Outlet
+const Layout = () => {
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const theme = useTheme();
@@ -49,7 +47,8 @@ const Layout = ({ children }: LayoutProps) => {
     { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
     { text: 'Customers', icon: <People />, path: '/customers' },
     { text: 'Products', icon: <Inventory />, path: '/products' },
-    { text: 'Orders', icon: <Receipt />, path: '/orders' },
+    { text: 'Orders', icon: <ShoppingCart />, path: '/orders' },
+    { text: 'Invoices', icon: <Receipt />, path: '/invoices' },
     { text: 'Settings', icon: <Settings />, path: '/settings' },
   ];
 
@@ -73,7 +72,14 @@ const Layout = ({ children }: LayoutProps) => {
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
       {/* AppBar */}
-      <AppBar position="fixed" sx={{ zIndex: theme.zIndex.drawer + 1 }}>
+      <AppBar 
+        position="fixed" 
+        sx={{ 
+          zIndex: theme.zIndex.drawer + 1,
+          bgcolor: 'primary.dark',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}
+      >
         <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <IconButton
@@ -151,12 +157,6 @@ const Layout = ({ children }: LayoutProps) => {
                 </Typography>
               </Box>
               <Divider />
-              <MenuItem onClick={() => navigate('/profile')}>
-                <ListItemIcon>
-                  <AccountCircle fontSize="small" />
-                </ListItemIcon>
-                My Profile
-              </MenuItem>
               <MenuItem onClick={() => navigate('/settings')}>
                 <ListItemIcon>
                   <Settings fontSize="small" />
@@ -204,35 +204,54 @@ const Layout = ({ children }: LayoutProps) => {
               return (
                 <ListItem
                   key={item.text}
-                  button
-                  onClick={() => navigate(item.path)}
+                  disablePadding
                   sx={{
                     mx: 1,
                     mb: 0.5,
                     borderRadius: 2,
-                    backgroundColor: isActive ? 'primary.main' : 'transparent',
-                    color: isActive ? 'white' : 'text.primary',
-                    '&:hover': {
-                      backgroundColor: isActive ? 'primary.dark' : 'rgba(10, 36, 99, 0.04)',
-                    },
                   }}
                 >
-                  <ListItemIcon
-                    sx={{
-                      minWidth: 40,
-                      color: isActive ? 'white' : 'inherit',
+                  <NavLink
+                    to={item.path}
+                    style={{
+                      textDecoration: 'none',
+                      color: 'inherit',
+                      width: '100%',
                     }}
                   >
-                    {item.icon}
-                  </ListItemIcon>
-                  {drawerOpen && (
-                    <ListItemText 
-                      primary={item.text} 
-                      primaryTypographyProps={{
-                        fontWeight: isActive ? 600 : 400,
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        px: 2,
+                        py: 1.5,
+                        borderRadius: 2,
+                        backgroundColor: isActive ? 'primary.main' : 'transparent',
+                        color: isActive ? 'white' : 'text.primary',
+                        '&:hover': {
+                          backgroundColor: isActive ? 'primary.dark' : 'rgba(10, 36, 99, 0.04)',
+                        },
+                        cursor: 'pointer',
                       }}
-                    />
-                  )}
+                    >
+                      <ListItemIcon
+                        sx={{
+                          minWidth: 40,
+                          color: isActive ? 'white' : 'inherit',
+                        }}
+                      >
+                        {item.icon}
+                      </ListItemIcon>
+                      {drawerOpen && (
+                        <ListItemText 
+                          primary={item.text} 
+                          primaryTypographyProps={{
+                            fontWeight: isActive ? 600 : 400,
+                          }}
+                        />
+                      )}
+                    </Box>
+                  </NavLink>
                 </ListItem>
               );
             })}
@@ -264,18 +283,24 @@ const Layout = ({ children }: LayoutProps) => {
           width: { sm: `calc(100% - ${drawerOpen ? drawerWidth : 72}px)` },
           minHeight: '100vh',
           backgroundColor: 'background.default',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         <Toolbar />
-        {children}
+        
+        {/* Page Content - This is where child routes render */}
+        <Box sx={{ flexGrow: 1 }}>
+          <Outlet />
+        </Box>
         
         {/* Footer */}
         <Box
           component="footer"
           sx={{
-            mt: 'auto',
             pt: 4,
             pb: 2,
+            mt: 'auto',
             borderTop: '1px solid #E2E8F0',
             textAlign: 'center',
           }}

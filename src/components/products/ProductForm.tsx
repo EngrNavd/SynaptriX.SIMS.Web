@@ -1,0 +1,643 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button,
+  Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormHelperText,
+  IconButton,
+  Box,
+  Alert,
+  CircularProgress,
+  Typography,
+  InputAdornment,
+  Divider
+} from '@mui/material';
+import { Close, AttachFile } from '@mui/icons-material';
+import { useFormik } from 'formik';
+import * as Yup from 'yup';
+import productsApi from '../../api/products.api';
+
+interface ProductFormProps {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (values: any) => Promise<void>;
+  initialData?: any;
+  isEdit?: boolean;
+}
+
+const ProductForm: React.FC<ProductFormProps> = ({
+  open,
+  onClose,
+  onSubmit,
+  initialData,
+  isEdit = false
+}) => {
+  const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  const validationSchema = Yup.object({
+    sku: Yup.string()
+      .required('SKU is required')
+      .matches(/^[A-Z0-9-]+$/, 'SKU can only contain uppercase letters, numbers, and hyphens'),
+    name: Yup.string()
+      .required('Product name is required')
+      .min(3, 'Product name must be at least 3 characters'),
+    purchasePrice: Yup.number()
+      .required('Purchase price is required')
+      .positive('Purchase price must be positive'),
+    sellingPrice: Yup.number()
+      .required('Selling price is required')
+      .positive('Selling price must be positive')
+      .test(
+        'greater-than-purchase',
+        'Selling price must be greater than or equal to purchase price',
+        function(value) {
+          return value >= this.parent.purchasePrice;
+        }
+      ),
+    costPrice: Yup.number()
+      .required('Cost price is required')
+      .positive('Cost price must be positive'),
+    quantity: Yup.number()
+      .required('Quantity is required')
+      .integer('Quantity must be a whole number')
+      .min(0, 'Quantity cannot be negative'),
+    minStockLevel: Yup.number()
+      .required('Minimum stock level is required')
+      .integer('Must be a whole number')
+      .min(0, 'Cannot be negative'),
+    maxStockLevel: Yup.number()
+      .integer('Must be a whole number')
+      .min(Yup.ref('minStockLevel'), 'Maximum must be greater than minimum')
+      .nullable(),
+    categoryId: Yup.number().nullable()
+  });
+
+  const formik = useFormik({
+    initialValues: {
+      sku: initialData?.sku || '',
+      name: initialData?.name || '',
+      description: initialData?.description || '',
+      purchasePrice: initialData?.purchasePrice || 0,
+      sellingPrice: initialData?.sellingPrice || 0,
+      costPrice: initialData?.costPrice || 0,
+      quantity: initialData?.quantity || 0,
+      minStockLevel: initialData?.minStockLevel || 10,
+      maxStockLevel: initialData?.maxStockLevel || undefined,
+      manufacturer: initialData?.manufacturer || '',
+      brand: initialData?.brand || '',
+      model: initialData?.model || '',
+      color: initialData?.color || '',
+      size: initialData?.size || '',
+      location: initialData?.location || '',
+      categoryId: initialData?.categoryId || undefined
+    },
+    validationSchema,
+    onSubmit: async (values) => {
+      setLoading(true);
+      try {
+        await onSubmit(values);
+        formik.resetForm();
+        onClose();
+      } catch (error) {
+        console.error('Error submitting form:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+  });
+
+  // Generate SKU on component mount for new products
+  useEffect(() => {
+    if (!isEdit && !initialData) {
+      const generateSku = () => {
+        const prefix = 'PRD';
+        const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+        const date = new Date().getFullYear().toString().slice(-2);
+        return `${prefix}-${date}-${random}`;
+      };
+      formik.setFieldValue('sku', generateSku());
+    }
+
+    // Load categories (mock data - replace with API call)
+    const loadCategories = async () => {
+      // TODO: Replace with actual API call
+      const mockCategories = [
+        { id: 1, name: 'Electronics' },
+        { id: 2, name: 'Clothing' },
+        { id: 3, name: 'Furniture' },
+        { id: 4, name: 'Books' },
+        { id: 5, name: 'Food & Beverages' }
+      ];
+      setCategories(mockCategories);
+    };
+    loadCategories();
+  }, [isEdit, initialData]);
+
+  useEffect(() => {
+    if (initialData) {
+      formik.setValues({
+        sku: initialData.sku,
+        name: initialData.name,
+        description: initialData.description,
+        purchasePrice: initialData.purchasePrice,
+        sellingPrice: initialData.sellingPrice,
+        costPrice: initialData.costPrice,
+        quantity: initialData.quantity,
+        minStockLevel: initialData.minStockLevel,
+        maxStockLevel: initialData.maxStockLevel,
+        manufacturer: initialData.manufacturer || '',
+        brand: initialData.brand || '',
+        model: initialData.model || '',
+        color: initialData.color || '',
+        size: initialData.size || '',
+        location: initialData.location || '',
+        categoryId: initialData.categoryId
+      });
+      if (initialData.imageUrl) {
+        setImagePreview(initialData.imageUrl);
+      }
+    }
+  }, [initialData]);
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // In production, upload to server and get URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+        // formik.setFieldValue('imageFile', file);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const calculateProfit = () => {
+    const selling = formik.values.sellingPrice || 0;
+    const cost = formik.values.costPrice || 0;
+    return selling - cost;
+  };
+
+  const calculateProfitMargin = () => {
+    const selling = formik.values.sellingPrice || 0;
+    const cost = formik.values.costPrice || 0;
+    if (selling === 0) return 0;
+    return ((selling - cost) / selling) * 100;
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {isEdit ? 'Edit Product' : 'Add New Product'}
+        <IconButton onClick={onClose} size="small">
+          <Close />
+        </IconButton>
+      </DialogTitle>
+      
+      <form onSubmit={formik.handleSubmit}>
+        <DialogContent dividers>
+          <Grid container spacing={3}>
+            {/* Left Column - Basic Info */}
+            <Grid size={{ xs: 12, md: 8 }}>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField
+                    fullWidth
+                    label="SKU *"
+                    name="sku"
+                    value={formik.values.sku}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    error={formik.touched.sku && Boolean(formik.errors.sku)}
+                    helperText={formik.touched.sku && formik.errors.sku}
+                    disabled={isEdit}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start">#</InputAdornment>,
+                    }}
+                  />
+                </Grid>
+                
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <FormControl fullWidth>
+                    <InputLabel>Category</InputLabel>
+                    <Select
+                      name="categoryId"
+                      value={formik.values.categoryId || ''}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                      label="Category"
+                    >
+                      <MenuItem value=""><em>None</em></MenuItem>
+                      {categories.map((category) => (
+                        <MenuItem key={category.id} value={category.id}>
+                          {category.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                <Grid size={{ xs: 12 }}>
+                  <TextField
+                    fullWidth
+                    label="Product Name *"
+                    name="name"
+                    value={formik.values.name}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    error={formik.touched.name && Boolean(formik.errors.name)}
+                    helperText={formik.touched.name && formik.errors.name}
+                  />
+                </Grid>
+
+                <Grid size={{ xs: 12 }}>
+                  <TextField
+                    fullWidth
+                    label="Description"
+                    name="description"
+                    value={formik.values.description}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    multiline
+                    rows={3}
+                  />
+                </Grid>
+
+                {/* Pricing Section */}
+                <Grid size={{ xs: 12 }}>
+                  <Typography variant="subtitle1" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
+                    Pricing Information
+                  </Typography>
+                </Grid>
+
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <TextField
+                    fullWidth
+                    label="Purchase Price (AED) *"
+                    name="purchasePrice"
+                    type="number"
+                    value={formik.values.purchasePrice}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    error={formik.touched.purchasePrice && Boolean(formik.errors.purchasePrice)}
+                    helperText={formik.touched.purchasePrice && formik.errors.purchasePrice}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start">AED</InputAdornment>,
+                    }}
+                  />
+                </Grid>
+
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <TextField
+                    fullWidth
+                    label="Selling Price (AED) *"
+                    name="sellingPrice"
+                    type="number"
+                    value={formik.values.sellingPrice}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    error={formik.touched.sellingPrice && Boolean(formik.errors.sellingPrice)}
+                    helperText={formik.touched.sellingPrice && formik.errors.sellingPrice}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start">AED</InputAdornment>,
+                    }}
+                  />
+                </Grid>
+
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <TextField
+                    fullWidth
+                    label="Cost Price (AED) *"
+                    name="costPrice"
+                    type="number"
+                    value={formik.values.costPrice}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    error={formik.touched.costPrice && Boolean(formik.errors.costPrice)}
+                    helperText={formik.touched.costPrice && formik.errors.costPrice}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start">AED</InputAdornment>,
+                    }}
+                  />
+                </Grid>
+
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Profit: <strong style={{ color: calculateProfit() >= 0 ? 'green' : 'red' }}>
+                        AED {calculateProfit().toFixed(2)}
+                      </strong>
+                    </Typography>
+                  </Box>
+                </Grid>
+
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Profit Margin: <strong style={{ color: calculateProfitMargin() >= 0 ? 'green' : 'red' }}>
+                        {calculateProfitMargin().toFixed(2)}%
+                      </strong>
+                    </Typography>
+                  </Box>
+                </Grid>
+
+                {/* Stock Information */}
+                <Grid size={{ xs: 12 }}>
+                  <Typography variant="subtitle1" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
+                    Stock Information
+                  </Typography>
+                </Grid>
+
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <TextField
+                    fullWidth
+                    label="Current Quantity *"
+                    name="quantity"
+                    type="number"
+                    value={formik.values.quantity}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    error={formik.touched.quantity && Boolean(formik.errors.quantity)}
+                    helperText={formik.touched.quantity && formik.errors.quantity}
+                  />
+                </Grid>
+
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <TextField
+                    fullWidth
+                    label="Min Stock Level *"
+                    name="minStockLevel"
+                    type="number"
+                    value={formik.values.minStockLevel}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    error={formik.touched.minStockLevel && Boolean(formik.errors.minStockLevel)}
+                    helperText={formik.touched.minStockLevel && formik.errors.minStockLevel}
+                  />
+                </Grid>
+
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <TextField
+                    fullWidth
+                    label="Max Stock Level"
+                    name="maxStockLevel"
+                    type="number"
+                    value={formik.values.maxStockLevel || ''}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    error={formik.touched.maxStockLevel && Boolean(formik.errors.maxStockLevel)}
+                    helperText={formik.touched.maxStockLevel && formik.errors.maxStockLevel}
+                  />
+                </Grid>
+
+                {/* Product Details */}
+                <Grid size={{ xs: 12 }}>
+                  <Typography variant="subtitle1" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
+                    Product Details
+                  </Typography>
+                </Grid>
+
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField
+                    fullWidth
+                    label="Manufacturer"
+                    name="manufacturer"
+                    value={formik.values.manufacturer}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                  />
+                </Grid>
+
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField
+                    fullWidth
+                    label="Brand"
+                    name="brand"
+                    value={formik.values.brand}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                  />
+                </Grid>
+
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <TextField
+                    fullWidth
+                    label="Model"
+                    name="model"
+                    value={formik.values.model}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                  />
+                </Grid>
+
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <TextField
+                    fullWidth
+                    label="Color"
+                    name="color"
+                    value={formik.values.color}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                  />
+                </Grid>
+
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <TextField
+                    fullWidth
+                    label="Size"
+                    name="size"
+                    value={formik.values.size}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                  />
+                </Grid>
+
+                <Grid size={{ xs: 12 }}>
+                  <TextField
+                    fullWidth
+                    label="Location/Storage"
+                    name="location"
+                    value={formik.values.location}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    placeholder="e.g., Warehouse A, Shelf 3, Bin 5"
+                  />
+                </Grid>
+              </Grid>
+            </Grid>
+
+            {/* Right Column - Image Upload & Stock Status */}
+            <Grid size={{ xs: 12, md: 4 }}>
+              {/* Image Upload */}
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Product Image
+                </Typography>
+                <Box
+                  sx={{
+                    border: '2px dashed',
+                    borderColor: 'grey.300',
+                    borderRadius: 2,
+                    p: 3,
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    bgcolor: 'grey.50',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      bgcolor: 'grey.100'
+                    }
+                  }}
+                  onClick={() => document.getElementById('image-upload')?.click()}
+                >
+                  <input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={handleImageUpload}
+                  />
+                  {imagePreview ? (
+                    <Box>
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        style={{ width: '100%', maxHeight: 200, objectFit: 'contain', borderRadius: 1 }}
+                      />
+                      <Button
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setImagePreview(null);
+                        }}
+                        sx={{ mt: 1 }}
+                      >
+                        Change Image
+                      </Button>
+                    </Box>
+                  ) : (
+                    <>
+                      <AttachFile sx={{ fontSize: 48, color: 'grey.400', mb: 1 }} />
+                      <Typography variant="body2" color="text.secondary">
+                        Click to upload product image
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        PNG, JPG, GIF up to 5MB
+                      </Typography>
+                    </>
+                  )}
+                </Box>
+              </Box>
+
+              {/* Stock Status Preview */}
+              <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2, mb: 3 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Stock Status Preview
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2">Current Stock:</Typography>
+                    <Typography
+                      variant="body2"
+                      fontWeight="bold"
+                      sx={{
+                        color: formik.values.quantity === 0 ? 'error.main' :
+                               formik.values.quantity <= formik.values.minStockLevel ? 'warning.main' :
+                               'success.main'
+                      }}
+                    >
+                      {formik.values.quantity} units
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2">Min Level:</Typography>
+                    <Typography variant="body2">{formik.values.minStockLevel}</Typography>
+                  </Box>
+                  {formik.values.maxStockLevel && (
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body2">Max Level:</Typography>
+                      <Typography variant="body2">{formik.values.maxStockLevel}</Typography>
+                    </Box>
+                  )}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                    <Typography variant="body2">Status:</Typography>
+                    <Typography
+                      variant="body2"
+                      fontWeight="bold"
+                      sx={{
+                        color: formik.values.quantity === 0 ? 'error.main' :
+                               formik.values.quantity <= formik.values.minStockLevel ? 'warning.main' :
+                               'success.main'
+                      }}
+                    >
+                      {formik.values.quantity === 0 ? 'Out of Stock' :
+                       formik.values.quantity <= formik.values.minStockLevel ? 'Low Stock' :
+                       'In Stock'}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+
+              {/* Financial Summary */}
+              <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Financial Summary
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2">Total Cost Value:</Typography>
+                    <Typography variant="body2">
+                      AED {(formik.values.quantity * formik.values.costPrice).toFixed(2)}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2">Total Retail Value:</Typography>
+                    <Typography variant="body2">
+                      AED {(formik.values.quantity * formik.values.sellingPrice).toFixed(2)}
+                    </Typography>
+                  </Box>
+                  <Divider sx={{ my: 1 }} />
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" fontWeight="bold">Potential Profit:</Typography>
+                    <Typography
+                      variant="body2"
+                      fontWeight="bold"
+                      sx={{ color: calculateProfit() >= 0 ? 'success.main' : 'error.main' }}
+                    >
+                      AED {(formik.values.quantity * calculateProfit()).toFixed(2)}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </Grid>
+          </Grid>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}>
+          <Button onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={20} /> : null}
+          >
+            {loading ? 'Saving...' : isEdit ? 'Update Product' : 'Create Product'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
+  );
+};
+
+export default ProductForm;
