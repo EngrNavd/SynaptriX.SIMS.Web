@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -43,6 +43,23 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  
+  // Refs for focus management
+  const firstInputRef = useRef<HTMLInputElement>(null);
+  const dialogTitleRef = useRef<HTMLDivElement>(null);
+
+  // Focus management
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => {
+        if (firstInputRef.current) {
+          firstInputRef.current.focus();
+        } else if (dialogTitleRef.current) {
+          dialogTitleRef.current.focus();
+        }
+      }, 100);
+    }
+  }, [open]);
 
   const validationSchema = Yup.object({
     sku: Yup.string()
@@ -195,11 +212,43 @@ const ProductForm: React.FC<ProductFormProps> = ({
     return ((selling - cost) / selling) * 100;
   };
 
+  const handleDialogClose = () => {
+    // Clear any focus before closing
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    onClose();
+  };
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <Dialog 
+      open={open} 
+      onClose={handleDialogClose} 
+      maxWidth="lg" 
+      fullWidth
+      aria-labelledby="product-form-title"
+      onTransitionEnd={(node, isAppearing) => {
+        if (!isAppearing && !open) {
+          // Clean up focus after dialog closes
+          const activeElement = document.activeElement as HTMLElement;
+          if (activeElement && activeElement.closest('.MuiDialog-root')) {
+            activeElement.blur();
+          }
+        }
+      }}
+    >
+      <DialogTitle 
+        id="product-form-title"
+        ref={dialogTitleRef}
+        tabIndex={-1}
+        sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+      >
         {isEdit ? 'Edit Product' : 'Add New Product'}
-        <IconButton onClick={onClose} size="small">
+        <IconButton 
+          onClick={handleDialogClose} 
+          size="small"
+          aria-label="Close"
+        >
           <Close />
         </IconButton>
       </DialogTitle>
@@ -212,6 +261,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
+                    inputRef={firstInputRef}
                     fullWidth
                     label="SKU *"
                     name="sku"
@@ -623,7 +673,11 @@ const ProductForm: React.FC<ProductFormProps> = ({
         </DialogContent>
 
         <DialogActions sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}>
-          <Button onClick={onClose} disabled={loading}>
+          <Button 
+            onClick={handleDialogClose} 
+            disabled={loading}
+            aria-label="Cancel"
+          >
             Cancel
           </Button>
           <Button
@@ -631,6 +685,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
             variant="contained"
             disabled={loading}
             startIcon={loading ? <CircularProgress size={20} /> : null}
+            aria-label={isEdit ? 'Update Product' : 'Create Product'}
           >
             {loading ? 'Saving...' : isEdit ? 'Update Product' : 'Create Product'}
           </Button>

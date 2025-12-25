@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   Container,
   Box,
@@ -26,7 +26,8 @@ import {
   Paper,
   Divider,
   Stack,
-  Grid // Changed Grid import
+  Grid,
+  Skeleton
 } from '@mui/material';
 import {
   Search,
@@ -35,7 +36,6 @@ import {
   Edit,
   Delete,
   Inventory,
-  LowPriority,
   Warning,
   CheckCircle,
   Cancel,
@@ -43,9 +43,7 @@ import {
   Visibility,
   FileDownload,
   FileUpload,
-  QrCode,
-  TrendingUp,
-  LocalShipping
+  TrendingUp
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
@@ -53,7 +51,7 @@ import debounce from 'lodash/debounce';
 import productsApi from '../../api/products.api';
 import ProductForm from '../../components/products/ProductForm';
 import StockAdjustmentDialog from '../../components/products/StockAdjustmentDialog';
-import { ProductDto, ProductStats, PagedRequestDto } from '../../types/product.types';
+import { ProductDto, PagedRequestDto } from '../../types/product.types';
 
 const Products: React.FC = () => {
   const queryClient = useQueryClient();
@@ -65,24 +63,28 @@ const Products: React.FC = () => {
   const [openForm, setOpenForm] = useState(false);
   const [openStockDialog, setOpenStockDialog] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ProductDto | null>(null);
-  const [stats, setStats] = useState<ProductStats | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [actionProduct, setActionProduct] = useState<ProductDto | null>(null);
+  
+  // Refs for focus management
+  const lastFocusedElementRef = useRef<HTMLElement | null>(null);
+  const addProductButtonRef = useRef<HTMLButtonElement>(null);
 
   // Debounce search
   const debouncedSearch = useCallback(
     debounce((term: string) => {
       setDebouncedSearchTerm(term);
-      setPage(0); // Reset to first page on new search
+      setPage(0);
     }, 500),
     []
   );
 
-  // Fetch products
+  // MAIN PRODUCTS QUERY - Only loads products for the table
   const {
     data: productsData,
-    isLoading,
-    error
+    isLoading: productsLoading,
+    error: productsError,
+    isFetching: productsFetching
   } = useQuery({
     queryKey: ['products', page, rowsPerPage, debouncedSearchTerm, statusFilter],
     queryFn: () => {
@@ -93,14 +95,39 @@ const Products: React.FC = () => {
         status: statusFilter !== 'all' ? statusFilter : undefined
       };
       return productsApi.getProducts(params);
-    }
+    },
+    staleTime: 30000, // 30 seconds cache
+    gcTime: 60000, // 1 minute garbage collection
   });
 
-  // Fetch stats
-  const { data: statsData } = useQuery({
-    queryKey: ['productStats'],
-    queryFn: () => productsApi.getProductStats()
+  // SEPARATE QUERIES for stats - load independently with appropriate caching
+  const { data: inventoryValue = 0, isLoading: inventoryLoading } = useQuery({
+    queryKey: ['inventoryValue'],
+    queryFn: () => productsApi.getInventoryValue(),
+    staleTime: 300000, // 5 minutes (changes slowly)
+    gcTime: 600000, // 10 minutes
   });
+
+  const { data: lowStockProducts = [], isLoading: lowStockLoading } = useQuery({
+    queryKey: ['lowStockProducts'],
+    queryFn: () => productsApi.getLowStockProducts(),
+    staleTime: 60000, // 1 minute
+    gcTime: 300000, // 5 minutes
+  });
+
+  // Calculate stats from existing data - NO ADDITIONAL API CALLS
+  const stats = useMemo(() => {
+    const currentProducts = productsData?.products || [];
+    const outOfStockCount = currentProducts.filter(p => p.quantity === 0).length;
+    
+    return {
+      totalProducts: productsData?.totalCount || 0,
+      totalValue: inventoryValue,
+      totalValueUSD: inventoryValue * 0.27, // Convert AED to USD
+      lowStockCount: lowStockProducts.length,
+      outOfStockCount
+    };
+  }, [productsData, inventoryValue, lowStockProducts]);
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -111,21 +138,6 @@ const Products: React.FC = () => {
     },
     onError: () => {
       toast.error('Failed to delete product');
-    }
-  });
-
-  // Stock adjustment mutation
-  const stockAdjustmentMutation = useMutation({
-    mutationFn: ({ id, quantity, reason }: { id: string; quantity: number; reason: string }) =>
-      productsApi.updateStock(id, quantity, reason),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['productStats'] });
-      setOpenStockDialog(false);
-      toast.success('Stock updated successfully');
-    },
-    onError: () => {
-      toast.error('Failed to update stock');
     }
   });
 
@@ -154,6 +166,43 @@ const Products: React.FC = () => {
     handleFilterClose();
   };
 
+  // Handle form dialog with focus management
+  const handleFormOpen = (product: ProductDto | null = null) => {
+    lastFocusedElementRef.current = document.activeElement as HTMLElement;
+    setSelectedProduct(product);
+    setOpenForm(true);
+  };
+
+  const handleFormClose = () => {
+    setOpenForm(false);
+    setSelectedProduct(null);
+    
+    setTimeout(() => {
+      if (lastFocusedElementRef.current) {
+        lastFocusedElementRef.current.focus();
+      } else if (addProductButtonRef.current) {
+        addProductButtonRef.current.focus();
+      }
+    }, 100);
+  };
+
+  // Handle stock dialog with focus management
+  const handleStockDialogOpen = (product: ProductDto) => {
+    lastFocusedElementRef.current = document.activeElement as HTMLElement;
+    setSelectedProduct(product);
+    setOpenStockDialog(true);
+  };
+
+  const handleStockDialogClose = () => {
+    setOpenStockDialog(false);
+    
+    setTimeout(() => {
+      if (lastFocusedElementRef.current) {
+        lastFocusedElementRef.current.focus();
+      }
+    }, 100);
+  };
+
   // Handle row actions menu
   const handleActionClick = (event: React.MouseEvent<HTMLElement>, product: ProductDto) => {
     setActionProduct(product);
@@ -167,8 +216,7 @@ const Products: React.FC = () => {
 
   const handleEdit = () => {
     if (actionProduct) {
-      setSelectedProduct(actionProduct);
-      setOpenForm(true);
+      handleFormOpen(actionProduct);
     }
     handleActionClose();
   };
@@ -180,32 +228,48 @@ const Products: React.FC = () => {
     handleActionClose();
   };
 
-  const handleViewDetails = () => {
-    handleActionClose();
-  };
-
   const handleAdjustStock = () => {
     if (actionProduct) {
-      setSelectedProduct(actionProduct);
-      setOpenStockDialog(true);
+      handleStockDialogOpen(actionProduct);
     }
     handleActionClose();
   };
 
-  const getStockStatus = (quantity: number, minStockLevel: number) => {
+  const handleAddProduct = () => {
+    handleFormOpen(null);
+  };
+
+  const getStockStatus = useCallback((quantity: number, minStockLevel: number) => {
     if (quantity === 0) return { label: 'Out of Stock', color: 'error' as const };
     if (quantity <= minStockLevel) return { label: 'Low Stock', color: 'warning' as const };
     return { label: 'In Stock', color: 'success' as const };
-  };
+  }, []);
 
-  const formatCurrency = (amount: number, currency: string = 'AED') => {
+  const formatCurrency = useCallback((amount: number, currency: string = 'AED') => {
     return new Intl.NumberFormat('en-AE', {
       style: 'currency',
       currency: currency
     }).format(amount);
-  };
+  }, []);
 
-  if (error) {
+  // Loading skeleton for stats cards
+  const renderStatsSkeleton = () => (
+    <Grid container spacing={3} sx={{ mb: 4 }}>
+      {[1, 2, 3, 4].map((index) => (
+        <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
+          <Card>
+            <CardContent>
+              <Skeleton variant="circular" width={24} height={24} sx={{ mb: 1 }} />
+              <Skeleton variant="text" width="60%" height={20} sx={{ mb: 1 }} />
+              <Skeleton variant="text" width="40%" height={40} />
+            </CardContent>
+          </Card>
+        </Grid>
+      ))}
+    </Grid>
+  );
+
+  if (productsError) {
     return (
       <Container maxWidth="xl">
         <Alert severity="error" sx={{ mt: 2 }}>
@@ -224,12 +288,10 @@ const Products: React.FC = () => {
             Product Management
           </Typography>
           <Button
+            ref={addProductButtonRef}
             variant="contained"
             startIcon={<Add />}
-            onClick={() => {
-              setSelectedProduct(null);
-              setOpenForm(true);
-            }}
+            onClick={handleAddProduct}
           >
             Add Product
           </Button>
@@ -240,75 +302,80 @@ const Products: React.FC = () => {
         </Typography>
       </Box>
 
-      {/* Stats Cards - Fixed Grid v2 syntax */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <Inventory color="primary" sx={{ mr: 1 }} />
-                <Typography variant="subtitle2" color="text.secondary">
-                  Total Products
-                </Typography>
-              </Box>
-              <Typography variant="h4" fontWeight={600}>
-                {statsData?.totalProducts || 0}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+      {/* Stats Cards - Show skeleton while loading */}
+      {(productsLoading || inventoryLoading || lowStockLoading) && renderStatsSkeleton()}
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <TrendingUp color="success" sx={{ mr: 1 }} />
-                <Typography variant="subtitle2" color="text.secondary">
-                  Inventory Value
+      {/* Stats Cards - Show data when loaded */}
+      {!(productsLoading || inventoryLoading || lowStockLoading) && (
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Inventory color="primary" sx={{ mr: 1 }} />
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Total Products
+                  </Typography>
+                </Box>
+                <Typography variant="h4" fontWeight={600}>
+                  {stats.totalProducts.toLocaleString()}
                 </Typography>
-              </Box>
-              <Typography variant="h4" fontWeight={600}>
-                {formatCurrency(statsData?.totalValue || 0)}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                ≈ ${(statsData?.totalValueUSD || 0).toFixed(2)} USD
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <Warning color="warning" sx={{ mr: 1 }} />
-                <Typography variant="subtitle2" color="text.secondary">
-                  Low Stock
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <TrendingUp color="success" sx={{ mr: 1 }} />
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Inventory Value
+                  </Typography>
+                </Box>
+                <Typography variant="h4" fontWeight={600}>
+                  {formatCurrency(stats.totalValue)}
                 </Typography>
-              </Box>
-              <Typography variant="h4" fontWeight={600} color="warning.main">
-                {statsData?.lowStockCount || 0}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+                <Typography variant="caption" color="text.secondary">
+                  ≈ ${stats.totalValueUSD.toFixed(2)} USD
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
 
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <Cancel color="error" sx={{ mr: 1 }} />
-                <Typography variant="subtitle2" color="text.secondary">
-                  Out of Stock
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Warning color="warning" sx={{ mr: 1 }} />
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Low Stock
+                  </Typography>
+                </Box>
+                <Typography variant="h4" fontWeight={600} color="warning.main">
+                  {stats.lowStockCount}
                 </Typography>
-              </Box>
-              <Typography variant="h4" fontWeight={600} color="error.main">
-                {statsData?.outOfStockCount || 0}
-              </Typography>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Cancel color="error" sx={{ mr: 1 }} />
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Out of Stock
+                  </Typography>
+                </Box>
+                <Typography variant="h4" fontWeight={600} color="error.main">
+                  {stats.outOfStockCount}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
-      </Grid>
+      )}
 
       {/* Search and Filters */}
       <Card sx={{ mb: 3 }}>
@@ -431,7 +498,7 @@ const Products: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {isLoading ? (
+              {productsLoading ? (
                 <TableRow>
                   <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
                     <CircularProgress />
@@ -453,7 +520,7 @@ const Products: React.FC = () => {
                       <Button
                         variant="contained"
                         startIcon={<Add />}
-                        onClick={() => setOpenForm(true)}
+                        onClick={handleAddProduct}
                       >
                         Add Product
                       </Button>
@@ -571,10 +638,7 @@ const Products: React.FC = () => {
       {/* Product Form Dialog */}
       <ProductForm
         open={openForm}
-        onClose={() => {
-          setOpenForm(false);
-          setSelectedProduct(null);
-        }}
+        onClose={handleFormClose}
         onSubmit={async (values) => {
           try {
             if (selectedProduct) {
@@ -585,7 +649,9 @@ const Products: React.FC = () => {
               toast.success('Product created successfully');
             }
             queryClient.invalidateQueries({ queryKey: ['products'] });
-            queryClient.invalidateQueries({ queryKey: ['productStats'] });
+            queryClient.invalidateQueries({ queryKey: ['inventoryValue'] });
+            queryClient.invalidateQueries({ queryKey: ['lowStockProducts'] });
+            handleFormClose();
           } catch (error) {
             toast.error('Failed to save product');
             throw error;
@@ -599,14 +665,13 @@ const Products: React.FC = () => {
       {selectedProduct && (
         <StockAdjustmentDialog
           open={openStockDialog}
-          onClose={() => {
-            setOpenStockDialog(false);
-            setSelectedProduct(null);
-          }}
+          onClose={handleStockDialogClose}
           product={selectedProduct}
           onSuccess={() => {
             queryClient.invalidateQueries({ queryKey: ['products'] });
-            queryClient.invalidateQueries({ queryKey: ['productStats'] });
+            queryClient.invalidateQueries({ queryKey: ['inventoryValue'] });
+            queryClient.invalidateQueries({ queryKey: ['lowStockProducts'] });
+            handleStockDialogClose();
           }}
         />
       )}
@@ -617,7 +682,7 @@ const Products: React.FC = () => {
         open={Boolean(anchorEl)}
         onClose={handleActionClose}
       >
-        <MenuItem onClick={handleViewDetails}>
+        <MenuItem onClick={handleActionClose}>
           <Visibility fontSize="small" sx={{ mr: 1 }} />
           View Details
         </MenuItem>

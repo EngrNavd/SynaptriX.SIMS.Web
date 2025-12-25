@@ -72,7 +72,7 @@ const productsApi = {
     });
   },
 
-  // Get low stock products
+  // Get low stock products only
   getLowStockProducts: async (): Promise<ProductDto[]> => {
     const response = await axios.get<ApiResponse<ProductDto[]>>(
       `${API_BASE_URL}/products/low-stock`,
@@ -99,7 +99,7 @@ const productsApi = {
     return response.data.data;
   },
 
-  // Get inventory value
+  // Get inventory value only
   getInventoryValue: async (): Promise<number> => {
     const response = await axios.get<ApiResponse<{ totalValue: number }>>(
       `${API_BASE_URL}/products/inventory-value`,
@@ -126,28 +126,29 @@ const productsApi = {
     );
   },
 
-  // Get product statistics
-  getProductStats: async (): Promise<ProductStats> => {
-    const [productsResponse, valueResponse, lowStockResponse] = await Promise.all([
-      axios.get<ApiResponse<ProductListDto>>(`${API_BASE_URL}/products`, {
+  // Get total products count only
+  getTotalProductsCount: async (): Promise<number> => {
+    const response = await axios.get<ApiResponse<ProductListDto>>(
+      `${API_BASE_URL}/products`,
+      {
         params: { page: 1, pageSize: 1 },
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
-      }),
-      this.getInventoryValue(),
-      this.getLowStockProducts()
-    ]);
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        }
+      }
+    );
+    return response.data.data.totalCount;
+  },
 
-    const allProducts = await this.getProducts({ page: 1, pageSize: 1000 });
-    const outOfStock = allProducts.products.filter(p => p.quantity === 0);
-
-    return {
-      totalProducts: productsResponse.data.data.totalCount,
-      totalValue: valueResponse,
-      totalValueUSD: valueResponse * 0.27, // Convert AED to USD (approximate)
-      lowStockCount: lowStockResponse.length,
-      outOfStockCount: outOfStock.length
-    };
-  }
+  // REMOVED: getProductStats() - This was causing multiple API calls
+  // Use the individual methods above instead
 };
 
 export default productsApi;
+
+// Keep the ApiResponse interface
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message: string;
+}

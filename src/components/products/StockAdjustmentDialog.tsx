@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -15,7 +15,8 @@ import {
   Alert,
   CircularProgress,
   Chip,
-  IconButton
+  IconButton,
+  Grid
 } from '@mui/material';
 import { Close, Add, Remove } from '@mui/icons-material';
 import { useFormik } from 'formik';
@@ -36,6 +37,23 @@ const StockAdjustmentDialog: React.FC<StockAdjustmentDialogProps> = ({
   onSuccess
 }) => {
   const [loading, setLoading] = useState(false);
+  
+  // Refs for focus management
+  const quantityInputRef = useRef<HTMLInputElement>(null);
+  const dialogTitleRef = useRef<HTMLDivElement>(null);
+
+  // Focus management
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => {
+        if (quantityInputRef.current) {
+          quantityInputRef.current.focus();
+        } else if (dialogTitleRef.current) {
+          dialogTitleRef.current.focus();
+        }
+      }, 100);
+    }
+  }, [open]);
 
   const adjustmentReasons = [
     'Purchase Order Received',
@@ -84,20 +102,50 @@ const StockAdjustmentDialog: React.FC<StockAdjustmentDialogProps> = ({
     formik.setFieldValue('quantity', amount);
   };
 
+  const handleDialogClose = () => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    onClose();
+  };
+
   const newStockLevel = product.quantity + (formik.values.quantity || 0);
   const isOutOfStock = newStockLevel <= 0;
   const isLowStock = newStockLevel > 0 && newStockLevel <= product.minStockLevel;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <Dialog 
+      open={open} 
+      onClose={handleDialogClose} 
+      maxWidth="sm" 
+      fullWidth
+      aria-labelledby="stock-adjustment-title"
+      onTransitionEnd={(node, isAppearing) => {
+        if (!isAppearing && !open) {
+          const activeElement = document.activeElement as HTMLElement;
+          if (activeElement && activeElement.closest('.MuiDialog-root')) {
+            activeElement.blur();
+          }
+        }
+      }}
+    >
+      <DialogTitle 
+        id="stock-adjustment-title"
+        ref={dialogTitleRef}
+        tabIndex={-1}
+        sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+      >
         <Box>
           <Typography variant="h6">Adjust Stock</Typography>
           <Typography variant="body2" color="text.secondary">
             {product.name} ({product.sku})
           </Typography>
         </Box>
-        <IconButton onClick={onClose} size="small">
+        <IconButton 
+          onClick={handleDialogClose} 
+          size="small"
+          aria-label="Close"
+        >
           <Close />
         </IconButton>
       </DialogTitle>
@@ -138,6 +186,7 @@ const StockAdjustmentDialog: React.FC<StockAdjustmentDialogProps> = ({
               </Button>
               
               <TextField
+                inputRef={quantityInputRef}
                 sx={{ flex: 1 }}
                 label="Adjustment Quantity"
                 name="quantity"
@@ -249,7 +298,11 @@ const StockAdjustmentDialog: React.FC<StockAdjustmentDialogProps> = ({
         </DialogContent>
 
         <DialogActions sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}>
-          <Button onClick={onClose} disabled={loading}>
+          <Button 
+            onClick={handleDialogClose} 
+            disabled={loading}
+            aria-label="Cancel"
+          >
             Cancel
           </Button>
           <Button
@@ -258,6 +311,7 @@ const StockAdjustmentDialog: React.FC<StockAdjustmentDialogProps> = ({
             disabled={loading || formik.values.quantity === 0}
             startIcon={loading ? <CircularProgress size={20} /> : null}
             color={formik.values.quantity < 0 ? 'error' : 'primary'}
+            aria-label="Apply Adjustment"
           >
             {loading ? 'Processing...' : 'Apply Adjustment'}
           </Button>

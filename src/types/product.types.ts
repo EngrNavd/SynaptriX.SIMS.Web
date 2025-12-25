@@ -1,4 +1,7 @@
-﻿export interface ProductDto {
+﻿// Remove or comment out ProductStats since we're not using it anymore
+// Or keep it if you want but update the calculation
+
+export interface ProductDto {
   id: string;
   sku: string;
   name: string;
@@ -81,6 +84,7 @@ export interface UpdateStockRequest {
   reason: string;
 }
 
+// Optional: Keep ProductStats but it won't be fetched from API
 export interface ProductStats {
   totalProducts: number;
   totalValue: number;
