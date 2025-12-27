@@ -1,154 +1,99 @@
-import axios from 'axios';
-import { 
-  ProductDto, 
-  CreateProductDto, 
-  UpdateProductDto, 
-  ProductListDto, 
-  PagedRequestDto,
-  UpdateStockRequest,
-  ProductStats 
-} from '../types/product.types';
+import { api } from './index';
+import { Product } from '../types';
+import { ApiResponse } from '../types/api';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-
-const productsApi = {
-  // Get all products with pagination
-  getProducts: async (params: PagedRequestDto): Promise<ProductListDto> => {
-    const response = await axios.get<ApiResponse<ProductListDto>>(`${API_BASE_URL}/products`, {
-      params,
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-      }
-    });
-    return response.data.data;
-  },
-
-  // Get single product
-  getProductById: async (id: string): Promise<ProductDto> => {
-    const response = await axios.get<ApiResponse<ProductDto>>(`${API_BASE_URL}/products/${id}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-      }
-    });
-    return response.data.data;
-  },
-
-  // Create product
-  createProduct: async (productData: CreateProductDto): Promise<ProductDto> => {
-    const response = await axios.post<ApiResponse<ProductDto>>(
-      `${API_BASE_URL}/products`,
-      productData,
-      {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-    return response.data.data;
-  },
-
-  // Update product
-  updateProduct: async (id: string, productData: UpdateProductDto): Promise<ProductDto> => {
-    const response = await axios.put<ApiResponse<ProductDto>>(
-      `${API_BASE_URL}/products/${id}`,
-      productData,
-      {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-    return response.data.data;
-  },
-
-  // Delete product
-  deleteProduct: async (id: string): Promise<void> => {
-    await axios.delete<ApiResponse<void>>(`${API_BASE_URL}/products/${id}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-      }
-    });
-  },
-
-  // Get low stock products only
-  getLowStockProducts: async (): Promise<ProductDto[]> => {
-    const response = await axios.get<ApiResponse<ProductDto[]>>(
-      `${API_BASE_URL}/products/low-stock`,
-      {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-        }
-      }
-    );
-    return response.data.data;
-  },
-
-  // Search products
-  searchProducts: async (term: string): Promise<ProductDto[]> => {
-    const response = await axios.get<ApiResponse<ProductDto[]>>(
-      `${API_BASE_URL}/products/search`,
-      {
-        params: { term },
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-        }
-      }
-    );
-    return response.data.data;
-  },
-
-  // Get inventory value only
-  getInventoryValue: async (): Promise<number> => {
-    const response = await axios.get<ApiResponse<{ totalValue: number }>>(
-      `${API_BASE_URL}/products/inventory-value`,
-      {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-        }
-      }
-    );
-    return response.data.data.totalValue;
-  },
-
-  // Update stock
-  updateStock: async (id: string, quantity: number, reason: string): Promise<void> => {
-    await axios.post<ApiResponse<void>>(
-      `${API_BASE_URL}/products/${id}/update-stock`,
-      { quantity, reason },
-      {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-  },
-
-  // Get total products count only
-  getTotalProductsCount: async (): Promise<number> => {
-    const response = await axios.get<ApiResponse<ProductListDto>>(
-      `${API_BASE_URL}/products`,
-      {
-        params: { page: 1, pageSize: 1 },
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-        }
-      }
-    );
-    return response.data.data.totalCount;
-  },
-
-  // REMOVED: getProductStats() - This was causing multiple API calls
-  // Use the individual methods above instead
+// Get products - SIMPLER VERSION
+export const getProducts = async (params?: any): Promise<any> => {
+  try {
+    console.log('🔧 getProducts called with params:', params);
+    
+    // Try different endpoint structures
+    const response = await api.get('/products', { params });
+    console.log('🔧 getProducts response:', response.data);
+    
+    // Handle different response structures
+    if (response.data.data) {
+      // If response has data property
+      return response.data.data;
+    } else if (response.data.products) {
+      // If response has products property
+      return response.data;
+    } else {
+      // Raw response
+      return response.data;
+    }
+  } catch (error: any) {
+    console.error('❌ getProducts error:', error);
+    console.error('❌ Error status:', error.response?.status);
+    console.error('❌ Error data:', error.response?.data);
+    
+    // Return empty structure to prevent crash
+    return {
+      products: [],
+      totalCount: 0,
+      page: 1,
+      pageSize: 10
+    };
+  }
 };
 
-export default productsApi;
+// Search products - SIMPLER
+export const searchProducts = async (searchTerm: string): Promise<Product[]> => {
+  try {
+    if (!searchTerm || searchTerm.trim().length < 2) {
+      return [];
+    }
+    
+    const response = await api.get(`/products/search?term=${encodeURIComponent(searchTerm.trim())}`);
+    
+    // Handle response structure
+    if (response.data.data) {
+      return response.data.data;
+    }
+    return response.data;
+  } catch (error) {
+    console.error('Search products error:', error);
+    return [];
+  }
+};
 
-// Keep the ApiResponse interface
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message: string;
-}
+// Other functions remain similar but simpler
+export const getProduct = async (id: number): Promise<Product | null> => {
+  try {
+    const response = await api.get(`/products/${id}`);
+    return response.data.data || response.data;
+  } catch (error) {
+    console.error(`Error fetching product ${id}:`, error);
+    return null;
+  }
+};
+
+export const createProduct = async (product: Partial<Product>): Promise<Product | null> => {
+  try {
+    const response = await api.post('/products', product);
+    return response.data.data || response.data;
+  } catch (error) {
+    console.error('Error creating product:', error);
+    return null;
+  }
+};
+
+export const updateProduct = async (id: number, product: Partial<Product>): Promise<Product | null> => {
+  try {
+    const response = await api.put(`/products/${id}`, product);
+    return response.data.data || response.data;
+  } catch (error) {
+    console.error(`Error updating product ${id}:`, error);
+    return null;
+  }
+};
+
+export const deleteProduct = async (id: string): Promise<boolean> => {
+  try {
+    await api.delete(`/products/${id}`);
+    return true;
+  } catch (error) {
+    console.error(`Error deleting product ${id}:`, error);
+    return false;
+  }
+};

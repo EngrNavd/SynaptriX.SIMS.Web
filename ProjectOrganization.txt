@@ -1,0 +1,35 @@
+src/
+├── api/
+│   ├── auth.api.ts
+│   ├── customers.api.ts
+│   ├── products.api.ts
+│   ├── invoices.api.ts
+│   ├── pos.api.ts
+│   └── index.ts
+├── components/
+│   ├── layout/
+│   │   └── Layout.tsx
+│   └── pos/
+│       ├── CustomerLookupDialog.tsx
+│       ├── ProductSearchDialog.tsx
+│       ├── InvoiceSummary.tsx
+│       └── ReceiptPreview.tsx
+├── pages/
+│   ├── auth/
+│   │   └── Login.tsx
+│   ├── dashboard/
+│   │   └── Dashboard.tsx
+│   ├── customers/
+│   │   └── Customers.tsx
+│   ├── products/
+│   │   └── Products.tsx
+│   ├── orders/
+│   │   └── Orders.tsx
+│   ├── settings/
+│   │   └── Settings.tsx
+│   ├── invoices/
+│   │   ├── CreateInvoicePage.tsx
+│   │   ├── InvoiceListPage.tsx
+│   │   └── InvoiceDetailPage.tsx
+│   └── pos/
+│       └── PosPage.tsx

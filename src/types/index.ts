@@ -29,6 +29,8 @@ export interface PagedRequestDto {
 export * from './api.types';
 export * from './auth.types';
 export * from './customer.types';
+export * from './product.types';
+export * from './invoice.types';
 
 // You can also add common types here if needed
 export interface SelectOption {

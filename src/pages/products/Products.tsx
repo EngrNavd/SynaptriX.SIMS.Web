@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import {
   Container,
   Box,
@@ -48,12 +48,15 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import debounce from 'lodash/debounce';
-import productsApi from '../../api/products.api';
+import { productsApi } from '@/api';
 import ProductForm from '../../components/products/ProductForm';
 import StockAdjustmentDialog from '../../components/products/StockAdjustmentDialog';
-import { ProductDto, PagedRequestDto } from '../../types/product.types';
+import { Product } from '../../types';
 
 const Products: React.FC = () => {
+  console.log('🚀 Products component rendering');
+  console.log('🔑 Token exists:', !!localStorage.getItem('token'));
+  
   const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -62,13 +65,36 @@ const Products: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [openForm, setOpenForm] = useState(false);
   const [openStockDialog, setOpenStockDialog] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<ProductDto | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [actionProduct, setActionProduct] = useState<ProductDto | null>(null);
+  const [actionProduct, setActionProduct] = useState<Product | null>(null);
   
   // Refs for focus management
   const lastFocusedElementRef = useRef<HTMLElement | null>(null);
   const addProductButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Debug useEffect
+  useEffect(() => {
+    console.log('=== PRODUCTS PAGE DEBUG ===');
+    console.log('1. Token:', localStorage.getItem('token'));
+    console.log('2. Page state:', { page, rowsPerPage, searchTerm, statusFilter });
+    
+    // Test if API endpoint exists
+    const testApiEndpoint = async () => {
+      try {
+        console.log('3. Testing direct fetch to /api/products...');
+        const response = await fetch('/api/products?page=1&pageSize=5');
+        console.log('4. Fetch response status:', response.status);
+        const data = await response.json();
+        console.log('5. Fetch response data structure:', Object.keys(data));
+        console.log('6. Fetch response:', data);
+      } catch (error) {
+        console.error('7. Direct fetch failed:', error);
+      }
+    };
+    
+    testApiEndpoint();
+  }, []);
 
   // Debounce search
   const debouncedSearch = useCallback(
@@ -79,52 +105,142 @@ const Products: React.FC = () => {
     []
   );
 
-  // MAIN PRODUCTS QUERY - Only loads products for the table
+  // MAIN PRODUCTS QUERY - SIMPLIFIED VERSION
   const {
-    data: productsData,
+    data: productsData = { products: [], totalCount: 0, page: 1, pageSize: 10 },
     isLoading: productsLoading,
     error: productsError,
     isFetching: productsFetching
   } = useQuery({
     queryKey: ['products', page, rowsPerPage, debouncedSearchTerm, statusFilter],
-    queryFn: () => {
-      const params: PagedRequestDto = {
+    queryFn: async () => {
+      console.log('🔄 [useQuery] Fetching products...');
+      
+      const params: any = {
         page: page + 1,
         pageSize: rowsPerPage,
-        search: debouncedSearchTerm || undefined,
-        status: statusFilter !== 'all' ? statusFilter : undefined
       };
-      return productsApi.getProducts(params);
+      
+      if (debouncedSearchTerm) {
+        params.search = debouncedSearchTerm;
+      }
+      
+      if (statusFilter !== 'all') {
+        params.status = statusFilter;
+      }
+      
+      console.log('🔄 [useQuery] Params:', params);
+      
+      try {
+        console.log('🔄 [useQuery] Calling productsApi.getProducts()...');
+        const response = await productsApi.getProducts(params);
+        console.log('🔄 [useQuery] Raw API Response:', response);
+        
+        // Handle different response structures
+        let products = [];
+        let totalCount = 0;
+        
+        if (response && response.products && Array.isArray(response.products)) {
+          // Structure: { products: [], totalCount: number }
+          products = response.products;
+          totalCount = response.totalCount || response.products.length;
+          console.log('📊 [useQuery] Using products/totalCount structure');
+        } else if (response && response.data && Array.isArray(response.data)) {
+          // Structure: { data: [], totalCount: number }
+          products = response.data;
+          totalCount = response.totalCount || response.data.length;
+          console.log('📊 [useQuery] Using data/totalCount structure');
+        } else if (Array.isArray(response)) {
+          // Structure: [] (array directly)
+          products = response;
+          totalCount = response.length;
+          console.log('📊 [useQuery] Using array structure');
+        } else if (response && response.data && response.data.products) {
+          // Structure: { data: { products: [], totalCount: number } }
+          products = response.data.products;
+          totalCount = response.data.totalCount || response.data.products.length;
+          console.log('📊 [useQuery] Using nested data.products structure');
+        } else {
+          console.warn('⚠️ [useQuery] Unknown response structure:', response);
+          products = [];
+          totalCount = 0;
+        }
+        
+        console.log('✅ [useQuery] Normalized:', { 
+          productsCount: products.length, 
+          totalCount,
+          sampleProduct: products[0] 
+        });
+        
+        return {
+          products,
+          totalCount,
+          page: page + 1,
+          pageSize: rowsPerPage
+        };
+      } catch (error: any) {
+        console.error('❌ [useQuery] Error:', error);
+        console.error('❌ [useQuery] Error message:', error.message);
+        console.error('❌ [useQuery] Error response:', error.response);
+        
+        // Return empty data structure to prevent crashes
+        return {
+          products: [],
+          totalCount: 0,
+          page: page + 1,
+          pageSize: rowsPerPage
+        };
+      }
     },
-    staleTime: 30000, // 30 seconds cache
-    gcTime: 60000, // 1 minute garbage collection
+    staleTime: 30000,
+    gcTime: 60000,
+    retry: 1,
   });
 
-  // SEPARATE QUERIES for stats - load independently with appropriate caching
+  // SEPARATE QUERIES for stats - with error handling
   const { data: inventoryValue = 0, isLoading: inventoryLoading } = useQuery({
     queryKey: ['inventoryValue'],
-    queryFn: () => productsApi.getInventoryValue(),
-    staleTime: 300000, // 5 minutes (changes slowly)
-    gcTime: 600000, // 10 minutes
+    queryFn: async () => {
+      try {
+        return await productsApi.getInventoryValue();
+      } catch (error) {
+        console.error('Inventory value error:', error);
+        return 0;
+      }
+    },
+    staleTime: 300000,
+    gcTime: 600000,
+    retry: 1,
   });
 
   const { data: lowStockProducts = [], isLoading: lowStockLoading } = useQuery({
     queryKey: ['lowStockProducts'],
-    queryFn: () => productsApi.getLowStockProducts(),
-    staleTime: 60000, // 1 minute
-    gcTime: 300000, // 5 minutes
+    queryFn: async () => {
+      try {
+        return await productsApi.getLowStockProducts();
+      } catch (error) {
+        console.error('Low stock products error:', error);
+        return [];
+      }
+    },
+    staleTime: 60000,
+    gcTime: 300000,
+    retry: 1,
   });
 
-  // Calculate stats from existing data - NO ADDITIONAL API CALLS
+  // Calculate stats
   const stats = useMemo(() => {
-    const currentProducts = productsData?.products || [];
-    const outOfStockCount = currentProducts.filter(p => p.quantity === 0).length;
+    console.log('📈 Calculating stats...');
+    console.log('📈 Current productsData:', productsData);
+    
+    const currentProducts = productsData.products || [];
+    const outOfStockCount = currentProducts.filter(p => (p.quantity || 0) === 0).length;
     
     return {
-      totalProducts: productsData?.totalCount || 0,
+      totalProducts: productsData.totalCount || 0,
       totalValue: inventoryValue,
-      totalValueUSD: inventoryValue * 0.27, // Convert AED to USD
-      lowStockCount: lowStockProducts.length,
+      totalValueUSD: inventoryValue * 0.27,
+      lowStockCount: lowStockProducts.length || 0,
       outOfStockCount
     };
   }, [productsData, inventoryValue, lowStockProducts]);
@@ -134,10 +250,17 @@ const Products: React.FC = () => {
     mutationFn: (id: string) => productsApi.deleteProduct(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['inventoryValue'] });
+      queryClient.invalidateQueries({ queryKey: ['lowStockProducts'] });
       toast.success('Product deleted successfully');
     },
-    onError: () => {
-      toast.error('Failed to delete product');
+    onError: (error: any) => {
+      console.error('Delete error:', error);
+      if (error.response?.status === 401) {
+        toast.error('Unauthorized - Please login again');
+      } else {
+        toast.error('Failed to delete product');
+      }
     }
   });
 
@@ -166,8 +289,8 @@ const Products: React.FC = () => {
     handleFilterClose();
   };
 
-  // Handle form dialog with focus management
-  const handleFormOpen = (product: ProductDto | null = null) => {
+  // Handle form dialog
+  const handleFormOpen = (product: Product | null = null) => {
     lastFocusedElementRef.current = document.activeElement as HTMLElement;
     setSelectedProduct(product);
     setOpenForm(true);
@@ -186,8 +309,8 @@ const Products: React.FC = () => {
     }, 100);
   };
 
-  // Handle stock dialog with focus management
-  const handleStockDialogOpen = (product: ProductDto) => {
+  // Handle stock dialog
+  const handleStockDialogOpen = (product: Product) => {
     lastFocusedElementRef.current = document.activeElement as HTMLElement;
     setSelectedProduct(product);
     setOpenStockDialog(true);
@@ -204,7 +327,7 @@ const Products: React.FC = () => {
   };
 
   // Handle row actions menu
-  const handleActionClick = (event: React.MouseEvent<HTMLElement>, product: ProductDto) => {
+  const handleActionClick = (event: React.MouseEvent<HTMLElement>, product: Product) => {
     setActionProduct(product);
     setAnchorEl(event.currentTarget);
   };
@@ -223,7 +346,7 @@ const Products: React.FC = () => {
 
   const handleDelete = () => {
     if (actionProduct && window.confirm('Are you sure you want to delete this product?')) {
-      deleteMutation.mutate(actionProduct.id);
+      deleteMutation.mutate(actionProduct.id.toString());
     }
     handleActionClose();
   };
@@ -269,12 +392,21 @@ const Products: React.FC = () => {
     </Grid>
   );
 
+  // Show error if query failed
   if (productsError) {
+    console.error('Products query error:', productsError);
     return (
       <Container maxWidth="xl">
         <Alert severity="error" sx={{ mt: 2 }}>
-          Error loading products. Please try again.
+          Error loading products: {productsError.message}
         </Alert>
+        <Button
+          variant="contained"
+          sx={{ mt: 2 }}
+          onClick={() => queryClient.refetchQueries({ queryKey: ['products'] })}
+        >
+          Retry Loading Products
+        </Button>
       </Container>
     );
   }
@@ -302,10 +434,9 @@ const Products: React.FC = () => {
         </Typography>
       </Box>
 
-      {/* Stats Cards - Show skeleton while loading */}
+      {/* Stats Cards */}
       {(productsLoading || inventoryLoading || lowStockLoading) && renderStatsSkeleton()}
 
-      {/* Stats Cards - Show data when loaded */}
       {!(productsLoading || inventoryLoading || lowStockLoading) && (
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -319,6 +450,9 @@ const Products: React.FC = () => {
                 </Box>
                 <Typography variant="h4" fontWeight={600}>
                   {stats.totalProducts.toLocaleString()}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {productsData.products.length} loaded
                 </Typography>
               </CardContent>
             </Card>
@@ -502,45 +636,58 @@ const Products: React.FC = () => {
                 <TableRow>
                   <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
                     <CircularProgress />
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      Loading products...
+                    </Typography>
                   </TableCell>
                 </TableRow>
-              ) : productsData?.products.length === 0 ? (
+              ) : productsData.products.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
                     <Box sx={{ textAlign: 'center' }}>
                       <Inventory sx={{ fontSize: 60, color: 'grey.400', mb: 2 }} />
                       <Typography variant="h6" color="text.secondary">
-                        No products found
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                         {debouncedSearchTerm
                           ? `No products matching "${debouncedSearchTerm}"`
-                          : 'Add your first product to get started'}
+                          : 'No products found'}
                       </Typography>
-                      <Button
-                        variant="contained"
-                        startIcon={<Add />}
-                        onClick={handleAddProduct}
-                      >
-                        Add Product
-                      </Button>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        {!debouncedSearchTerm && 'Add your first product to get started'}
+                      </Typography>
+                      {!debouncedSearchTerm && (
+                        <Button
+                          variant="contained"
+                          startIcon={<Add />}
+                          onClick={handleAddProduct}
+                        >
+                          Add Product
+                        </Button>
+                      )}
                     </Box>
                   </TableCell>
                 </TableRow>
               ) : (
-                productsData?.products.map((product) => {
-                  const stockStatus = getStockStatus(product.quantity, product.minStockLevel);
+                productsData.products.map((product) => {
+                  const quantity = product.quantity || 0;
+                  const minStockLevel = product.minStockLevel || 0;
+                  const purchasePrice = product.purchasePrice || 0;
+                  const sellingPrice = product.sellingPrice || 0;
+                  const stockStatus = getStockStatus(quantity, minStockLevel);
+                  const marginPercentage = purchasePrice > 0 
+                    ? (((sellingPrice - purchasePrice) / purchasePrice) * 100).toFixed(1)
+                    : '0.0';
+                  
                   return (
                     <TableRow key={product.id} hover>
                       <TableCell>
                         <Typography variant="body2" fontWeight={500}>
-                          {product.sku}
+                          {product.sku || 'N/A'}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Box>
                           <Typography variant="body1" fontWeight={500}>
-                            {product.name}
+                            {product.name || 'Unnamed Product'}
                           </Typography>
                           {product.description && (
                             <Typography variant="caption" color="text.secondary" noWrap>
@@ -559,37 +706,37 @@ const Products: React.FC = () => {
                       <TableCell align="right">
                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                           <Typography variant="body1" fontWeight={500}>
-                            {product.quantity}
+                            {quantity}
                           </Typography>
-                          {product.minStockLevel > 0 && (
+                          {minStockLevel > 0 && (
                             <Typography variant="caption" color="text.secondary">
-                              Min: {product.minStockLevel}
+                              Min: {minStockLevel}
                             </Typography>
                           )}
                         </Box>
                       </TableCell>
                       <TableCell align="right">
                         <Typography variant="body2">
-                          {formatCurrency(product.purchasePrice)}
+                          {formatCurrency(purchasePrice)}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          ${product.purchasePriceUSD.toFixed(2)}
+                          ${(purchasePrice * 0.27).toFixed(2)}
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
                         <Typography variant="body2" fontWeight={500}>
-                          {formatCurrency(product.sellingPrice)}
+                          {formatCurrency(sellingPrice)}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          ${product.sellingPriceUSD.toFixed(2)}
+                          ${(sellingPrice * 0.27).toFixed(2)}
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
                         <Typography variant="body2" fontWeight={500}>
-                          {formatCurrency(product.quantity * product.sellingPrice)}
+                          {formatCurrency(quantity * sellingPrice)}
                         </Typography>
                         <Typography variant="caption" color="success.main">
-                          +{(((product.sellingPrice - product.purchasePrice) / product.purchasePrice) * 100).toFixed(1)}%
+                          +{marginPercentage}%
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -652,8 +799,13 @@ const Products: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['inventoryValue'] });
             queryClient.invalidateQueries({ queryKey: ['lowStockProducts'] });
             handleFormClose();
-          } catch (error) {
-            toast.error('Failed to save product');
+          } catch (error: any) {
+            console.error('Save product error:', error);
+            if (error.response?.status === 401) {
+              toast.error('Unauthorized - Please login again');
+            } else {
+              toast.error('Failed to save product');
+            }
             throw error;
           }
         }}

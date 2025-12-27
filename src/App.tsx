@@ -8,6 +8,9 @@ import { Toaster } from 'react-hot-toast';
 import theme from './theme';
 import Layout from './components/layout/Layout';
 
+// ADD THIS IMPORT
+import { Button } from '@mui/material';
+
 // Pages
 import Login from './pages/auth/Login';
 import Dashboard from './pages/dashboard/Dashboard';
@@ -15,6 +18,7 @@ import Customers from './pages/customers/Customers';
 import Products from './pages/products/Products';
 import Orders from './pages/orders/Orders';
 import Settings from './pages/settings/Settings';
+import CreateInvoicePage from './pages/invoices/CreateInvoicePage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -58,14 +62,19 @@ function App() {
               <Route path="products" element={<Products />} />
               <Route path="orders" element={<Orders />} />
               <Route path="settings" element={<Settings />} />
-              {/* Handle /invoices route from the menu */}
+              {/* INVOICES ROUTES */}
+              <Route path="invoices/create" element={<CreateInvoicePage />} />
               <Route path="invoices" element={
                 <div style={{ padding: '40px', textAlign: 'center' }}>
-                  <h2>Invoices Module</h2>
-                  <p style={{ color: '#666' }}>This module is coming soon.</p>
-                  <p style={{ color: '#999', fontSize: '14px' }}>
-                    Manage and generate customer invoices with VAT compliance.
-                  </p>
+                  <h2>Invoice List</h2>
+                  <p style={{ color: '#666' }}>Coming soon - Invoice listing page</p>
+                  <Button 
+                    variant="contained" 
+                    onClick={() => window.location.href = '/invoices/create'}
+                    sx={{ mt: 2 }}
+                  >
+                    Create New Invoice
+                  </Button>
                 </div>
               } />
             </Route>

@@ -37,7 +37,7 @@ import {
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import productsApi from '../../api/products.api';
+import { productsApi } from '@/api';
 
 const ProductDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();

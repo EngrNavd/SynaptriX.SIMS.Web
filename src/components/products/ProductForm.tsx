@@ -23,7 +23,7 @@ import {
 import { Close, AttachFile } from '@mui/icons-material';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import productsApi from '../../api/products.api';
+import { productsApi } from '@/api';
 
 interface ProductFormProps {
   open: boolean;

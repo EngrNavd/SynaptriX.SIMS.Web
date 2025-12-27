@@ -15,6 +15,8 @@ export interface ProductDto {
   quantity: number;
   minStockLevel: number;
   maxStockLevel?: number;
+  warranty: string;
+  warrantyDays?: number;
   manufacturer?: string;
   brand?: string;
   model?: string;
@@ -38,6 +40,8 @@ export interface CreateProductDto {
   quantity: number;
   minStockLevel: number;
   maxStockLevel?: number;
+  warranty: string;
+  warrantyDays?: number;
   manufacturer?: string;
   brand?: string;
   model?: string;
@@ -47,6 +51,7 @@ export interface CreateProductDto {
   categoryId?: number;
 }
 
+
 export interface UpdateProductDto {
   name?: string;
   description?: string;
@@ -54,6 +59,8 @@ export interface UpdateProductDto {
   quantity?: number;
   minStockLevel?: number;
   maxStockLevel?: number;
+  warranty?: string;
+  warrantyDays?: number;
   location?: string;
   categoryId?: number;
 }
