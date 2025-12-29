@@ -1,21 +1,53 @@
-﻿// Invoice Enums
-export enum InvoiceStatus {
-  Draft = 'Draft',
-  Pending = 'Pending',
-  Paid = 'Paid',
-  PartiallyPaid = 'PartiallyPaid',
-  Cancelled = 'Cancelled'
+﻿// API Response structure
+export interface ApiResponse<T = any> {
+  success: boolean;
+  message: string;
+  data: T;
+  errors?: string[];
 }
 
-export enum PaymentMethod {
-  Cash = 'Cash',
-  Card = 'Card',
-  BankTransfer = 'BankTransfer',
-  Credit = 'Credit',
-  MobilePayment = 'MobilePayment'
+// Paged request DTO
+export interface PagedRequestDto {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  sortBy?: string;
+  sortDescending?: boolean;
 }
 
-// Invoice Item with warranty
+// Match with your .NET backend InvoiceDto
+export interface InvoiceDto {
+  id: string;
+  invoiceNumber: string;
+  customerId: string;
+  customerName: string;
+  customerMobile: string;
+  customerEmail?: string;
+  invoiceDate: string;
+  dueDate?: string;
+  status: InvoiceStatus;
+  paymentStatus: PaymentStatus;
+  paymentMethod?: string;
+  paymentReference?: string;
+  paymentDate?: string;
+  subTotal: number;
+  taxAmount: number;
+  discountAmount: number;
+  shippingCharges: number;
+  totalAmount: number;
+  amountPaid: number;
+  amountDue: number;
+  notes?: string;
+  createdByUserId: string;
+  createdAt: string;
+  updatedAt?: string;
+  updatedBy?: string;
+  tenantId: string;
+  isActive: boolean;
+  items: InvoiceItemDto[];
+}
+
+// Invoice Item DTO
 export interface InvoiceItemDto {
   id: string;
   productId: string;
@@ -23,125 +55,85 @@ export interface InvoiceItemDto {
   productSKU: string;
   quantity: number;
   unitPrice: number;
-  unitPriceUSD: number;
   discountPercent: number;
   discountAmount: number;
-  discountAmountUSD: number;
   taxRate: number;
   taxAmount: number;
-  taxAmountUSD: number;
   totalPrice: number;
-  totalPriceUSD: number;
-  // WARRANTY FIELDS
-  warranty: string;
+  warranty?: string;
   warrantyDays?: number;
 }
 
-// Invoice DTO
-export interface InvoiceDto {
-  id: string;
-  invoiceNumber: string;
-  customerId: string;
-  customerName: string;
-  customerMobile: string;
-  invoiceDate: string;
-  dueDate?: string;
-  subTotal: number;
-  subTotalUSD: number;
-  taxAmount: number;
-  taxAmountUSD: number;
-  discountAmount: number;
-  discountAmountUSD: number;
-  shippingCharges: number;
-  shippingChargesUSD: number;
-  totalAmount: number;
-  totalAmountUSD: number;
-  amountPaid: number;
-  amountPaidUSD: number;
-  amountDue: number;
-  amountDueUSD: number;
-  status: string;
-  paymentMethod?: string;
-  paymentReference?: string;
-  paymentDate?: string;
-  notes?: string;
-  createdByUserId: string;
-  items: InvoiceItemDto[];
-  currency: string;
-  createdAt: string;
-  daysOverdue: number;
-}
-
-// For listing invoices
+// Invoice List DTO
 export interface InvoiceListDto {
   invoices: InvoiceDto[];
   totalCount: number;
-  page: number;
-  pageSize: number;
+  page?: number;
+  pageSize?: number;
+  totalPages?: number;
 }
 
-// Create Invoice DTOs
-export interface CreateInvoiceItemDto {
-  productId: string;
-  quantity: number;
-  unitPrice?: number;
-  discountPercent?: number;
+// Statistics DTO
+export interface InvoiceStatisticsDto {
+  // Invoice Status Statistics
+  totalInvoices: number;
+  totalAmount: number;
+  totalTax: number;
+  draftInvoices: number;
+  pendingInvoices: number;
+  partiallyPaidInvoices: number;
+  paidInvoices: number;
+  cancelledInvoices: number;
+  
+  // Payment Status Statistics
+  unpaidInvoices: number;
+  partiallyPaidPaymentInvoices: number;
+  paidPaymentInvoices: number;
+  overduePaymentInvoices: number;
+  cancelledPaymentInvoices: number;
+  
+  // Additional stats
+  todayInvoices: number;
+  thisMonthInvoices: number;
+  averageInvoiceAmount: number;
+  topCustomer?: string;
 }
 
-export interface CreateInvoiceDto {
-  customerId: string;
-  items: CreateInvoiceItemDto[];
-  shippingCharges?: number;
-  invoiceDate?: string;
-  dueDate?: string;
-  status?: InvoiceStatus;
-  paymentMethod?: PaymentMethod;
-  paymentReference?: string;
-  notes?: string;
+// Export Request DTO
+export interface ExportInvoicesRequestDto {
+  search?: string;
+  status?: string;
+  paymentStatus?: string;
+  fromDate?: Date | null;
+  toDate?: Date | null;
 }
 
-// POS Specific DTOs
-export interface CreateInvoiceFromMobileRequest {
-  customerMobile: string;
-  newCustomerDetails?: CreateCustomerDto;
-  items: CreateInvoiceItemDto[];
-  shippingCharges?: number;
-  discountAmount?: number;
-  taxRate?: number;
-  paymentMethod: PaymentMethod;
-  paymentReference?: string;
-  notes?: string;
-  printInvoice?: boolean;
+// Update Status Request
+export interface UpdateInvoiceStatusRequest {
+  status: string;
+  reason?: string;
 }
 
-export interface CustomerLookupResponse {
-  exists: boolean;
-  customer?: CustomerDto;
-  formattedMobile: string;
+// Enums
+export enum InvoiceStatus {
+  Draft = "Draft",
+  Pending = "Pending", 
+  Paid = "Paid",
+  PartiallyPaid = "PartiallyPaid",
+  Cancelled = "Cancelled"
 }
 
-export interface InvoiceCreateResponse {
-  invoice: InvoiceDto;
-  inventoryUpdates: InventoryUpdate[];
-  customer: CustomerDto;
-  pdfUrl: string;
+export enum PaymentStatus {
+  Unpaid = "Unpaid",
+  PartiallyPaid = "PartiallyPaid", 
+  Paid = "Paid",
+  Overdue = "Overdue",
+  Cancelled = "Cancelled"
 }
 
-export interface InventoryUpdate {
-  productId: string;
-  productName: string;
-  quantityChange: number;
-  newStock: number;
-}
-
-// For POS calculation
-export interface CalculateTotalRequest {
-  items: CreateInvoiceItemDto[];
-  discountAmount: number;
-  taxRate: number;
-  shippingCharges: number;
-}
-
-export interface ValidateStockRequest {
-  items: CreateInvoiceItemDto[];
+export enum PaymentMethod {
+  Cash = "Cash",
+  CreditCard = "CreditCard",
+  BankTransfer = "BankTransfer",
+  Cheque = "Cheque"
 }

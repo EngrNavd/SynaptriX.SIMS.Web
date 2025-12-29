@@ -8,9 +8,6 @@ import { Toaster } from 'react-hot-toast';
 import theme from './theme';
 import Layout from './components/layout/Layout';
 
-// ADD THIS IMPORT
-import { Button } from '@mui/material';
-
 // Pages
 import Login from './pages/auth/Login';
 import Dashboard from './pages/dashboard/Dashboard';
@@ -19,6 +16,8 @@ import Products from './pages/products/Products';
 import Orders from './pages/orders/Orders';
 import Settings from './pages/settings/Settings';
 import CreateInvoicePage from './pages/invoices/CreateInvoicePage';
+import InvoiceListPage from './pages/invoices/InvoiceListPage';
+import InvoiceDetailPage from './pages/invoices/InvoiceDetailPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,11 +50,14 @@ function App() {
             <Route path="/login" element={<Login />} />
             
             {/* Protected Routes - Layout is the parent */}
-            <Route path="/" element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }>
+            <Route 
+              path="/" 
+              element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="customers" element={<Customers />} />
@@ -64,23 +66,13 @@ function App() {
               <Route path="settings" element={<Settings />} />
               {/* INVOICES ROUTES */}
               <Route path="invoices/create" element={<CreateInvoicePage />} />
-              <Route path="invoices" element={
-                <div style={{ padding: '40px', textAlign: 'center' }}>
-                  <h2>Invoice List</h2>
-                  <p style={{ color: '#666' }}>Coming soon - Invoice listing page</p>
-                  <Button 
-                    variant="contained" 
-                    onClick={() => window.location.href = '/invoices/create'}
-                    sx={{ mt: 2 }}
-                  >
-                    Create New Invoice
-                  </Button>
-                </div>
-              } />
-            </Route>
+              <Route path="invoices" element={<InvoiceListPage />} />
+              <Route path="invoices/:id" element={<InvoiceDetailPage />} />
+              <Route path="invoices/:id/edit" element={<div>Edit Invoice Page (Coming Soon)</div>} />
+            </Route> {/* This was the missing closing tag */}
             
-            {/* Catch all - redirect to login */}
-            <Route path="*" element={<Navigate to="/login" replace />} />
+            {/* Add a catch-all route for 404 */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </Router>
         

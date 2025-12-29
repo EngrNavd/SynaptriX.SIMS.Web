@@ -1,15 +1,53 @@
 import { api } from './index';
-import { Product } from '../types';
-import { ApiResponse } from '../types/api';
+
+// Define Product interface locally since it's not exported from '../types'
+interface Product {
+  id: number;
+  name: string;
+  sku?: string;
+  description?: string;
+  price: number;
+  cost?: number;
+  quantity: number;
+  category?: string;
+  status?: string;
+  barcode?: string;
+  minStockLevel?: number;
+  maxStockLevel?: number;
+  location?: string;
+  supplier?: string;
+  weight?: number;
+  dimensions?: string;
+  expiryDate?: string;
+  batchNumber?: string;
+  taxRate?: number;
+  discountRate?: number;
+  imageUrl?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
+  isActive?: boolean;
+  tenantId?: string;
+}
+
+// Define ApiResponse interface locally
+interface ApiResponse<T = any> {
+  success: boolean;
+  message: string;
+  data: T;
+  errors?: string[];
+}
 
 // Get products - SIMPLER VERSION
 export const getProducts = async (params?: any): Promise<any> => {
   try {
-    console.log('🔧 getProducts called with params:', params);
+    console.log('getProducts called with params:', params);
     
     // Try different endpoint structures
     const response = await api.get('/products', { params });
-    console.log('🔧 getProducts response:', response.data);
+    console.log('getProducts response:', response.data);
     
     // Handle different response structures
     if (response.data.data) {
@@ -23,9 +61,9 @@ export const getProducts = async (params?: any): Promise<any> => {
       return response.data;
     }
   } catch (error: any) {
-    console.error('❌ getProducts error:', error);
-    console.error('❌ Error status:', error.response?.status);
-    console.error('❌ Error data:', error.response?.data);
+    console.error('getProducts error:', error);
+    console.error('Error status:', error.response?.status);
+    console.error('Error data:', error.response?.data);
     
     // Return empty structure to prevent crash
     return {
@@ -33,6 +71,63 @@ export const getProducts = async (params?: any): Promise<any> => {
       totalCount: 0,
       page: 1,
       pageSize: 10
+    };
+  }
+};
+
+// ADD MISSING METHODS that were causing errors
+export const getInventoryValue = async (): Promise<ApiResponse<number>> => {
+  try {
+    const response = await api.get('/products/inventory-value');
+    
+    // Handle response structure
+    if (response.data.data !== undefined) {
+      return response.data;
+    }
+    
+    // Return success response with default structure
+    return {
+      success: true,
+      message: 'Inventory value retrieved',
+      data: response.data.value || response.data.totalValue || 0,
+      errors: []
+    };
+  } catch (error: any) {
+    console.error('Error getting inventory value:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to get inventory value',
+      data: 0,
+      errors: error.response?.data?.errors || []
+    };
+  }
+};
+
+export const getLowStockProducts = async (threshold: number = 10): Promise<ApiResponse<any[]>> => {
+  try {
+    const response = await api.get('/products/low-stock', {
+      params: { threshold }
+    });
+    
+    // Handle response structure
+    if (response.data.data) {
+      return response.data;
+    }
+    
+    // Return success response with default structure
+    return {
+      success: true,
+      message: 'Low stock products retrieved',
+      data: response.data.products || response.data || [],
+      errors: []
+    };
+  } catch (error: any) {
+    console.error('Error getting low stock products:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to get low stock products',
+      data: [],
+      errors: error.response?.data?.errors || []
     };
   }
 };
@@ -96,4 +191,16 @@ export const deleteProduct = async (id: string): Promise<boolean> => {
     console.error(`Error deleting product ${id}:`, error);
     return false;
   }
+};
+
+// Export all methods together
+export const productsApi = {
+  getProducts,
+  getInventoryValue,
+  getLowStockProducts,
+  searchProducts,
+  getProduct,
+  createProduct,
+  updateProduct,
+  deleteProduct,
 };

@@ -1,7 +1,13 @@
 ﻿import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5050/api';
+// FIX: Use proper environment variable access for Vite
+// For Vite, use import.meta.env, for Create React App use process.env
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 
+                     process.env.VITE_API_BASE_URL || 
+                     'http://localhost:3000/api';
+
+console.log('API Base URL:', API_BASE_URL);
 
 const axiosClient = axios.create({
   baseURL: API_BASE_URL,
@@ -16,8 +22,13 @@ axiosClient.interceptors.request.use(
   (config) => {
     // Get token from localStorage (don't use Zustand store in interceptor)
     const token = localStorage.getItem('accessToken');
+    console.log('Token check - exists:', !!token, 'URL:', config.url);
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('Authorization header set for:', config.url);
+    } else {
+      console.warn('No token found for request:', config.url);
     }
 
     // Debug: Log customer update requests
@@ -26,7 +37,7 @@ axiosClient.interceptors.request.use(
       console.log('URL:', config.url);
       console.log('Method:', config.method);
       
-      // FIX: Check if data is string or object before parsing
+      // Check if data is string or object before parsing
       if (typeof config.data === 'string') {
         try {
           console.log('Request Data:', JSON.parse(config.data));
@@ -49,7 +60,7 @@ axiosClient.interceptors.request.use(
       console.group('CUSTOMER CREATE REQUEST DEBUG');
       console.log('URL:', config.url);
       
-      // FIX: Check if data is string or object before parsing
+      // Check if data is string or object before parsing
       if (typeof config.data === 'string') {
         try {
           console.log('Request Data:', JSON.parse(config.data));
@@ -66,6 +77,7 @@ axiosClient.interceptors.request.use(
     return config;
   },
   (error) => {
+    console.error('Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
@@ -90,19 +102,18 @@ axiosClient.interceptors.response.use(
       console.groupEnd();
     }
 
-    // IMPORTANT: Always return the response for successful requests
-    // Don't reject successful responses here
+    // Always return the response for successful requests
     return response;
   },
   async (error) => {
     const originalRequest = error.config;
 
-    // Debug: Log customer update errors - FIXED
+    // Debug: Log customer update errors
     if (originalRequest?.method?.toUpperCase() === 'PUT' && originalRequest?.url?.includes('/customers/')) {
       console.group('CUSTOMER UPDATE ERROR DEBUG');
       console.log('URL:', originalRequest.url);
       
-      // FIX: Check if data is string or object before parsing
+      // Check if data is string or object before parsing
       if (typeof originalRequest.data === 'string') {
         try {
           console.log('Request Data:', JSON.parse(originalRequest.data));
@@ -119,7 +130,7 @@ axiosClient.interceptors.response.use(
       console.groupEnd();
     }
 
-    // Debug: Log customer create errors - FIXED
+    // Debug: Log customer create errors
     if (originalRequest?.method?.toUpperCase() === 'POST' && originalRequest?.url?.includes('/customers') && !originalRequest.url.includes('/search') && !originalRequest.url.includes('/validate') && !originalRequest.url.includes('/check-availability')) {
       console.group('CUSTOMER CREATE ERROR DEBUG');
       console.log('Status:', error.response?.status);
@@ -130,23 +141,31 @@ axiosClient.interceptors.response.use(
 
     // Handle network errors
     if (!error.response) {
+      console.error('Network error:', error.message);
       toast.error('Network error. Please check your connection.');
       return Promise.reject(error);
     }
 
     const { status, data } = error.response;
+    console.log(`API Error ${status} for ${originalRequest?.url}:`, data?.message || error.message);
 
     // Handle 401 Unauthorized
     if (status === 401) {
-      // Clear storage
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
+      // Don't redirect if it's a login request or we're already on login page
+      const isLoginRequest = originalRequest?.url?.includes('/auth/login');
+      const isLoginPage = window.location.pathname.includes('/login');
       
-      toast.error('Session expired. Please login again.');
+      console.log('401 Unauthorized - isLoginRequest:', isLoginRequest, 'isLoginPage:', isLoginPage);
       
-      // Only redirect if not already on login page
-      if (!window.location.pathname.includes('/login')) {
+      if (!isLoginRequest && !isLoginPage) {
+        // Clear storage
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        
+        toast.error('Session expired. Please login again.');
+        
+        // Only redirect if not already on login page
         window.location.href = '/login';
       }
       
@@ -187,7 +206,15 @@ axiosClient.interceptors.response.use(
 
     // Handle 404 Not Found
     if (status === 404) {
-      toast.error('Resource not found.');
+      // Don't show toast for 404 from invoice endpoints if they're not implemented yet
+      const isInvoiceEndpoint = originalRequest?.url?.includes('/invoices');
+      const isStatisticsEndpoint = originalRequest?.url?.includes('/statistics');
+      
+      if (!isInvoiceEndpoint || !isStatisticsEndpoint) {
+        toast.error('Resource not found.');
+      } else {
+        console.log('Invoice/statistics endpoint not implemented yet');
+      }
     }
 
     // Handle 409 Conflict (e.g., duplicate mobile number)
@@ -234,3 +261,6 @@ export const extractResponseData = <T>(response: any): T => {
 };
 
 export default axiosClient;
+
+// Export api object for backward compatibility
+export const api = axiosClient;
