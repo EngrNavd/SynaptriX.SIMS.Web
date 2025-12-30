@@ -11,7 +11,7 @@ import {
 export const posApi = {
   // Lookup customer by mobile
   lookupCustomer: async (mobile: string): Promise<ApiResponse<CustomerLookupResponse>> => {
-    const response = await axiosClient.get(`/pos/lookup-customer/${encodeURIComponent(mobile)}`);
+    const response = await axiosClient.get(`/customers/by-mobile/${mobile}`);
     return extractResponseData(response);
   },
 

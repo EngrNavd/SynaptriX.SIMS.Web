@@ -1,7 +1,8 @@
+// frontend/components/invoices/InvoiceFilters.tsx
 import React from 'react';
 import {
   Box,
-  Grid,
+  Grid, // CHANGED BACK to regular Grid
   TextField,
   MenuItem,
   Button,
@@ -12,6 +13,7 @@ import {
   Select,
   IconButton,
   Chip,
+  Typography,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -278,8 +280,5 @@ const InvoiceFilters: React.FC<InvoiceFiltersProps> = ({
     </LocalizationProvider>
   );
 };
-
-// Add missing import
-import { Typography } from '@mui/material';
 
 export default InvoiceFilters;

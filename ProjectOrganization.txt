@@ -1,35 +1,47 @@
-src/
-├── api/
-│   ├── auth.api.ts
-│   ├── customers.api.ts
-│   ├── products.api.ts
-│   ├── invoices.api.ts
-│   ├── pos.api.ts
-│   └── index.ts
-├── components/
-│   ├── layout/
-│   │   └── Layout.tsx
-│   └── pos/
-│       ├── CustomerLookupDialog.tsx
-│       ├── ProductSearchDialog.tsx
-│       ├── InvoiceSummary.tsx
-│       └── ReceiptPreview.tsx
-├── pages/
-│   ├── auth/
-│   │   └── Login.tsx
-│   ├── dashboard/
-│   │   └── Dashboard.tsx
-│   ├── customers/
-│   │   └── Customers.tsx
-│   ├── products/
-│   │   └── Products.tsx
-│   ├── orders/
-│   │   └── Orders.tsx
-│   ├── settings/
-│   │   └── Settings.tsx
-│   ├── invoices/
-│   │   ├── CreateInvoicePage.tsx
-│   │   ├── InvoiceListPage.tsx
-│   │   └── InvoiceDetailPage.tsx
-│   └── pos/
-│       └── PosPage.tsx
+📁 src/
+├── 📁 api/
+│   ├── api-client.ts         # Base API client
+│   ├── auth.api.ts           # Authentication API
+│   ├── products.api.ts       # Product API calls
+│   └── customers.api.ts      # Customer API calls
+│
+├── 📁 components/
+│   ├── 📁 common/            # Shared components
+│   │   ├── Layout.tsx
+│   │   ├── PageHeader.tsx
+│   │   ├── Breadcrumbs.tsx
+│   │   └── ...
+│   ├── 📁 products/          # Product-specific components
+│   │   ├── ProductTable.tsx
+│   │   ├── ProductFilters.tsx
+│   │   └── ...
+│   └── 📁 customers/         # Customer components
+│       ├── CustomerTable.tsx
+│       └── ...
+│
+├── 📁 pages/
+│   ├── 📁 auth/              # Authentication pages
+│   ├── 📁 dashboard/         # Dashboard
+│   ├── 📁 products/          # Product pages
+│   │   ├── ProductListPage.tsx
+│   │   └── ...
+│   ├── 📁 customers/         # Customer pages
+│   │   ├── CustomerListPage.tsx
+│   │   └── ...
+│   └── App.tsx	              # Main app with routing
+│
+├── 📁 stores/                # Zustand stores
+│   ├── auth.store.ts
+│   ├── product.store.ts
+│   └── customer.store.ts
+│
+├── 📁 types/                 # TypeScript types
+│   ├── api.types.ts
+│   ├── product.types.ts
+│   └── customer.types.ts
+│
+├── 📁 utils/                 # Utilities
+│   └── formatters.ts
+│
+└── 📁 hooks/                 # Custom hooks
+    └── useAuth.ts

@@ -6,15 +6,6 @@ export interface ApiResponse<T = any> {
   errors?: string[];
 }
 
-// Paged request DTO
-export interface PagedRequestDto {
-  page?: number;
-  pageSize?: number;
-  search?: string;
-  sortBy?: string;
-  sortDescending?: boolean;
-}
-
 // Match with your .NET backend InvoiceDto
 export interface InvoiceDto {
   id: string;
@@ -136,4 +127,33 @@ export enum PaymentMethod {
   CreditCard = "CreditCard",
   BankTransfer = "BankTransfer",
   Cheque = "Cheque"
+}
+
+export interface CreateInvoiceDto {
+  customerId: string;
+  items: CreateInvoiceItemDto[];
+  shippingCharges?: number;
+  invoiceDate?: Date | string;
+  dueDate?: Date | string;
+  status?: string;
+  paymentMethod?: string;
+  paymentReference?: string;
+  notes?: string;
+}
+
+export interface UpdateInvoiceDto {
+  items?: CreateInvoiceItemDto[];
+  shippingCharges?: number;
+  dueDate?: Date | string;
+  notes?: string;
+}
+
+export interface PagedRequestDto {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  sortBy?: string;
+  sortDescending?: boolean;
+  fromDate?: Date;
+  toDate?: Date;
 }

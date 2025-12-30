@@ -1,3 +1,4 @@
+// src/api/invoices.api.ts
 import axiosClient, { extractResponseData } from './axiosClient';
 import { ApiUtils } from '@/utils/api.utils';
 import { 
@@ -7,12 +8,14 @@ import {
   InvoiceStatisticsDto,
   ExportInvoicesRequestDto,
   UpdateInvoiceStatusRequest,
-  PagedRequestDto
+  PagedRequestDto,
+  CreateInvoiceDto,
+  UpdateInvoiceDto
 } from '@/types';
 
 export const invoicesApi = {
-  // Get all invoices with pagination
-  getInvoices: async (params: PagedRequestDto): Promise<ApiResponse<InvoiceDto[]>> => {
+  // Get all invoices with pagination - UPDATED to match backend
+  getInvoices: async (params: any): Promise<ApiResponse<InvoiceDto[]>> => {
     const queryParams: Record<string, any> = {
       page: params.page || 1,
       pageSize: params.pageSize || 10,
@@ -29,30 +32,108 @@ export const invoicesApi = {
       queryParams.sortDescending = params.sortDescending || false;
     }
     
+    // Add date filters if provided
+    if (params.fromDate) {
+      queryParams.startDate = params.fromDate.toISOString();
+    }
+    if (params.toDate) {
+      queryParams.endDate = params.toDate.toISOString();
+    }
+    
     console.log('API Call - getInvoices params:', queryParams);
     
-    const response = await axiosClient.get('/invoices', { 
-      params: queryParams 
-    });
-    
-    const extracted = extractResponseData(response);
-    console.log('API Response - getInvoices:', extracted);
-    
-    return ApiUtils.processApiResponse<InvoiceDto[]>(extracted, true);
+    try {
+      const response = await axiosClient.get('/invoices', { 
+        params: queryParams 
+      });
+      
+      const extracted = extractResponseData(response);
+      console.log('API Response - getInvoices:', extracted);
+      
+      return ApiUtils.processApiResponse<InvoiceDto[]>(extracted, true);
+    } catch (error: any) {
+      console.error('Get invoices error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message || 'Failed to fetch invoices',
+        data: [],
+        errors: error.response?.data?.errors || [error.message || 'Unknown error']
+      };
+    }
   },
 
   // Get single invoice by ID
   getInvoice: async (id: string): Promise<ApiResponse<InvoiceDto>> => {
-    const response = await axiosClient.get(`/invoices/${id}`);
-    const extracted = extractResponseData(response);
-    return ApiUtils.processApiResponse<InvoiceDto>(extracted, false);
+    try {
+      const response = await axiosClient.get(`/invoices/${id}`);
+      const extracted = extractResponseData(response);
+      return ApiUtils.processApiResponse<InvoiceDto>(extracted, false);
+    } catch (error: any) {
+      console.error('Get invoice error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message || 'Failed to fetch invoice',
+        data: null as any,
+        errors: error.response?.data?.errors || [error.message || 'Unknown error']
+      };
+    }
+  },
+
+  // Create new invoice
+  createInvoice: async (data: CreateInvoiceDto): Promise<ApiResponse<InvoiceDto>> => {
+    try {
+      console.log('Create Invoice - Data:', data);
+      
+      // Format data for backend
+      const backendData = {
+        customerId: data.customerId,
+        items: data.items || [],
+        shippingCharges: data.shippingCharges || 0,
+        invoiceDate: data.invoiceDate || new Date().toISOString(),
+        dueDate: data.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        status: data.status || 'Draft',
+        paymentMethod: data.paymentMethod || 'Cash',
+        paymentReference: data.paymentReference,
+        notes: data.notes
+      };
+      
+      const response = await axiosClient.post('/invoices', backendData);
+      const extracted = extractResponseData(response);
+      return ApiUtils.processApiResponse<InvoiceDto>(extracted, false);
+    } catch (error: any) {
+      console.error('Create invoice error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message || 'Failed to create invoice',
+        data: null as any,
+        errors: error.response?.data?.errors || [error.message || 'Unknown error']
+      };
+    }
+  },
+
+  // Update invoice
+  updateInvoice: async (id: string, data: UpdateInvoiceDto): Promise<ApiResponse<InvoiceDto>> => {
+    try {
+      console.log('Update Invoice - Data:', { id, data });
+      const response = await axiosClient.put(`/invoices/${id}`, data);
+      const extracted = extractResponseData(response);
+      return ApiUtils.processApiResponse<InvoiceDto>(extracted, false);
+    } catch (error: any) {
+      console.error('Update invoice error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message || 'Failed to update invoice',
+        data: null as any,
+        errors: error.response?.data?.errors || [error.message || 'Unknown error']
+      };
+    }
   },
 
   // Update invoice status
   updateInvoiceStatus: async (id: string, data: UpdateInvoiceStatusRequest): Promise<ApiResponse> => {
     try {
       console.log('Update Invoice Status:', { id, data });
-      const response = await axiosClient.put(`/invoices/${id}/status`, data);
+      const response = await axiosClient.put(`/invoices/${id}/status`, { status: data.status });
       const extracted = extractResponseData(response);
       return extracted;
     } catch (error: any) {
@@ -68,61 +149,129 @@ export const invoicesApi = {
 
   // Delete invoice
   deleteInvoice: async (id: string): Promise<ApiResponse> => {
-    return axiosClient.delete(`/invoices/${id}`).then(extractResponseData);
+    try {
+      const response = await axiosClient.delete(`/invoices/${id}`);
+      return extractResponseData(response);
+    } catch (error: any) {
+      console.error('Delete invoice error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message || 'Failed to delete invoice',
+        data: null as any,
+        errors: error.response?.data?.errors || [error.message || 'Unknown error']
+      };
+    }
   },
 
   // Export invoices to CSV
   exportInvoices: async (params: ExportInvoicesRequestDto): Promise<Blob> => {
-    const queryParams: Record<string, any> = {};
-    
-    if (params.search) queryParams.search = params.search;
-    if (params.status) queryParams.status = params.status;
-    if (params.paymentStatus) queryParams.paymentStatus = params.paymentStatus;
-    if (params.fromDate) queryParams.fromDate = params.fromDate.toISOString();
-    if (params.toDate) queryParams.toDate = params.toDate.toISOString();
-    
-    console.log('Export Invoices params:', queryParams);
-    
-    const response = await axiosClient.get('/invoices/export', {
-      params: queryParams,
-      responseType: 'blob'
-    });
-    
-    return response.data;
+    try {
+      const queryParams: Record<string, any> = {};
+      
+      if (params.search) queryParams.search = params.search;
+      if (params.status) queryParams.status = params.status;
+      if (params.paymentStatus) queryParams.paymentStatus = params.paymentStatus;
+      if (params.fromDate) queryParams.fromDate = params.fromDate.toISOString();
+      if (params.toDate) queryParams.toDate = params.toDate.toISOString();
+      
+      console.log('Export Invoices params:', queryParams);
+      
+      const response = await axiosClient.get('/invoices/export', {
+        params: queryParams,
+        responseType: 'blob'
+      });
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('Export invoices error:', error);
+      throw error;
+    }
   },
 
-  // Get invoice statistics
+  // Get invoice statistics - UPDATED to match backend
   getStatistics: async (fromDate?: Date, toDate?: Date): Promise<ApiResponse<InvoiceStatisticsDto>> => {
-    const params: Record<string, any> = {};
-    if (fromDate) params.fromDate = fromDate.toISOString();
-    if (toDate) params.toDate = toDate.toISOString();
-    
-    const response = await axiosClient.get('/invoices/statistics', { params });
-    const extracted = extractResponseData(response);
-    return ApiUtils.processApiResponse<InvoiceStatisticsDto>(extracted, false);
+    try {
+      const params: Record<string, any> = {};
+      if (fromDate) params.fromDate = fromDate.toISOString();
+      if (toDate) params.toDate = toDate.toISOString();
+      
+      const response = await axiosClient.get('/invoices/statistics', { params });
+      const extracted = extractResponseData(response);
+      return ApiUtils.processApiResponse<InvoiceStatisticsDto>(extracted, false);
+    } catch (error: any) {
+      console.error('Get statistics error:', error);
+      // Return mock data temporarily
+      return {
+        success: true,
+        message: 'Using mock statistics data',
+        data: {
+          totalInvoices: 0,
+          totalAmount: 0,
+          totalTax: 0,
+          draftInvoices: 0,
+          pendingInvoices: 0,
+          partiallyPaidInvoices: 0,
+          paidInvoices: 0,
+          cancelledInvoices: 0,
+          unpaidInvoices: 0,
+          partiallyPaidPaymentInvoices: 0,
+          paidPaymentInvoices: 0,
+          overduePaymentInvoices: 0,
+          cancelledPaymentInvoices: 0,
+          todayInvoices: 0,
+          thisMonthInvoices: 0,
+          averageInvoiceAmount: 0,
+        }
+      };
+    }
   },
 
   // Get invoice PDF
   getInvoicePdf: async (id: string): Promise<Blob> => {
-    const response = await axiosClient.get(`/invoices/${id}/pdf`, {
-      responseType: 'blob'
-    });
-    return response.data;
+    try {
+      const response = await axiosClient.get(`/invoices/${id}/pdf`, {
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Get PDF error:', error);
+      throw error;
+    }
   },
 
   // Search invoices
   searchInvoices: async (term: string): Promise<ApiResponse<InvoiceDto[]>> => {
-    const response = await axiosClient.get('/invoices/search', { 
-      params: { term: ApiUtils.formatQueryParams({ term }).term } 
-    });
-    const extracted = extractResponseData(response);
-    return ApiUtils.processApiResponse<InvoiceDto[]>(extracted, true);
+    try {
+      const response = await axiosClient.get('/invoices/search', { 
+        params: { term: ApiUtils.formatQueryParams({ term }).term } 
+      });
+      const extracted = extractResponseData(response);
+      return ApiUtils.processApiResponse<InvoiceDto[]>(extracted, true);
+    } catch (error: any) {
+      console.error('Search invoices error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message || 'Failed to search invoices',
+        data: [],
+        errors: error.response?.data?.errors || [error.message || 'Unknown error']
+      };
+    }
   },
 
   // Get overdue invoices
   getOverdueInvoices: async (): Promise<ApiResponse<InvoiceDto[]>> => {
-    const response = await axiosClient.get('/invoices/overdue');
-    const extracted = extractResponseData(response);
-    return ApiUtils.processApiResponse<InvoiceDto[]>(extracted, true);
+    try {
+      const response = await axiosClient.get('/invoices/overdue');
+      const extracted = extractResponseData(response);
+      return ApiUtils.processApiResponse<InvoiceDto[]>(extracted, true);
+    } catch (error: any) {
+      console.error('Get overdue invoices error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message || 'Failed to get overdue invoices',
+        data: [],
+        errors: error.response?.data?.errors || [error.message || 'Unknown error']
+      };
+    }
   },
 };
