@@ -95,7 +95,7 @@ const InvoiceTable: React.FC<InvoiceTableProps> = ({
             {params.value}
           </Typography>
           <Typography variant="caption" color="text.secondary" display="block">
-            {params.row.customerMobile && UAEUtils.formatPhoneForDisplay(params.row.customerMobile)}
+            {params.row.customerMobile && UAEUtils.formatMobileForDisplay(params.row.customerMobile)}
           </Typography>
         </Box>
       ),

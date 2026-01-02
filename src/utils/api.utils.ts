@@ -1,41 +1,210 @@
 import { ApiResponse, UpdateCustomerDto } from '@/types';
 import toast from 'react-hot-toast';
+import axios, { AxiosError, AxiosResponse } from 'axios';
 
+/**
+ * Enhanced API Utilities with comprehensive error handling,
+ * DTO transformations, and helper functions for SynaptriX SIMS
+ */
 export class ApiUtils {
-  static handleResponse<T>(response: ApiResponse<T>): T | null {
+  // Configuration
+  private static readonly BACKEND_DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss.SSSZ';
+  private static readonly FRONTEND_DATE_FORMAT = 'YYYY-MM-DD';
+  
+  // Property mappings between frontend (camelCase) and backend (PascalCase)
+  private static readonly PROPERTY_MAPPINGS = {
+    // Common fields
+    id: 'Id',
+    createdAt: 'CreatedAt',
+    updatedAt: 'UpdatedAt',
+    createdBy: 'CreatedBy',
+    updatedBy: 'UpdatedBy',
+    isActive: 'IsActive',
+    tenantId: 'TenantId',
+    
+    // Customer fields
+    fullName: 'FullName',
+    mobile: 'Mobile',
+    email: 'Email',
+    address: 'Address',
+    city: 'City',
+    state: 'State',
+    country: 'Country',
+    postalCode: 'PostalCode',
+    dateOfBirth: 'DateOfBirth',
+    gender: 'Gender',
+    occupation: 'Occupation',
+    company: 'Company',
+    taxNumber: 'TaxNumber',
+    taxRegistrationNumber: 'TaxRegistrationNumber',
+    creditLimit: 'CreditLimit',
+    currentBalance: 'CurrentBalance',
+    notes: 'Notes',
+    
+    // Product fields
+    sku: 'Sku',
+    name: 'Name',
+    description: 'Description',
+    purchasePrice: 'PurchasePrice',
+    sellingPrice: 'SellingPrice',
+    costPrice: 'CostPrice',
+    quantity: 'Quantity',
+    stockQuantity: 'StockQuantity',
+    reservedQuantity: 'ReservedQuantity',
+    minStockLevel: 'MinStockLevel',
+    maxStockLevel: 'MaxStockLevel',
+    warranty: 'Warranty',
+    warrantyDays: 'WarrantyDays',
+    manufacturer: 'Manufacturer',
+    brand: 'Brand',
+    model: 'Model',
+    color: 'Color',
+    size: 'Size',
+    location: 'Location',
+    imageUrl: 'ImageUrl',
+    categoryId: 'CategoryId',
+    categoryName: 'CategoryName',
+    currency: 'Currency',
+    
+    // Invoice fields
+    invoiceNumber: 'InvoiceNumber',
+    invoiceDate: 'InvoiceDate',
+    dueDate: 'DueDate',
+    customerId: 'CustomerId',
+    customerName: 'CustomerName',
+    customerMobile: 'CustomerMobile',
+    customerEmail: 'CustomerEmail',
+    customerAddress: 'CustomerAddress',
+    customerCity: 'CustomerCity',
+    customerEmirates: 'CustomerEmirates',
+    customerTRN: 'CustomerTRN',
+    subtotal: 'Subtotal',
+    vatAmount: 'VatAmount',
+    vatRate: 'VatRate',
+    shippingCharges: 'ShippingCharges',
+    discountAmount: 'DiscountAmount',
+    totalAmount: 'TotalAmount',
+    status: 'Status',
+    paymentMethod: 'PaymentMethod',
+    paymentStatus: 'PaymentStatus',
+    items: 'Items'
+  } as const;
+
+  /**
+   * Handle API response with automatic error display
+   */
+  static handleResponse<T>(response: ApiResponse<T>, showSuccess = false): T | null {
     if (response.success) {
+      if (showSuccess && response.message) {
+        toast.success(response.message);
+      }
       return response.data || null;
     } else {
-      if (response.errors && response.errors.length > 0) {
-        toast.error(response.errors.join(', '));
-      } else if (response.message) {
-        toast.error(response.message);
-      }
+      this.displayApiErrors(response);
       return null;
     }
   }
 
-  static handleError(error: any): void {
-    if (error.response?.data) {
-      const apiError = error.response.data;
-      if (apiError.errors && Array.isArray(apiError.errors)) {
-        toast.error(apiError.errors.join(', '));
-      } else if (apiError.message) {
-        toast.error(apiError.message);
+  /**
+   * Handle API errors with comprehensive error display
+   */
+  static handleError(error: any, customMessage?: string): void {
+    console.error('[API Error]', error);
+    
+    // Axios error structure
+    if (axios.isAxiosError(error)) {
+      const axiosError = error as AxiosError;
+      
+      if (axiosError.response) {
+        // Server responded with error status
+        const responseData = axiosError.response.data as any;
+        
+        if (responseData && responseData.errors && Array.isArray(responseData.errors)) {
+          toast.error(responseData.errors.join(', ') || customMessage || 'Request failed');
+        } else if (responseData && responseData.message) {
+          toast.error(responseData.message || customMessage || 'Request failed');
+        } else if (responseData && responseData.error?.message) {
+          toast.error(responseData.error.message || customMessage || 'Request failed');
+        } else {
+          toast.error(customMessage || `Server error: ${axiosError.response.status}`);
+        }
+      } else if (axiosError.request) {
+        // Request made but no response received
+        toast.error(customMessage || 'Network error - No response from server');
       } else {
-        toast.error('An error occurred');
+        // Error setting up request
+        toast.error(customMessage || axiosError.message || 'Request configuration error');
       }
-    } else {
-      toast.error(error.message || 'Network error');
+    } 
+    // Custom API error structure
+    else if (error && error.apiError) {
+      const apiError = error.apiError;
+      toast.error(apiError.error?.message || customMessage || 'API Error');
+    }
+    // Generic error
+    else {
+      toast.error(customMessage || error?.message || 'An unexpected error occurred');
     }
   }
 
+  /**
+   * Display API errors with user-friendly messages
+   */
+  static displayApiErrors(response: ApiResponse<any>): void {
+    if (!response.success) {
+      if (response.errors && response.errors.length > 0) {
+        const errorMessages = response.errors.map(err => 
+          this.formatErrorMessage(err)
+        ).filter(Boolean);
+        
+        if (errorMessages.length > 0) {
+          toast.error(errorMessages.join(', '));
+        } else {
+          toast.error(response.message || 'Operation failed');
+        }
+      } else if (response.message) {
+        toast.error(response.message);
+      } else {
+        toast.error('An error occurred');
+      }
+    }
+  }
+
+  /**
+   * Format error message for user display
+   */
+  static formatErrorMessage(error: string): string {
+    if (!error) return '';
+    
+    // Remove property names and make user-friendly
+    return error
+      .replace(/^[A-Za-z]+\.?/, '')
+      .replace(/^[A-Za-z]+\s+/, '')
+      .replace(/Id$/, '')
+      .replace(/([A-Z])/g, ' $1')
+      .trim()
+      .replace(/^\w/, c => c.toUpperCase());
+  }
+
+  /**
+   * Format query parameters by removing undefined/null/empty values
+   */
   static formatQueryParams(params: Record<string, any>): Record<string, any> {
     const formatted: Record<string, any> = {};
     
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
-        formatted[key] = value;
+        // Handle arrays and objects
+        if (Array.isArray(value) && value.length > 0) {
+          formatted[key] = value.join(',');
+        } else if (typeof value === 'object' && !(value instanceof Date)) {
+          // Convert nested objects to JSON string for query params
+          formatted[key] = JSON.stringify(value);
+        } else if (value instanceof Date) {
+          formatted[key] = value.toISOString();
+        } else {
+          formatted[key] = value;
+        }
       }
     });
     
@@ -45,38 +214,49 @@ export class ApiUtils {
   /**
    * Convert frontend DTO (camelCase) to backend DTO (PascalCase) for .NET API
    */
-  static toBackendDto<T extends Record<string, any>>(data: T): any {
+  static toBackendDto<T extends Record<string, any>>(data: T, options: {
+    ignoreNull?: boolean;
+    dateFormat?: 'iso' | 'string';
+  } = {}): any {
+    const { ignoreNull = true, dateFormat = 'iso' } = options;
     const result: any = {};
     
     for (const [key, value] of Object.entries(data)) {
-      if (value === undefined || value === null) {
-        continue; // Skip undefined/null values
+      // Skip undefined/null values if ignoreNull is true
+      if (ignoreNull && (value === undefined || value === null)) {
+        continue;
       }
 
-      // Convert camelCase to PascalCase for .NET
-      const pascalKey = key.charAt(0).toUpperCase() + key.slice(1);
+      // Get backend property name from mapping or convert to PascalCase
+      const backendKey = this.PROPERTY_MAPPINGS[key as keyof typeof this.PROPERTY_MAPPINGS] || 
+                        key.charAt(0).toUpperCase() + key.slice(1);
       
-      // Handle special property name mappings
-      if (key === 'taxNumber') {
-        result['TaxNumber'] = value;
-      } else if (key === 'dateOfBirth' && value) {
-        // Convert date string to ISO string for .NET
-        try {
-          const date = new Date(value as string);
-          if (!isNaN(date.getTime())) {
-            result['DateOfBirth'] = date.toISOString();
-          }
-        } catch {
-          result['DateOfBirth'] = value;
-        }
-      } else if (key === 'mobile') {
-        // Ensure mobile is properly formatted for UAE
-        result['Mobile'] = this.formatMobileForApi(value as string);
-      } else if (key === 'creditLimit' || key === 'currentBalance') {
-        // Ensure numbers are properly typed
-        result[pascalKey] = Number(value);
-      } else {
-        result[pascalKey] = value;
+      // Handle special transformations
+      if (key === 'mobile' && typeof value === 'string') {
+        result[backendKey] = this.formatMobileForApi(value);
+      }
+      else if (key === 'dateOfBirth' && value) {
+        result[backendKey] = this.formatDateForBackend(value, dateFormat);
+      }
+      else if ((key === 'createdAt' || key === 'updatedAt' || key === 'invoiceDate' || key === 'dueDate') && value) {
+        result[backendKey] = this.formatDateForBackend(value, dateFormat);
+      }
+      else if (key === 'creditLimit' || key === 'currentBalance' || key === 'price' || key === 'amount') {
+        result[backendKey] = Number(value);
+      }
+      else if (key === 'isActive' || key === 'isTaxable') {
+        result[backendKey] = Boolean(value);
+      }
+      else if (Array.isArray(value)) {
+        result[backendKey] = value.map(item => 
+          typeof item === 'object' ? this.toBackendDto(item, options) : item
+        );
+      }
+      else if (typeof value === 'object' && value !== null) {
+        result[backendKey] = this.toBackendDto(value, options);
+      }
+      else {
+        result[backendKey] = value;
       }
     }
     
@@ -87,51 +267,56 @@ export class ApiUtils {
    * Convert backend DTO (PascalCase) to frontend DTO (camelCase)
    */
   static toFrontendDto<T extends Record<string, any>>(data: T): any {
+    if (!data || typeof data !== 'object') {
+      return data;
+    }
+
+    // Handle arrays
+    if (Array.isArray(data)) {
+      return data.map(item => this.toFrontendDto(item));
+    }
+
     const result: any = {};
     
     for (const [key, value] of Object.entries(data)) {
+      // Skip undefined/null values
       if (value === undefined || value === null) {
-        continue; // Skip undefined/null values
+        continue;
       }
 
-      // Convert PascalCase to camelCase for frontend
-      const camelKey = key.charAt(0).toLowerCase() + key.slice(1);
+      // Get frontend property name (reverse lookup in mappings or convert to camelCase)
+      let frontendKey = Object.keys(this.PROPERTY_MAPPINGS).find(
+        k => this.PROPERTY_MAPPINGS[k as keyof typeof this.PROPERTY_MAPPINGS] === key
+      );
       
-      // Handle special property name mappings
-      if (key === 'TaxNumber') {
-        result['taxNumber'] = value;
-      } else if (key === 'DateOfBirth' && value) {
-        // Convert .NET DateTime to ISO string
-        try {
-          const date = new Date(value as string);
-          if (!isNaN(date.getTime())) {
-            result['dateOfBirth'] = date.toISOString();
-          }
-        } catch {
-          result['dateOfBirth'] = value;
-        }
-      } else if (key === 'Mobile') {
-        result['mobile'] = value;
-      } else if (key === 'Id') {
-        result['id'] = value;
-      } else if (key === 'CreatedAt') {
-        result['createdAt'] = value;
-      } else if (key === 'UpdatedAt') {
-        result['updatedAt'] = value;
-      } else if (key === 'LastPurchaseDate') {
-        result['lastPurchaseDate'] = value;
-      } else if (key === 'TotalPurchaseAmount') {
-        result['totalPurchaseAmount'] = value;
-      } else if (key === 'TotalPurchases') {
-        result['totalPurchases'] = value;
-      } else if (key === 'CurrentBalance') {
-        result['currentBalance'] = value;
-      } else if (key === 'CustomerCode') {
-        result['customerCode'] = value;
-      } else if (key === 'FullName') {
-        result['fullName'] = value;
-      } else {
-        result[camelKey] = value;
+      if (!frontendKey) {
+        frontendKey = key.charAt(0).toLowerCase() + key.slice(1);
+      }
+
+      // Handle special transformations
+      if (key === 'Mobile' && typeof value === 'string') {
+        result[frontendKey] = this.formatMobileForDisplay(value);
+      }
+      else if (key === 'DateOfBirth' || key === 'CreatedAt' || key === 'UpdatedAt' || 
+               key === 'InvoiceDate' || key === 'DueDate') {
+        result[frontendKey] = this.formatDateForFrontend(value);
+      }
+      else if (key === 'CreditLimit' || key === 'CurrentBalance' || key === 'Price' || key === 'Amount') {
+        result[frontendKey] = Number(value);
+      }
+      else if (key === 'IsActive' || key === 'IsTaxable') {
+        result[frontendKey] = Boolean(value);
+      }
+      else if (Array.isArray(value)) {
+        result[frontendKey] = value.map(item => 
+          typeof item === 'object' ? this.toFrontendDto(item) : item
+        );
+      }
+      else if (typeof value === 'object' && value !== null) {
+        result[frontendKey] = this.toFrontendDto(value);
+      }
+      else {
+        result[frontendKey] = value;
       }
     }
     
@@ -144,39 +329,32 @@ export class ApiUtils {
   static toUpdateCustomerDto(data: UpdateCustomerDto): any {
     const result: any = {};
     
-    // List of ALL fields allowed in update (everything except customerCode)
+    // Only include fields that are allowed to be updated
     const allowedFields = [
       'fullName', 'email', 'mobile', 'address', 'city', 'state',
       'country', 'postalCode', 'dateOfBirth', 'gender', 'occupation',
-      'company', 'taxNumber', 'creditLimit', 'notes'
+      'company', 'taxNumber', 'taxRegistrationNumber', 'creditLimit', 'notes'
     ];
     
     for (const [key, value] of Object.entries(data)) {
-      // Skip if field not allowed or value is undefined/null
       if (!allowedFields.includes(key) || value === undefined || value === null) {
         continue;
       }
       
-      const pascalKey = key.charAt(0).toUpperCase() + key.slice(1);
+      const backendKey = this.PROPERTY_MAPPINGS[key as keyof typeof this.PROPERTY_MAPPINGS] || 
+                        key.charAt(0).toUpperCase() + key.slice(1);
       
       // Special handling for specific fields
       if (key === 'mobile' && value) {
-        result['Mobile'] = this.formatMobileForApi(value as string);
+        result[backendKey] = this.formatMobileForApi(value as string);
       } else if (key === 'dateOfBirth' && value) {
-        try {
-          const date = new Date(value as string);
-          if (!isNaN(date.getTime())) {
-            result['DateOfBirth'] = date.toISOString();
-          }
-        } catch {
-          result['DateOfBirth'] = value;
-        }
+        result[backendKey] = this.formatDateForBackend(value);
       } else if (key === 'creditLimit') {
-        result['CreditLimit'] = Number(value);
-      } else if (key === 'taxNumber') {
-        result['TaxNumber'] = value;
+        result[backendKey] = Number(value);
+      } else if (key === 'taxNumber' || key === 'taxRegistrationNumber') {
+        result[backendKey] = value;
       } else {
-        result[pascalKey] = value;
+        result[backendKey] = value;
       }
     }
     
@@ -184,32 +362,102 @@ export class ApiUtils {
   }
 
   /**
-   * Format mobile number for API (ensure +971 format for UAE)
+   * Format mobile number for API (UAE format: +971501234567)
    */
   static formatMobileForApi(mobile: string): string {
     if (!mobile) return '';
     
-    // Remove any spaces, dashes, parentheses
-    let cleaned = mobile.replace(/[\s\-\+\(\)]/g, '');
+    // Remove any non-digit characters
+    let cleaned = mobile.replace(/\D/g, '');
     
-    // If it's already in +971 format, return as is
+    // Handle different formats
     if (cleaned.startsWith('971')) {
       return '+' + cleaned;
-    }
-    
-    // Handle UAE mobile numbers
-    if (cleaned.startsWith('0')) {
+    } else if (cleaned.startsWith('0') && cleaned.length === 10) {
       // 0501234567 -> +971501234567
       cleaned = '971' + cleaned.substring(1);
     } else if (cleaned.length === 9 && cleaned.startsWith('5')) {
       // 501234567 -> +971501234567
       cleaned = '971' + cleaned;
+    } else if (cleaned.length === 12 && cleaned.startsWith('971')) {
+      // Already in correct format
     } else if (cleaned.length === 10 && cleaned.startsWith('05')) {
       // 0501234567 -> +971501234567
       cleaned = '971' + cleaned.substring(1);
     }
     
     return cleaned.startsWith('+') ? cleaned : '+' + cleaned;
+  }
+
+  /**
+   * Format mobile number for display (UAE format: 050-123-4567)
+   */
+  static formatMobileForDisplay(mobile: string): string {
+    if (!mobile) return '';
+    
+    // Remove any non-digit characters
+    let cleaned = mobile.replace(/\D/g, '');
+    
+    // Remove country code if present
+    if (cleaned.startsWith('971')) {
+      cleaned = '0' + cleaned.substring(3);
+    } else if (cleaned.startsWith('+971')) {
+      cleaned = '0' + cleaned.substring(4);
+    }
+    
+    // Format as UAE mobile: 050-123-4567
+    if (cleaned.length === 10 && cleaned.startsWith('05')) {
+      return `${cleaned.substring(0, 3)}-${cleaned.substring(3, 6)}-${cleaned.substring(6)}`;
+    } else if (cleaned.length === 9 && cleaned.startsWith('5')) {
+      return `0${cleaned.substring(0, 2)}-${cleaned.substring(2, 5)}-${cleaned.substring(5)}`;
+    }
+    
+    return mobile;
+  }
+
+  /**
+   * Format date for backend API (.NET DateTime)
+   */
+  static formatDateForBackend(date: string | Date, format: 'iso' | 'string' = 'iso'): string {
+    if (!date) return '';
+    
+    try {
+      const dateObj = typeof date === 'string' ? new Date(date) : date;
+      
+      if (isNaN(dateObj.getTime())) {
+        return '';
+      }
+      
+      if (format === 'string') {
+        return dateObj.toLocaleDateString('en-CA'); // YYYY-MM-DD format
+      }
+      
+      return dateObj.toISOString();
+    } catch {
+      return '';
+    }
+  }
+
+  /**
+   * Format date for frontend display
+   */
+  static formatDateForFrontend(dateString: string): string {
+    if (!dateString) return '';
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return dateString;
+      }
+      
+      return date.toLocaleDateString('en-GB', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return dateString;
+    }
   }
 
   /**
@@ -220,37 +468,60 @@ export class ApiUtils {
       return response;
     }
 
-    if (isArray && Array.isArray(response.data)) {
-      return {
-        ...response,
-        data: response.data.map(item => this.toFrontendDto(item)) as any
-      };
-    } else if (!isArray && response.data && typeof response.data === 'object') {
-      return {
-        ...response,
-        data: this.toFrontendDto(response.data) as any
-      };
-    }
+    try {
+      let processedData: any;
+      
+      if (isArray && Array.isArray(response.data)) {
+        processedData = response.data.map(item => this.toFrontendDto(item));
+      } else if (!isArray && response.data && typeof response.data === 'object') {
+        processedData = this.toFrontendDto(response.data);
+      } else {
+        processedData = response.data;
+      }
 
-    return response;
+      return {
+        ...response,
+        data: processedData as T
+      };
+    } catch (error) {
+      console.error('[API Utils] Error processing API response:', error);
+      return response;
+    }
   }
 
   /**
    * Prepare data for API request by converting frontend DTO to backend DTO
    */
-  static prepareRequestData<T>(data: T): any {
-    return this.toBackendDto(data);
+  static prepareRequestData<T>(data: T, options?: {
+    ignoreNull?: boolean;
+    dateFormat?: 'iso' | 'string';
+  }): any {
+    return this.toBackendDto(data as any, options);
   }
 
   /**
    * Extract and format pagination parameters for .NET API
    */
-  static preparePaginationParams(page: number, pageSize: number, filters?: Record<string, any>) {
+  static preparePaginationParams(
+    page: number, 
+    pageSize: number, 
+    filters?: Record<string, any>,
+    sortBy?: string,
+    sortOrder?: 'asc' | 'desc'
+  ) {
     const params: Record<string, any> = {
       Page: page,
       PageSize: pageSize,
       ...this.toBackendDto(filters || {})
     };
+    
+    if (sortBy) {
+      params.SortBy = sortBy;
+    }
+    
+    if (sortOrder) {
+      params.SortOrder = sortOrder;
+    }
     
     return this.formatQueryParams(params);
   }
@@ -259,6 +530,8 @@ export class ApiUtils {
    * Check if a value is a valid GUID (matches .NET Guid format)
    */
   static isValidGuid(value: string): boolean {
+    if (!value) return false;
+    
     const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     return guidRegex.test(value);
   }
@@ -275,16 +548,174 @@ export class ApiUtils {
   }
 
   /**
-   * Format error messages from backend validation
+   * Validate email address
    */
-  static formatValidationErrors(errors: string[] | undefined): string {
-    if (!errors || !Array.isArray(errors)) {
-      return 'Validation failed';
+  static isValidEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  /**
+   * Validate UAE mobile number
+   */
+  static isValidUaeMobile(mobile: string): boolean {
+    if (!mobile) return false;
+    
+    const cleaned = mobile.replace(/\D/g, '');
+    
+    // Check for UAE mobile prefixes
+    const uaePrefixes = ['50', '55', '56', '52', '54', '58'];
+    
+    if (cleaned.length === 12 && cleaned.startsWith('971')) {
+      const prefix = cleaned.substring(3, 5);
+      return uaePrefixes.includes(prefix);
+    } else if (cleaned.length === 10 && cleaned.startsWith('0')) {
+      const prefix = cleaned.substring(1, 3);
+      return uaePrefixes.includes(prefix);
+    } else if (cleaned.length === 9 && cleaned.startsWith('5')) {
+      const prefix = cleaned.substring(0, 2);
+      return uaePrefixes.includes(prefix);
     }
     
-    return errors.map(error => {
-      // Remove property names from error messages for user-friendly display
-      return error.replace(/^[A-Za-z]+\.?/, '').trim();
-    }).filter(error => error.length > 0).join(', ');
+    return false;
+  }
+
+  /**
+   * Create a debounced function for API calls
+   */
+  static debounce<T extends (...args: any[]) => any>(
+    func: T,
+    wait: number
+  ): (...args: Parameters<T>) => void {
+    let timeout: NodeJS.Timeout;
+    
+    return (...args: Parameters<T>) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
+    };
+  }
+
+  /**
+   * Create a promise with timeout
+   */
+  static withTimeout<T>(
+    promise: Promise<T>,
+    timeoutMs: number,
+    errorMessage = 'Request timeout'
+  ): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error(errorMessage));
+      }, timeoutMs);
+  
+      promise.then(
+        (result) => {
+          clearTimeout(timeoutId);
+          resolve(result);
+        },
+        (error) => {
+          clearTimeout(timeoutId);
+          reject(error);
+        }
+      );
+    });
+  }
+
+  /**
+   * Safe JSON parsing with error handling
+   */
+  static safeJsonParse<T>(jsonString: string): T | null {
+    try {
+      return JSON.parse(jsonString) as T;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Clone object without references
+   */
+  static deepClone<T>(obj: T): T {
+    if (!obj || typeof obj !== 'object') {
+      return obj;
+    }
+    
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.deepClone(item)) as T;
+    }
+    
+    const cloned: any = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        cloned[key] = this.deepClone((obj as any)[key]);
+      }
+    }
+    
+    return cloned;
+  }
+
+  /**
+   * Get error stack trace for debugging
+   */
+  static getErrorStackTrace(error: any): string {
+    if (error?.stack) {
+      return error.stack;
+    }
+    
+    if (error?.response?.config?.url) {
+      return `API Error: ${error.response.status} ${error.response.statusText} - ${error.response.config.url}`;
+    }
+    
+    return error?.message || 'Unknown error';
+  }
+
+  /**
+   * Log API call for debugging
+   */
+  static logApiCall(
+    method: string,
+    url: string,
+    params?: any,
+    data?: any,
+    response?: any
+  ): void {
+    if (import.meta.env.DEV) {
+      console.groupCollapsed(`[API] ${method} ${url}`);
+      if (params) console.log('Params:', params);
+      if (data) console.log('Request:', data);
+      if (response) console.log('Response:', response);
+      console.groupEnd();
+    }
   }
 }
+
+// Export utility functions as individual exports for convenience
+export const {
+  handleResponse,
+  handleError,
+  displayApiErrors,
+  formatQueryParams,
+  toBackendDto,
+  toFrontendDto,
+  toUpdateCustomerDto,
+  formatMobileForApi,
+  formatMobileForDisplay,
+  formatDateForBackend,
+  formatDateForFrontend,
+  processApiResponse,
+  prepareRequestData,
+  preparePaginationParams,
+  isValidGuid,
+  generateGuid,
+  isValidEmail,
+  isValidUaeMobile,
+  debounce,
+  withTimeout,
+  safeJsonParse,
+  deepClone,
+  getErrorStackTrace,
+  logApiCall
+} = ApiUtils;
+
+// Default export
+export default ApiUtils;

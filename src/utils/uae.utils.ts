@@ -1,7 +1,7 @@
 // src/utils/uae.utils.ts
 export class UAEUtils {
   // Format UAE mobile number for display
-  static formatPhoneForDisplay(mobile: string): string {
+  static formatMobileForDisplay(mobile: string): string {
     if (!mobile) return '';
     
     // Remove any non-digit characters
@@ -123,3 +123,19 @@ export class UAEUtils {
     return mobile.replace(/\D/g, '');
   }
 }
+
+// Export individual functions for convenience
+export const {
+formatMobileForDisplay,
+formatMobileForApi,
+isValidUaeMobile,
+isValidTrn,
+formatCurrency,
+getEmirates,
+formatDate,
+isUaeFormat,
+extractMobileDigits,
+} = UAEUtils;
+
+// Default export
+export default UAEUtils;

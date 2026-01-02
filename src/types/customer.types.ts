@@ -126,3 +126,18 @@ export interface MobileAvailabilityResult {
   existingCustomerId?: string;
   existingCustomerName?: string;
 }
+
+export interface CustomerLookupResponse {
+  id: string;
+  name: string;
+  mobile: string;
+  email?: string;
+  address?: string;
+  city?: string;
+  emirates?: string;
+  taxRegistrationNumber?: string;
+  creditLimit?: number;
+  currentBalance?: number;
+  status: 'Active' | 'Inactive';
+  createdAt: string;
+}

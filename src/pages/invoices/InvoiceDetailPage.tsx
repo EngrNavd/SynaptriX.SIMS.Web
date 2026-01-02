@@ -429,7 +429,7 @@ const InvoiceDetailPage: React.FC = () => {
               <Grid item xs={12} sm={6}>
                 <Typography variant="body2" color="text.secondary">Mobile</Typography>
                 <Typography variant="body1">
-                  {UAEUtils.formatPhoneForDisplay(invoice.customerMobile)}
+                  {UAEUtils.formatMobileForDisplay(invoice.customerMobile)}
                 </Typography>
               </Grid>
               {invoice.customerEmail && (

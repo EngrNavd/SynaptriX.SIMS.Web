@@ -1,621 +1,426 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Paper,
   Typography,
+  Box,
   Stepper,
   Step,
   StepLabel,
   Button,
-  Box,
   Grid,
-  TextField,
-  Card,
-  CardContent,
-  IconButton,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Alert,
   CircularProgress,
-  Chip,
-  Divider,
-  InputAdornment,
-  MenuItem,
+  Alert,
+  Snackbar
 } from '@mui/material';
 import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Search as SearchIcon,
   ArrowBack as ArrowBackIcon,
   ArrowForward as ArrowForwardIcon,
-  Person as PersonIcon,
-  ShoppingCart as ShoppingCartIcon,
-  Receipt as ReceiptIcon,
+  CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
+import { invoicesApi } from '../../api/invoices.api';
+import CustomerRegistrationSection from '../../Components/invoices/CustomerRegistrationSection';
+import ProductSelectionSection from '../../Components/invoices/ProductSelectionSection';
+import InvoiceReviewSection from '../../Components/invoices/InvoiceReviewSection';
 
-// Components
-import CustomerLookupDialog from '../../components/pos/CustomerLookupDialog';
-import ProductSearchDialog from '../../components/pos/ProductSearchDialog';
-import InvoiceSummary from '../../components/pos/InvoiceSummary';
-
-// API Services
-import { posApi } from '../../api';
-import { Customer, Product, InvoiceItem } from '../../types';
-
-// Types
-interface CustomerFormData {
-  firstName: string;
-  lastName: string;
-  email: string;
+// Define types based on your API response
+interface CustomerLookupResponse {
+  id: string;
+  name: string;
   mobile: string;
-  address?: string;
+  email: string;
+  address: string;
+  city: string;
+  emirates: string;
+  taxRegistrationNumber: string;
+  status: string;
+  createdAt: string;
 }
 
-interface CartItem extends InvoiceItem {
-  productName: string;
-  productCode: string;
-  warranty: boolean;
-  warrantyDays?: number;
+interface ProductDto {
+  id: string;
+  name: string;
+  sellingPrice: number;
+  purchasePrice?: number;
+  stockQuantity: number;
+  sku?: string;
+  description?: string;
+  category?: string;
+  brand?: string;
+  imageUrl?: string;
+  isActive: boolean;
 }
 
-const steps = ['Customer Details', 'Add Products', 'Review & Create'];
-
-// UAE VAT rate (5% as per UAE regulations)
-const UAE_VAT_RATE = 0.05;
+const steps = ['Customer', 'Products', 'Review & Complete'];
 
 const CreateInvoicePage: React.FC = () => {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
-  const [customer, setCustomer] = useState<Customer | null>(null);
-  const [customerForm, setCustomerForm] = useState<CustomerFormData>({
-    firstName: '',
-    lastName: '',
+  const [mobileNumber, setMobileNumber] = useState<string>('');
+  const [customer, setCustomer] = useState<CustomerLookupResponse | null>(null);
+  const [showCustomerForm, setShowCustomerForm] = useState(false);
+  const [customerFormData, setCustomerFormData] = useState({
+    name: '',
     email: '',
-    mobile: '',
     address: '',
+    city: '',
+    emirates: '',
+    taxRegistrationNumber: ''
   });
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [customerLookupOpen, setCustomerLookupOpen] = useState(false);
-  const [productSearchOpen, setProductSearchOpen] = useState(false);
-  const [productSearchTerm, setProductSearchTerm] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('cash');
-  const [notes, setNotes] = useState('');
-
-  // Calculate totals
-  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const vat = subtotal * UAE_VAT_RATE; // 5% UAE VAT
-  const total = subtotal + vat;
-
-  // Customer lookup mutation
-  const lookupCustomerMutation = useMutation({
-    mutationFn: (mobile: string) => posApi.lookupCustomer(mobile),
-    onSuccess: (data) => {
-      if (data) {
-        setCustomer(data);
-        setCustomerForm({
-          firstName: data.firstName || '',
-          lastName: data.lastName || '',
-          email: data.email || '',
-          mobile: data.mobile,
-          address: data.address || '',
-        });
-      }
-    },
+  const [selectedProducts, setSelectedProducts] = useState<Array<{
+    product: ProductDto;
+    quantity: number;
+  }>>([]);
+  const [shippingCharges, setShippingCharges] = useState<number>(0);
+  const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [notes, setNotes] = useState<string>('');
+  const [paymentMethod, setPaymentMethod] = useState<string>('Cash');
+  const [paymentStatus, setPaymentStatus] = useState<string>('Unpaid');
+  const [amountPaid, setAmountPaid] = useState<number>(0);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success' as 'success' | 'error'
   });
 
-  // Create invoice mutation
-  const createInvoiceMutation = useMutation({
-    mutationFn: (invoiceData: any) => posApi.createInvoice(invoiceData),
-    onSuccess: (data) => {
-      // Generate and download PDF
-      if (data?.id) {
-        window.open(`/api/pos/invoice/${data.id}/pdf`, '_blank');
-        navigate('/invoices');
-      }
-    },
-  });
-
-  const handleCustomerLookup = (mobile: string) => {
-    lookupCustomerMutation.mutate(mobile);
+  // Clear all data when mobile number changes
+  const clearCustomerData = () => {
+    setCustomer(null);
+    setShowCustomerForm(false);
+    setCustomerFormData({
+      name: '',
+      email: '',
+      address: '',
+      city: '',
+      emirates: '',
+      taxRegistrationNumber: ''
+    });
+    setSelectedProducts([]);
+    setShippingCharges(0);
+    setDiscountAmount(0);
+    setNotes('');
+    setPaymentMethod('Cash');
+    setPaymentStatus('Unpaid');
+    setAmountPaid(0);
   };
 
-  const handleCreateCustomer = () => {
-    // Validate UAE mobile number (start with 05, 10 digits total)
-    const uaeMobileRegex = /^(05)\d{8}$/;
-    if (!uaeMobileRegex.test(customerForm.mobile)) {
-      alert('Please enter a valid UAE mobile number (05XXXXXXXX)');
-      return;
+  // Handle mobile number change from CustomerRegistrationSection
+  const handleMobileChange = (mobile: string) => {
+    setMobileNumber(mobile);
+    if (mobile !== mobileNumber) {
+      clearCustomerData();
     }
-
-    const newCustomer: Customer = {
-      id: 0,
-      firstName: customerForm.firstName,
-      lastName: customerForm.lastName,
-      email: customerForm.email,
-      mobile: customerForm.mobile,
-      address: customerForm.address,
-      createdAt: new Date().toISOString(),
-    };
-    setCustomer(newCustomer);
   };
 
-  const handleAddProduct = (product: Product) => {
-    const existingItem = cart.find(item => item.productId === product.id);
+  // Calculate totals for display only
+  const calculateTotals = () => {
+    const subTotal = selectedProducts.reduce(
+      (sum, item) => sum + ((item.product.sellingPrice || 0) * (item.quantity || 1)),
+      0
+    );
     
-    if (existingItem) {
-      setCart(cart.map(item =>
-        item.productId === product.id
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      ));
-    } else {
-      const newItem: CartItem = {
-        id: 0,
-        invoiceId: 0,
-        productId: product.id,
-        productName: product.name,
-        productCode: product.code,
-        description: product.description,
-        quantity: 1,
-        price: product.price,
-        warranty: product.warranty,
-        warrantyDays: product.warrantyDays,
-        createdAt: new Date().toISOString(),
-      };
-      setCart([...cart, newItem]);
-    }
+    const vatRate = 0.05; // 5% UAE VAT
+    const taxAmount = subTotal * vatRate;
+    
+    // Calculate total amount
+    const totalAmount = subTotal + taxAmount + (shippingCharges || 0) - (discountAmount || 0);
+    
+    // Calculate amount due
+    const amountDue = totalAmount - (amountPaid || 0);
+
+    return {
+      subTotal,
+      taxAmount,
+      discountAmount,
+      shippingCharges,
+      totalAmount,
+      amountPaid,
+      amountDue
+    };
   };
 
-  const handleRemoveProduct = (productId: number) => {
-    setCart(cart.filter(item => item.productId !== productId));
-  };
+  const { subTotal, taxAmount, totalAmount, amountDue } = calculateTotals();
 
-  const handleUpdateQuantity = (productId: number, quantity: number) => {
-    if (quantity < 1) {
-      handleRemoveProduct(productId);
-      return;
-    }
-    setCart(cart.map(item =>
-      item.productId === productId
-        ? { ...item, quantity }
-        : item
-    ));
-  };
-
+  // Handle next step
   const handleNext = () => {
-    if (activeStep === 0 && !customer) {
-      alert('Please select or create a customer first');
+    if (createInvoiceMutation.isPending) {
       return;
     }
-    if (activeStep === 1 && cart.length === 0) {
-      alert('Please add at least one product');
-      return;
+
+    if (activeStep === 0) {
+      // Validate customer step
+      if (!customer && !customerFormData.name) {
+        setSnackbar({
+          open: true,
+          message: 'Please select or register a customer first',
+          severity: 'error'
+        });
+        return;
+      }
+    } else if (activeStep === 1) {
+      // Validate products step
+      if (selectedProducts.length === 0) {
+        setSnackbar({
+          open: true,
+          message: 'Please add at least one product to the invoice',
+          severity: 'error'
+        });
+        return;
+      }
     }
-    setActiveStep(prevStep => prevStep + 1);
+
+    // If we're on the last step, don't increment - submission is handled separately
+    if (activeStep < steps.length - 1) {
+      setActiveStep((prevStep) => prevStep + 1);
+    }
   };
 
   const handleBack = () => {
-    setActiveStep(prevStep => prevStep - 1);
+    setActiveStep((prevStep) => prevStep - 1);
   };
 
-  const handleCreateInvoice = () => {
-    if (!customer) return;
+  // Create invoice mutation
+  const createInvoiceMutation = useMutation({
+    mutationFn: (invoiceData: any) =>
+      invoicesApi.createInvoice(invoiceData),
+    onSuccess: (response: any) => {
+      console.log('Invoice creation response:', response);
+      
+      if (response.success && response.data) {
+        setSnackbar({
+          open: true,
+          message: 'Invoice created successfully!',
+          severity: 'success'
+        });
+        // Navigate to invoice details after delay
+        setTimeout(() => {
+          navigate(`/invoices/${response.data.id}`);
+        }, 1500);
+      } else if (response.id || response.invoiceNumber) {
+        // Handle direct response (without success wrapper)
+        setSnackbar({
+          open: true,
+          message: 'Invoice created successfully!',
+          severity: 'success'
+        });
+        setTimeout(() => {
+          navigate(`/invoices/${response.id}`);
+        }, 1500);
+      } else {
+        setSnackbar({
+          open: true,
+          message: response.message || 'Invoice created!',
+          severity: response.success === false ? 'error' : 'success'
+        });
+        if (response.success !== false) {
+          setTimeout(() => {
+            navigate('/invoices');
+          }, 1500);
+        }
+      }
+    },
+    onError: (error: any) => {
+      console.error('Create invoice error:', error);
+      console.error('Error response data:', error.response?.data);
+      
+      let errorMessage = 'An error occurred while creating invoice';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.errors?.length > 0) {
+        errorMessage = error.response.data.errors.join(', ');
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setSnackbar({
+        open: true,
+        message: errorMessage,
+        severity: 'error'
+      });
+    }
+  });
 
+  const handleCreateInvoice = () => {
+    // Validate customer
+    if (!customer && !customerFormData.name) {
+      setSnackbar({
+        open: true,
+        message: 'Customer information is required',
+        severity: 'error'
+      });
+      return;
+    }
+
+    // Validate products
+    if (selectedProducts.length === 0) {
+      setSnackbar({
+        open: true,
+        message: 'Please add at least one product to the invoice',
+        severity: 'error'
+      });
+      return;
+    }
+
+    // Prepare invoice items
+    const invoiceItems = selectedProducts.map(item => ({
+      productId: item.product.id,
+      quantity: item.quantity || 1,
+      discountPercent: 0,
+    }));
+
+    // Prepare invoice data matching backend DTO
     const invoiceData = {
-      customerId: customer.id,
-      items: cart.map(item => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        price: item.price,
-        warranty: item.warranty,
-        warrantyDays: item.warrantyDays,
-      })),
-      paymentMethod,
-      notes,
+      customerId: customer?.id || '',
+      items: invoiceItems,
+      shippingCharges: shippingCharges || 0,
+      discountAmount: discountAmount || 0,
+      notes: notes || '',
+      paymentMethod: paymentMethod || 'Cash',
+      paymentStatus: paymentStatus || 'Unpaid',
+      amountPaid: amountPaid || 0,
+      status: 'Draft',
+      invoiceDate: new Date().toISOString(),
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     };
 
+    console.log('📤 Sending invoice data:', invoiceData);
+    console.log('💰 Payment details:', {
+      discountAmount: invoiceData.discountAmount,
+      amountPaid: invoiceData.amountPaid,
+      paymentStatus: invoiceData.paymentStatus
+    });
+    
     createInvoiceMutation.mutate(invoiceData);
   };
 
-  const getStepContent = (step: number) => {
+  // Handle snackbar close
+  const handleSnackbarClose = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  // Handle product selection
+  const handleProductSelect = (product: ProductDto) => {
+    const existingIndex = selectedProducts.findIndex(
+      (item) => item.product.id === product.id
+    );
+    if (existingIndex >= 0) {
+      const updated = [...selectedProducts];
+      updated[existingIndex].quantity += 1;
+      setSelectedProducts(updated);
+    } else {
+      setSelectedProducts([
+        ...selectedProducts,
+        { product, quantity: 1 }
+      ]);
+    }
+  };
+
+  // Handle quantity change
+  const handleQuantityChange = (productId: string, quantity: number) => {
+    if (quantity < 1) {
+      // Remove product if quantity is 0 or negative
+      const updated = selectedProducts.filter(
+        (item) => item.product.id !== productId
+      );
+      setSelectedProducts(updated);
+    } else {
+      const updated = selectedProducts.map((item) =>
+        item.product.id === productId ? { ...item, quantity } : item
+      );
+      setSelectedProducts(updated);
+    }
+  };
+
+  // Handle product removal
+  const handleProductRemove = (productId: string) => {
+    const updated = selectedProducts.filter(
+      (item) => item.product.id !== productId
+    );
+    setSelectedProducts(updated);
+  };
+
+  // Render step content
+  const renderStepContent = (step: number) => {
     switch (step) {
       case 0:
         return (
-          <Box>
-            <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
-              <PersonIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-              Customer Information
-            </Typography>
-
-            {!customer ? (
-              <>
-                <Alert severity="info" sx={{ mb: 3 }}>
-                  Enter customer UAE mobile number to lookup existing customer or create a new one.
-                </Alert>
-
-                <Button
-                  variant="outlined"
-                  onClick={() => setCustomerLookupOpen(true)}
-                  startIcon={<SearchIcon />}
-                  sx={{ mb: 3 }}
-                >
-                  Lookup Customer by Mobile
-                </Button>
-
-                <Typography variant="subtitle1" gutterBottom sx={{ mt: 3, mb: 2 }}>
-                  Or create new customer:
-                </Typography>
-
-                <Grid container spacing={3}>
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <TextField
-                      fullWidth
-                      label="First Name *"
-                      value={customerForm.firstName}
-                      onChange={(e) => setCustomerForm({ ...customerForm, firstName: e.target.value })}
-                      required
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <TextField
-                      fullWidth
-                      label="Last Name"
-                      value={customerForm.lastName}
-                      onChange={(e) => setCustomerForm({ ...customerForm, lastName: e.target.value })}
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <TextField
-                      fullWidth
-                      label="UAE Mobile Number *"
-                      placeholder="05XXXXXXXX"
-                      value={customerForm.mobile}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, '').slice(0, 10);
-                        setCustomerForm({ ...customerForm, mobile: value });
-                      }}
-                      required
-                      helperText="Enter 10-digit UAE mobile number (05XXXXXXXX)"
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <TextField
-                      fullWidth
-                      label="Email"
-                      type="email"
-                      value={customerForm.email}
-                      onChange={(e) => setCustomerForm({ ...customerForm, email: e.target.value })}
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12 }}>
-                    <TextField
-                      fullWidth
-                      label="Address"
-                      multiline
-                      rows={2}
-                      value={customerForm.address}
-                      onChange={(e) => setCustomerForm({ ...customerForm, address: e.target.value })}
-                    />
-                  </Grid>
-                </Grid>
-
-                <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
-                  <Button
-                    variant="contained"
-                    onClick={handleCreateCustomer}
-                    disabled={!customerForm.firstName || !customerForm.mobile}
-                    startIcon={<PersonIcon />}
-                  >
-                    Create Customer
-                  </Button>
-                </Box>
-              </>
-            ) : (
-              <Card variant="outlined">
-                <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Box>
-                      <Typography variant="h6">
-                        {customer.firstName} {customer.lastName}
-                      </Typography>
-                      <Typography color="textSecondary">
-                        {/* ✅ FIXED: Added null check */}
-                        📱 {customer.mobile ? `+971 ${customer.mobile.substring(1)}` : 'N/A'}
-                      </Typography>
-                      {customer.email && (
-                        <Typography color="textSecondary">
-                          ✉️ {customer.email}
-                        </Typography>
-                      )}
-                      {customer.address && (
-                        <Typography color="textSecondary">
-                          📍 {customer.address}
-                        </Typography>
-                      )}
-                    </Box>
-                    <Button
-                      variant="outlined"
-                      onClick={() => setCustomer(null)}
-                    >
-                      Change Customer
-                    </Button>
-                  </Box>
-                </CardContent>
-              </Card>
-            )}
-          </Box>
+          <CustomerRegistrationSection
+            customer={customer}
+            setCustomer={setCustomer}
+            mobileNumber={mobileNumber}
+            setMobileNumber={handleMobileChange}
+            showCustomerForm={showCustomerForm}
+            setShowCustomerForm={setShowCustomerForm}
+            customerFormData={customerFormData}
+            setCustomerFormData={setCustomerFormData}
+            onMobileNumberChange={clearCustomerData}
+          />
         );
-
       case 1:
         return (
-          <Box>
-            <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
-              <ShoppingCartIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-              Add Products
-            </Typography>
-
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid size={{ xs: 12, md: 8 }}>
-                <TextField
-                  fullWidth
-                  label="Search Products"
-                  value={productSearchTerm}
-                  onChange={(e) => setProductSearchTerm(e.target.value)}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <SearchIcon />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 4 }}>
-                <Button
-                  variant="contained"
-                  fullWidth
-                  onClick={() => setProductSearchOpen(true)}
-                  startIcon={<AddIcon />}
-                >
-                  Browse Products
-                </Button>
-              </Grid>
-            </Grid>
-
-            {cart.length === 0 ? (
-              <Alert severity="info">
-                No products added yet. Click "Browse Products" to add items to the cart.
-              </Alert>
-            ) : (
-              <TableContainer component={Paper} variant="outlined">
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Product</TableCell>
-                      <TableCell>Price (AED)</TableCell>
-                      <TableCell>Quantity</TableCell>
-                      <TableCell>Total (AED)</TableCell>
-                      <TableCell>Warranty</TableCell>
-                      <TableCell>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {cart.map((item) => (
-                      <TableRow key={item.productId}>
-                        <TableCell>
-                          <Box>
-                            <Typography variant="body2" fontWeight="bold">
-                              {item.productName}
-                            </Typography>
-                            <Typography variant="caption" color="textSecondary">
-                              {item.productCode}
-                            </Typography>
-                            {item.description && (
-                              <Typography variant="caption" display="block" color="textSecondary">
-                                {item.description}
-                              </Typography>
-                            )}
-                          </Box>
-                        </TableCell>
-                        <TableCell>AED {item.price.toFixed(2)}</TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleUpdateQuantity(item.productId, item.quantity - 1)}
-                            >
-                              -
-                            </IconButton>
-                            <TextField
-                              size="small"
-                              value={item.quantity}
-                              onChange={(e) => handleUpdateQuantity(item.productId, parseInt(e.target.value) || 1)}
-                              sx={{ width: 60 }}
-                              inputProps={{ style: { textAlign: 'center' } }}
-                            />
-                            <IconButton
-                              size="small"
-                              onClick={() => handleUpdateQuantity(item.productId, item.quantity + 1)}
-                            >
-                              +
-                            </IconButton>
-                          </Box>
-                        </TableCell>
-                        <TableCell>AED {(item.price * item.quantity).toFixed(2)}</TableCell>
-                        <TableCell>
-                          {item.warranty ? (
-                            <Chip
-                              size="small"
-                              label={`${item.warrantyDays} days`}
-                              color="success"
-                              variant="outlined"
-                            />
-                          ) : (
-                            <Typography variant="caption" color="textSecondary">
-                              No warranty
-                            </Typography>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleRemoveProduct(item.productId)}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-
-            {cart.length > 0 && (
-              <InvoiceSummary
-                subtotal={subtotal}
-                vat={vat}
-                total={total}
-                itemCount={cart.length}
-              />
-            )}
-          </Box>
+          <ProductSelectionSection
+            selectedProducts={selectedProducts}
+            setSelectedProducts={setSelectedProducts}
+            onProductSelect={handleProductSelect}
+            onQuantityChange={handleQuantityChange}
+            onProductRemove={handleProductRemove}
+          />
         );
-
       case 2:
         return (
-          <Box>
-            <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
-              <ReceiptIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-              Review & Create Invoice
-            </Typography>
-
-            <Grid container spacing={3}>
-              <Grid size={{ xs: 12, md: 8 }}>
-                <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
-                  <Typography variant="subtitle1" gutterBottom fontWeight="bold">
-                    Customer Details
-                  </Typography>
-                  {customer && (
-                    <Box>
-                      <Typography>
-                        <strong>Name:</strong> {customer.firstName} {customer.lastName}
-                      </Typography>
-                      <Typography>
-                        {/* ✅ FIXED: Added null check */}
-                        <strong>Mobile:</strong> {customer.mobile ? `+971 ${customer.mobile.substring(1)}` : 'N/A'}
-                      </Typography>
-                      {customer.email && (
-                        <Typography>
-                          <strong>Email:</strong> {customer.email}
-                        </Typography>
-                      )}
-                    </Box>
-                  )}
-
-                  <Divider sx={{ my: 2 }} />
-
-                  <Typography variant="subtitle1" gutterBottom fontWeight="bold">
-                    Products ({cart.length} items)
-                  </Typography>
-                  <TableContainer>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Product</TableCell>
-                          <TableCell align="right">Qty</TableCell>
-                          <TableCell align="right">Price (AED)</TableCell>
-                          <TableCell align="right">Total (AED)</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {cart.map((item) => (
-                          <TableRow key={item.productId}>
-                            <TableCell>
-                              <Typography variant="body2">{item.productName}</Typography>
-                              {item.warranty && (
-                                <Typography variant="caption" color="success.main">
-                                  Warranty: {item.warrantyDays} days
-                                </Typography>
-                              )}
-                            </TableCell>
-                            <TableCell align="right">{item.quantity}</TableCell>
-                            <TableCell align="right">AED {item.price.toFixed(2)}</TableCell>
-                            <TableCell align="right">AED {(item.price * item.quantity).toFixed(2)}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </Paper>
-
-                <Grid container spacing={2}>
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <TextField
-                      fullWidth
-                      select
-                      label="Payment Method"
-                      value={paymentMethod}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                    >
-                      <MenuItem value="cash">Cash</MenuItem>
-                      <MenuItem value="card">Credit/Debit Card</MenuItem>
-                      <MenuItem value="apple_pay">Apple Pay</MenuItem>
-                      <MenuItem value="google_pay">Google Pay</MenuItem>
-                      <MenuItem value="bank_transfer">Bank Transfer</MenuItem>
-                    </TextField>
-                  </Grid>
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <TextField
-                      fullWidth
-                      label="Invoice Notes"
-                      multiline
-                      rows={2}
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Any special instructions or notes..."
-                    />
-                  </Grid>
-                </Grid>
-              </Grid>
-
-              <Grid size={{ xs: 12, md: 4 }}>
-                <InvoiceSummary
-                  subtotal={subtotal}
-                  vat={vat}
-                  total={total}
-                  itemCount={cart.length}
-                  showCreateButton
-                  onCreate={handleCreateInvoice}
-                  loading={createInvoiceMutation.isPending}
-                />
-              </Grid>
-            </Grid>
-          </Box>
+          <InvoiceReviewSection
+            customer={customer || {
+              id: '',
+              name: customerFormData.name,
+              mobile: mobileNumber,
+              email: customerFormData.email,
+              address: customerFormData.address,
+              city: customerFormData.city,
+              emirates: customerFormData.emirates,
+              taxRegistrationNumber: customerFormData.taxRegistrationNumber,
+              status: 'Active',
+              createdAt: new Date().toISOString()
+            }}
+            selectedProducts={selectedProducts}
+            shippingCharges={shippingCharges}
+            setShippingCharges={setShippingCharges}
+            discountAmount={discountAmount}
+            setDiscountAmount={setDiscountAmount}
+            notes={notes}
+            setNotes={setNotes}
+            paymentMethod={paymentMethod}
+            setPaymentMethod={setPaymentMethod}
+            paymentStatus={paymentStatus}
+            setPaymentStatus={setPaymentStatus}
+            amountPaid={amountPaid}
+            setAmountPaid={setAmountPaid}
+            subTotal={subTotal}
+            taxAmount={taxAmount}
+            totalAmount={totalAmount}
+            amountDue={amountDue}
+            onBack={handleBack}
+            onSubmit={handleCreateInvoice}
+            onEditCustomer={() => setActiveStep(0)}
+            onEditProducts={() => setActiveStep(1)}
+            isSubmitting={createInvoiceMutation.isPending}
+          />
         );
-
       default:
-        return 'Unknown step';
+        return null;
     }
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Paper sx={{ p: 3 }}>
-        <Typography variant="h4" gutterBottom fontWeight="bold">
+        <Typography variant="h4" gutterBottom>
           Create New Invoice
         </Typography>
-        <Typography color="textSecondary" paragraph>
-          Complete the following steps to create a new invoice for your customer.
-        </Typography>
 
+        {/* Stepper */}
         <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
           {steps.map((label) => (
             <Step key={label}>
@@ -624,57 +429,137 @@ const CreateInvoicePage: React.FC = () => {
           ))}
         </Stepper>
 
-        <Box sx={{ mt: 3 }}>
-          {getStepContent(activeStep)}
+        {/* Step Content */}
+        <Box sx={{ mb: 4 }}>
+          {renderStepContent(activeStep)}
         </Box>
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
+        {/* Navigation Buttons - Only show Next on steps 0 and 1 */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Button
-            disabled={activeStep === 0}
+            variant="outlined"
             onClick={handleBack}
+            disabled={activeStep === 0 || createInvoiceMutation.isPending}
             startIcon={<ArrowBackIcon />}
           >
             Back
           </Button>
 
-          {activeStep === steps.length - 1 ? (
-            <Box>
-              <Button
-                variant="outlined"
-                onClick={handleBack}
-                sx={{ mr: 2 }}
-              >
-                Edit
-              </Button>
-            </Box>
-          ) : (
+          <Box sx={{ display: 'flex', gap: 2 }}>
             <Button
-              variant="contained"
-              onClick={handleNext}
-              endIcon={<ArrowForwardIcon />}
-              disabled={
-                (activeStep === 0 && !customer) ||
-                (activeStep === 1 && cart.length === 0)
-              }
+              variant="outlined"
+              onClick={() => navigate('/invoices')}
+              disabled={createInvoiceMutation.isPending}
             >
-              {activeStep === steps.length - 2 ? 'Review' : 'Next'}
+              Cancel
             </Button>
-          )}
+            
+            {/* Only show Next button on steps 0 and 1 */}
+            {activeStep < steps.length - 1 ? (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleNext}
+                disabled={createInvoiceMutation.isPending}
+                endIcon={<ArrowForwardIcon />}
+              >
+                Next
+              </Button>
+            ) : (
+              /* On last step, show Create Invoice button */
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleCreateInvoice}
+                disabled={createInvoiceMutation.isPending || !customer || selectedProducts.length === 0}
+                endIcon={
+                  createInvoiceMutation.isPending ? (
+                    <CircularProgress size={20} />
+                  ) : (
+                    <CheckCircleIcon />
+                  )
+                }
+              >
+                {createInvoiceMutation.isPending ? 'Creating...' : 'Create Invoice'}
+              </Button>
+            )}
+          </Box>
         </Box>
+
+        {/* Quick Summary */}
+        {selectedProducts.length > 0 && (
+          <Paper sx={{ p: 2, mt: 3, bgcolor: 'background.default' }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Quick Summary
+            </Typography>
+            <Grid container spacing={1}>
+              <Grid item xs={6} sm={3}>
+                <Typography variant="body2" color="textSecondary">
+                  Items
+                </Typography>
+                <Typography variant="body1">
+                  {selectedProducts.reduce((sum, item) => sum + (item.quantity || 0), 0)}
+                </Typography>
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <Typography variant="body2" color="textSecondary">
+                  Subtotal
+                </Typography>
+                <Typography variant="body1">
+                  AED {subTotal.toFixed(2)}
+                </Typography>
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <Typography variant="body2" color="textSecondary">
+                  VAT (5%)
+                </Typography>
+                <Typography variant="body1">
+                  AED {taxAmount.toFixed(2)}
+                </Typography>
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <Typography variant="body2" color="textSecondary">
+                  Total
+                </Typography>
+                <Typography variant="body1" fontWeight="bold">
+                  AED {totalAmount.toFixed(2)}
+                </Typography>
+              </Grid>
+            </Grid>
+            {discountAmount > 0 && (
+              <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                Discount: AED {discountAmount.toFixed(2)}
+              </Typography>
+            )}
+            {amountPaid > 0 && (
+              <Typography variant="body2" color={amountPaid >= totalAmount ? "success.main" : "warning.main"} sx={{ mt: 1 }}>
+                Amount Paid: AED {amountPaid.toFixed(2)} {amountPaid >= totalAmount ? '(Fully Paid)' : '(Partially Paid)'}
+              </Typography>
+            )}
+            {amountDue > 0 && (
+              <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+                Amount Due: AED {amountDue.toFixed(2)}
+              </Typography>
+            )}
+          </Paper>
+        )}
       </Paper>
 
-      {/* Dialogs */}
-      <CustomerLookupDialog
-        open={customerLookupOpen}
-        onClose={() => setCustomerLookupOpen(false)}
-        onLookup={handleCustomerLookup}
-      />
-
-      <ProductSearchDialog
-        open={productSearchOpen}
-        onClose={() => setProductSearchOpen(false)}
-        onAddProduct={handleAddProduct}
-      />
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={handleSnackbarClose}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

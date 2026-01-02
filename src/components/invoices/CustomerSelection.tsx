@@ -50,7 +50,7 @@ const CustomerSelection: React.FC<CustomerSelectionProps> = ({
   // Set initial mobile if customer provided
   useEffect(() => {
     if (initialCustomer?.mobile) {
-      setMobileInput(UAEUtils.formatPhoneForDisplay(initialCustomer.mobile));
+      setMobileInput(UAEUtils.formatMobileForDisplay(initialCustomer.mobile));
       setMobileNumber(initialCustomer.mobile);
       setFoundCustomer(initialCustomer);
     }
@@ -77,7 +77,7 @@ const CustomerSelection: React.FC<CustomerSelectionProps> = ({
     
     // Auto-format as user types
     if (value) {
-      const formatted = UAEUtils.formatPhoneForDisplay(value);
+      const formatted = UAEUtils.formatMobileForDisplay(value);
       if (formatted !== value) {
         setMobileInput(formatted);
       }
@@ -101,7 +101,7 @@ const CustomerSelection: React.FC<CustomerSelectionProps> = ({
         const customer = response.data;
         setFoundCustomer(customer);
         setMobileNumber(customer.mobile);
-        setMobileInput(UAEUtils.formatPhoneForDisplay(customer.mobile));
+        setMobileInput(UAEUtils.formatMobileForDisplay(customer.mobile));
         onCustomerSelected(customer);
       } else {
         setFoundCustomer(null);
@@ -126,7 +126,7 @@ const CustomerSelection: React.FC<CustomerSelectionProps> = ({
         const newCustomer = response.data;
         setFoundCustomer(newCustomer);
         setMobileNumber(newCustomer.mobile);
-        setMobileInput(UAEUtils.formatPhoneForDisplay(newCustomer.mobile));
+        setMobileInput(UAEUtils.formatMobileForDisplay(newCustomer.mobile));
         onCustomerSelected(newCustomer);
         setShowRegistration(false);
       }
@@ -181,7 +181,7 @@ const CustomerSelection: React.FC<CustomerSelectionProps> = ({
 
   // Format mobile for display
   const getFormattedMobile = (mobile: string): string => {
-    return UAEUtils.formatPhoneForDisplay(mobile);
+    return UAEUtils.formatMobileForDisplay(mobile);
   };
 
   return (

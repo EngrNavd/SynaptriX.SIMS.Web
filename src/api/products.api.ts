@@ -1,206 +1,338 @@
 import { api } from './index';
+import type { Product, ProductDto, CreateProductDto, UpdateProductDto } from '../types/product.types';
+import type { ApiResponse, PaginatedResponse } from '../types/api.types';
 
-// Define Product interface locally since it's not exported from '../types'
-interface Product {
-  id: number;
-  name: string;
-  sku?: string;
-  description?: string;
-  price: number;
-  cost?: number;
-  quantity: number;
+// Define product search parameters
+interface ProductSearchParams {
+  searchTerm?: string;
   category?: string;
-  status?: string;
-  barcode?: string;
-  minStockLevel?: number;
-  maxStockLevel?: number;
-  location?: string;
-  supplier?: string;
-  weight?: number;
-  dimensions?: string;
-  expiryDate?: string;
-  batchNumber?: string;
-  taxRate?: number;
-  discountRate?: number;
-  imageUrl?: string;
-  notes?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  createdBy?: string;
-  updatedBy?: string;
-  isActive?: boolean;
-  tenantId?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  inStockOnly?: boolean;
+  lowStockOnly?: boolean;
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
-// Define ApiResponse interface locally
-interface ApiResponse<T = any> {
-  success: boolean;
-  message: string;
-  data: T;
-  errors?: string[];
+// Define product statistics interface
+interface ProductStatistics {
+  totalProducts: number;
+  outOfStock: number;
+  lowStock: number;
+  totalInventoryValue: number;
+  categories: Array<{
+    name: string;
+    count: number;
+    value: number;
+  }>;
 }
 
-// Get products - SIMPLER VERSION
-export const getProducts = async (params?: any): Promise<any> => {
+// Get products with pagination and filtering
+export const getProducts = async (
+  params?: ProductSearchParams
+): Promise<ApiResponse<PaginatedResponse<Product>>> => {
   try {
-    console.log('getProducts called with params:', params);
+    console.log('[Products API] Fetching products with params:', params);
     
-    // Try different endpoint structures
-    const response = await api.get('/products', { params });
-    console.log('getProducts response:', response.data);
+    const response = await api.get<ApiResponse<PaginatedResponse<Product>>>('/products', { 
+      params: {
+        page: params?.page || 1,
+        pageSize: params?.pageSize || 20,
+        searchTerm: params?.searchTerm,
+        category: params?.category,
+        minPrice: params?.minPrice,
+        maxPrice: params?.maxPrice,
+        inStockOnly: params?.inStockOnly,
+        lowStockOnly: params?.lowStockOnly,
+        sortBy: params?.sortBy || 'name',
+        sortOrder: params?.sortOrder || 'asc'
+      }
+    });
     
-    // Handle different response structures
-    if (response.data.data) {
-      // If response has data property
-      return response.data.data;
-    } else if (response.data.products) {
-      // If response has products property
-      return response.data;
-    } else {
-      // Raw response
-      return response.data;
-    }
+    console.log('[Products API] Products fetched successfully');
+    return response.data;
   } catch (error: any) {
-    console.error('getProducts error:', error);
-    console.error('Error status:', error.response?.status);
-    console.error('Error data:', error.response?.data);
+    console.error('[Products API] Error fetching products:', error);
     
-    // Return empty structure to prevent crash
+    // Return consistent error response
     return {
-      products: [],
-      totalCount: 0,
-      page: 1,
-      pageSize: 10
+      success: false,
+      message: error.response?.data?.message || 'Failed to fetch products',
+      data: {
+        items: [],
+        totalCount: 0,
+        page: params?.page || 1,
+        pageSize: params?.pageSize || 20,
+        totalPages: 0
+      },
+      errors: error.response?.data?.errors || ['Network error']
     };
   }
 };
 
-// ADD MISSING METHODS that were causing errors
-export const getInventoryValue = async (): Promise<ApiResponse<number>> => {
+// Get product by ID
+export const getProduct = async (id: number): Promise<ApiResponse<Product>> => {
   try {
-    const response = await api.get('/products/inventory-value');
+    console.log(`[Products API] Fetching product ${id}`);
     
-    // Handle response structure
-    if (response.data.data !== undefined) {
-      return response.data;
+    const response = await api.get<ApiResponse<Product>>(`/products/${id}`);
+    console.log(`[Products API] Product ${id} fetched successfully`);
+    
+    return response.data;
+  } catch (error: any) {
+    console.error(`[Products API] Error fetching product ${id}:`, error);
+    
+    return {
+      success: false,
+      message: error.response?.data?.message || `Failed to fetch product ${id}`,
+      data: {} as Product,
+      errors: error.response?.data?.errors || ['Product not found']
+    };
+  }
+};
+
+// Create new product
+export const createProduct = async (product: CreateProductDto): Promise<ApiResponse<Product>> => {
+  try {
+    console.log('[Products API] Creating product:', product.name);
+    
+    const response = await api.post<ApiResponse<Product>>('/products', product);
+    console.log('[Products API] Product created successfully:', response.data.data?.id);
+    
+    return response.data;
+  } catch (error: any) {
+    console.error('[Products API] Error creating product:', error);
+    
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to create product',
+      data: {} as Product,
+      errors: error.response?.data?.errors || ['Validation failed']
+    };
+  }
+};
+
+// Update product
+export const updateProduct = async (
+  id: number, 
+  product: UpdateProductDto
+): Promise<ApiResponse<Product>> => {
+  try {
+    console.log(`[Products API] Updating product ${id}`);
+    
+    const response = await api.put<ApiResponse<Product>>(`/products/${id}`, product);
+    console.log(`[Products API] Product ${id} updated successfully`);
+    
+    return response.data;
+  } catch (error: any) {
+    console.error(`[Products API] Error updating product ${id}:`, error);
+    
+    return {
+      success: false,
+      message: error.response?.data?.message || `Failed to update product ${id}`,
+      data: {} as Product,
+      errors: error.response?.data?.errors || ['Update failed']
+    };
+  }
+};
+
+// Delete product
+export const deleteProduct = async (id: number): Promise<ApiResponse<void>> => {
+  try {
+    console.log(`[Products API] Deleting product ${id}`);
+    
+    const response = await api.delete<ApiResponse<void>>(`/products/${id}`);
+    console.log(`[Products API] Product ${id} deleted successfully`);
+    
+    return response.data;
+  } catch (error: any) {
+    console.error(`[Products API] Error deleting product ${id}:`, error);
+    
+    return {
+      success: false,
+      message: error.response?.data?.message || `Failed to delete product ${id}`,
+      data: undefined,
+      errors: error.response?.data?.errors || ['Delete failed']
+    };
+  }
+};
+
+// Search products (quick search for POS)
+export const searchProducts = async (
+  searchTerm: string, 
+  limit: number = 20
+): Promise<ApiResponse<Product[]>> => {
+  try {
+    if (!searchTerm || searchTerm.trim().length < 1) {
+      return {
+        success: true,
+        message: 'Search term is empty',
+        data: []
+      };
     }
     
-    // Return success response with default structure
-    return {
-      success: true,
-      message: 'Inventory value retrieved',
-      data: response.data.value || response.data.totalValue || 0,
-      errors: []
-    };
+    console.log(`[Products API] Searching products: "${searchTerm}"`);
+    
+    const response = await api.get<ApiResponse<Product[]>>('/products/search', {
+      params: {
+        term: searchTerm.trim(),
+        limit
+      }
+    });
+    
+    console.log(`[Products API] Found ${response.data.data?.length || 0} products`);
+    return response.data;
   } catch (error: any) {
-    console.error('Error getting inventory value:', error);
+    console.error('[Products API] Error searching products:', error);
+    
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to search products',
+      data: [],
+      errors: error.response?.data?.errors || ['Search failed']
+    };
+  }
+};
+
+// Get inventory value
+export const getInventoryValue = async (): Promise<ApiResponse<number>> => {
+  try {
+    console.log('[Products API] Getting inventory value');
+    
+    const response = await api.get<ApiResponse<number>>('/products/inventory/value');
+    console.log('[Products API] Inventory value retrieved:', response.data.data);
+    
+    return response.data;
+  } catch (error: any) {
+    console.error('[Products API] Error getting inventory value:', error);
+    
     return {
       success: false,
       message: error.response?.data?.message || 'Failed to get inventory value',
       data: 0,
-      errors: error.response?.data?.errors || []
+      errors: error.response?.data?.errors || ['Calculation failed']
     };
   }
 };
 
-export const getLowStockProducts = async (threshold: number = 10): Promise<ApiResponse<any[]>> => {
+// Get low stock products
+export const getLowStockProducts = async (
+  threshold: number = 10
+): Promise<ApiResponse<Product[]>> => {
   try {
-    const response = await api.get('/products/low-stock', {
+    console.log(`[Products API] Getting low stock products (threshold: ${threshold})`);
+    
+    const response = await api.get<ApiResponse<Product[]>>('/products/low-stock', {
       params: { threshold }
     });
     
-    // Handle response structure
-    if (response.data.data) {
-      return response.data;
-    }
-    
-    // Return success response with default structure
-    return {
-      success: true,
-      message: 'Low stock products retrieved',
-      data: response.data.products || response.data || [],
-      errors: []
-    };
+    console.log(`[Products API] Found ${response.data.data?.length || 0} low stock products`);
+    return response.data;
   } catch (error: any) {
-    console.error('Error getting low stock products:', error);
+    console.error('[Products API] Error getting low stock products:', error);
+    
     return {
       success: false,
       message: error.response?.data?.message || 'Failed to get low stock products',
       data: [],
-      errors: error.response?.data?.errors || []
+      errors: error.response?.data?.errors || ['Request failed']
     };
   }
 };
 
-// Search products - SIMPLER
-export const searchProducts = async (searchTerm: string): Promise<Product[]> => {
+// Get out of stock products
+export const getOutOfStockProducts = async (): Promise<ApiResponse<Product[]>> => {
   try {
-    if (!searchTerm || searchTerm.trim().length < 2) {
-      return [];
-    }
+    console.log('[Products API] Getting out of stock products');
     
-    const response = await api.get(`/products/search?term=${encodeURIComponent(searchTerm.trim())}`);
+    const response = await api.get<ApiResponse<Product[]>>('/products/out-of-stock');
+    console.log(`[Products API] Found ${response.data.data?.length || 0} out of stock products`);
     
-    // Handle response structure
-    if (response.data.data) {
-      return response.data.data;
-    }
     return response.data;
-  } catch (error) {
-    console.error('Search products error:', error);
-    return [];
+  } catch (error: any) {
+    console.error('[Products API] Error getting out of stock products:', error);
+    
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to get out of stock products',
+      data: [],
+      errors: error.response?.data?.errors || ['Request failed']
+    };
   }
 };
 
-// Other functions remain similar but simpler
-export const getProduct = async (id: number): Promise<Product | null> => {
+// Get product statistics
+export const getProductStatistics = async (): Promise<ApiResponse<ProductStatistics>> => {
   try {
-    const response = await api.get(`/products/${id}`);
-    return response.data.data || response.data;
-  } catch (error) {
-    console.error(`Error fetching product ${id}:`, error);
-    return null;
+    console.log('[Products API] Getting product statistics');
+    
+    const response = await api.get<ApiResponse<ProductStatistics>>('/products/statistics');
+    console.log('[Products API] Product statistics retrieved');
+    
+    return response.data;
+  } catch (error: any) {
+    console.error('[Products API] Error getting product statistics:', error);
+    
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to get product statistics',
+      data: {
+        totalProducts: 0,
+        outOfStock: 0,
+        lowStock: 0,
+        totalInventoryValue: 0,
+        categories: []
+      },
+      errors: error.response?.data?.errors || ['Request failed']
+    };
   }
 };
 
-export const createProduct = async (product: Partial<Product>): Promise<Product | null> => {
+// Bulk update product stock
+export const bulkUpdateStock = async (
+  updates: Array<{ productId: number; quantity: number; reason?: string }>
+): Promise<ApiResponse<void>> => {
   try {
-    const response = await api.post('/products', product);
-    return response.data.data || response.data;
-  } catch (error) {
-    console.error('Error creating product:', error);
-    return null;
+    console.log(`[Products API] Bulk updating stock for ${updates.length} products`);
+    
+    const response = await api.post<ApiResponse<void>>('/products/bulk/update-stock', { updates });
+    console.log('[Products API] Bulk stock update completed');
+    
+    return response.data;
+  } catch (error: any) {
+    console.error('[Products API] Error in bulk stock update:', error);
+    
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to update stock',
+      data: undefined,
+      errors: error.response?.data?.errors || ['Bulk update failed']
+    };
   }
 };
 
-export const updateProduct = async (id: number, product: Partial<Product>): Promise<Product | null> => {
-  try {
-    const response = await api.put(`/products/${id}`, product);
-    return response.data.data || response.data;
-  } catch (error) {
-    console.error(`Error updating product ${id}:`, error);
-    return null;
-  }
-};
-
-export const deleteProduct = async (id: string): Promise<boolean> => {
-  try {
-    await api.delete(`/products/${id}`);
-    return true;
-  } catch (error) {
-    console.error(`Error deleting product ${id}:`, error);
-    return false;
-  }
-};
-
-// Export all methods together
+// Export all methods
 export const productsApi = {
   getProducts,
-  getInventoryValue,
-  getLowStockProducts,
-  searchProducts,
   getProduct,
   createProduct,
   updateProduct,
   deleteProduct,
+  searchProducts,
+  getInventoryValue,
+  getLowStockProducts,
+  getOutOfStockProducts,
+  getProductStatistics,
+  bulkUpdateStock,
+};
+
+export type {
+  Product,
+  ProductDto,
+  CreateProductDto,
+  UpdateProductDto,
+  ProductSearchParams,
+  ProductStatistics
 };

@@ -79,37 +79,55 @@ export const invoicesApi = {
     }
   },
 
-  // Create new invoice
-  createInvoice: async (data: CreateInvoiceDto): Promise<ApiResponse<InvoiceDto>> => {
-    try {
-      console.log('Create Invoice - Data:', data);
-      
-      // Format data for backend
-      const backendData = {
-        customerId: data.customerId,
-        items: data.items || [],
-        shippingCharges: data.shippingCharges || 0,
-        invoiceDate: data.invoiceDate || new Date().toISOString(),
-        dueDate: data.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        status: data.status || 'Draft',
-        paymentMethod: data.paymentMethod || 'Cash',
-        paymentReference: data.paymentReference,
-        notes: data.notes
-      };
-      
-      const response = await axiosClient.post('/invoices', backendData);
-      const extracted = extractResponseData(response);
-      return ApiUtils.processApiResponse<InvoiceDto>(extracted, false);
-    } catch (error: any) {
-      console.error('Create invoice error:', error);
+// Create new invoice
+// In src/api/invoices.api.ts, update the createInvoice function:
+createInvoice: async (data: any): Promise<ApiResponse<InvoiceDto>> => {
+  try {
+    console.log('Create Invoice - Frontend Data:', data);
+    
+    // Format data for backend - send ONLY what backend expects
+    const backendData = {
+      customerId: data.customerId,
+      items: data.items || [],
+      shippingCharges: data.shippingCharges || 0,
+      discountAmount: data.discountAmount || 0,
+      notes: data.notes || '',
+      paymentMethod: data.paymentMethod || 'Cash',
+      paymentStatus: data.paymentStatus || 'Unpaid',
+      amountPaid: data.amountPaid || 0,
+      status: data.status || 'Draft',
+      invoiceDate: data.invoiceDate || new Date().toISOString(),
+      dueDate: data.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+    
+    console.log('Sending to backend:', backendData);
+    
+    const response = await axiosClient.post('/invoices', backendData);
+    console.log('Backend response:', response.data);
+    
+    // Handle both response formats
+    if (response.data && (response.data.id || response.data.invoiceNumber)) {
       return {
-        success: false,
-        message: error.response?.data?.message || error.message || 'Failed to create invoice',
-        data: null as any,
-        errors: error.response?.data?.errors || [error.message || 'Unknown error']
+        success: true,
+        message: 'Invoice created successfully',
+        data: response.data as InvoiceDto,
       };
     }
-  },
+    
+    const extracted = extractResponseData(response);
+    return ApiUtils.processApiResponse<InvoiceDto>(extracted, false);
+    
+  } catch (error: any) {
+    console.error('Create invoice error:', error);
+    
+    return {
+      success: false,
+      message: error.response?.data?.message || error.message || 'Failed to create invoice',
+      data: null as any,
+      errors: error.response?.data?.errors || [error.message || 'Unknown error']
+    };
+  }
+},
 
   // Update invoice
   updateInvoice: async (id: string, data: UpdateInvoiceDto): Promise<ApiResponse<InvoiceDto>> => {

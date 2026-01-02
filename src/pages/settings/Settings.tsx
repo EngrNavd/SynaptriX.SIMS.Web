@@ -103,13 +103,13 @@ const Settings: React.FC = () => {
 
   const renderGeneralSettings = () => (
     <Grid container spacing={3}>
-      <Grid item xs={12}>
+      <Grid  xs={12}>
         <Alert severity="info" icon={<Info />}>
           General application settings. Changes will be applied to all users.
         </Alert>
       </Grid>
 
-      <Grid item xs={12} md={6}>
+      <Grid  xs={12} md={6}>
         <TextField
           fullWidth
           label="Company Name"
@@ -119,7 +119,7 @@ const Settings: React.FC = () => {
         />
       </Grid>
 
-      <Grid item xs={12} md={6}>
+      <Grid  xs={12} md={6}>
         <TextField
           fullWidth
           label="Contact Email"
@@ -130,7 +130,7 @@ const Settings: React.FC = () => {
         />
       </Grid>
 
-      <Grid item xs={12} md={6}>
+      <Grid  xs={12} md={6}>
         <TextField
           fullWidth
           label="Phone Number"
@@ -140,7 +140,7 @@ const Settings: React.FC = () => {
         />
       </Grid>
 
-      <Grid item xs={12} md={6}>
+      <Grid  xs={12} md={6}>
         <FormControl fullWidth>
           <InputLabel>Currency</InputLabel>
           <Select
@@ -157,7 +157,7 @@ const Settings: React.FC = () => {
         </FormControl>
       </Grid>
 
-      <Grid item xs={12} md={6}>
+      <Grid  xs={12} md={6}>
         <FormControl fullWidth>
           <InputLabel>Language</InputLabel>
           <Select
@@ -171,7 +171,7 @@ const Settings: React.FC = () => {
         </FormControl>
       </Grid>
 
-      <Grid item xs={12} md={6}>
+      <Grid  xs={12} md={6}>
         <FormControl fullWidth>
           <InputLabel>Timezone</InputLabel>
           <Select
@@ -191,13 +191,13 @@ const Settings: React.FC = () => {
 
   const renderSecuritySettings = () => (
     <Grid container spacing={3}>
-      <Grid item xs={12}>
+      <Grid  xs={12}>
         <Alert severity="warning" icon={<Warning />}>
           Security settings affect user authentication and data protection.
         </Alert>
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid  xs={12}>
         <FormControlLabel
           control={
             <Switch
@@ -217,7 +217,7 @@ const Settings: React.FC = () => {
         />
       </Grid>
 
-      <Grid item xs={12} md={6}>
+      <Grid  xs={12} md={6}>
         <FormControl fullWidth>
           <InputLabel>Session Timeout (minutes)</InputLabel>
           <Select
@@ -234,7 +234,7 @@ const Settings: React.FC = () => {
         </FormControl>
       </Grid>
 
-      <Grid item xs={12} md={6}>
+      <Grid  xs={12} md={6}>
         <FormControl fullWidth>
           <InputLabel>Password Expiry (days)</InputLabel>
           <Select
@@ -251,7 +251,7 @@ const Settings: React.FC = () => {
         </FormControl>
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid  xs={12}>
         <Divider sx={{ my: 2 }} />
         <Typography variant="h6" gutterBottom>
           Security Audit Log
@@ -293,7 +293,7 @@ const Settings: React.FC = () => {
 
   const renderNotificationSettings = () => (
     <Grid container spacing={3}>
-      <Grid item xs={12}>
+      <Grid  xs={12}>
         <FormControlLabel
           control={
             <Switch
@@ -313,7 +313,7 @@ const Settings: React.FC = () => {
         />
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid  xs={12}>
         <FormControlLabel
           control={
             <Switch
@@ -333,17 +333,17 @@ const Settings: React.FC = () => {
         />
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid  xs={12}>
         <Divider />
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid  xs={12}>
         <Typography variant="h6" gutterBottom>
           Alert Preferences
         </Typography>
       </Grid>
 
-      <Grid item xs={12} md={6}>
+      <Grid  xs={12} md={6}>
         <FormControlLabel
           control={
             <Switch
@@ -356,7 +356,7 @@ const Settings: React.FC = () => {
         />
       </Grid>
 
-      <Grid item xs={12} md={6}>
+      <Grid  xs={12} md={6}>
         <FormControlLabel
           control={
             <Switch
@@ -369,7 +369,7 @@ const Settings: React.FC = () => {
         />
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid  xs={12}>
         <TextField
           fullWidth
           label="Notification Email"
@@ -384,7 +384,7 @@ const Settings: React.FC = () => {
 
   const renderBusinessSettings = () => (
     <Grid container spacing={3}>
-      <Grid item xs={12} md={6}>
+      <Grid  xs={12} md={6}>
         <TextField
           fullWidth
           label="Tax Rate (%)"
@@ -398,7 +398,7 @@ const Settings: React.FC = () => {
         />
       </Grid>
 
-      <Grid item xs={12} md={6}>
+      <Grid  xs={12} md={6}>
         <TextField
           fullWidth
           label="Invoice Prefix"
@@ -408,7 +408,7 @@ const Settings: React.FC = () => {
         />
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid  xs={12}>
         <FormControlLabel
           control={
             <Switch
@@ -428,7 +428,7 @@ const Settings: React.FC = () => {
         />
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid  xs={12}>
         <Divider sx={{ my: 2 }} />
         <Typography variant="h6" gutterBottom>
           Storage Information
@@ -485,7 +485,7 @@ const Settings: React.FC = () => {
 
       <Grid container spacing={3}>
         {/* Sidebar Tabs */}
-        <Grid item xs={12} md={3}>
+        <Grid  xs={12} md={3}>
           <Card>
             <List disablePadding>
               {tabs.map((tab) => (
@@ -541,7 +541,7 @@ const Settings: React.FC = () => {
         </Grid>
 
         {/* Main Content */}
-        <Grid item xs={12} md={9}>
+        <Grid  xs={12} md={9}>
           <Card>
             <CardHeader
               title={tabs.find(t => t.id === activeTab)?.label}

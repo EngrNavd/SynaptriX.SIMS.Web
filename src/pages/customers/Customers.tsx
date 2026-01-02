@@ -328,7 +328,7 @@ export default function Customers() {
                   <Phone color="action" />
                   <Box>
                     <Typography variant="caption" color="text.secondary">Mobile</Typography>
-                    <Typography variant="body1">{UAEUtils.formatPhoneForDisplay(customer.mobile)}</Typography>
+                    <Typography variant="body1">{UAEUtils.formatMobileForDisplay(customer.mobile)}</Typography>
                   </Box>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -542,7 +542,7 @@ export default function Customers() {
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <Phone fontSize="small" color="action" />
-            <Typography variant="body2">{UAEUtils.formatPhoneForDisplay(params.value)}</Typography>
+            <Typography variant="body2">{UAEUtils.formatMobileForDisplay(params.value)}</Typography>
           </Box>
           {params.row.email && (
             <Typography variant="caption" color="text.secondary" display="block">
