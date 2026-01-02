@@ -42,7 +42,8 @@ import toast from 'react-hot-toast';
 import type { 
   InvoiceDto, 
   InvoiceStatisticsDto,
-  ExportInvoicesRequestDto 
+  ExportInvoicesRequestDto,
+  ApiResponse 
 } from '@/types';
 
 export default function InvoiceListPage() {
@@ -77,7 +78,7 @@ export default function InvoiceListPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Fetch invoices
+  // Fetch invoices - FIXED response handling
   const { 
     data: invoicesResponse, 
     isLoading: invoicesLoading, 
@@ -86,7 +87,7 @@ export default function InvoiceListPage() {
   } = useQuery({
     queryKey: ['invoices', page, pageSize, debouncedSearch, filters, sortModel],
     queryFn: () => invoicesApi.getInvoices({
-      page: page + 1,
+      page: page + 1, // Convert to 1-based for API
       pageSize,
       search: debouncedSearch || undefined,
       sortBy: sortModel.field,
@@ -95,7 +96,17 @@ export default function InvoiceListPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Fetch statistics
+  // Log the response to debug
+  useEffect(() => {
+    if (invoicesResponse) {
+      console.log('Invoices API Response:', invoicesResponse);
+      console.log('Response success:', invoicesResponse.success);
+      console.log('Response data:', invoicesResponse.data);
+      console.log('Response totalCount:', invoicesResponse.totalCount);
+    }
+  }, [invoicesResponse]);
+
+  // Fetch statistics - FIXED: using the correct API endpoint
   const { 
     data: statsResponse, 
     isLoading: statsLoading,
@@ -128,25 +139,50 @@ export default function InvoiceListPage() {
     },
   });
 
-  const invoices = invoicesResponse?.success && Array.isArray(invoicesResponse.data) 
+  // FIXED: Extract data correctly from response
+  const invoices: InvoiceDto[] = invoicesResponse?.success && Array.isArray(invoicesResponse.data) 
     ? invoicesResponse.data 
     : [];
   
-  const totalCount = invoicesResponse?.data?.length || 0;
-  const stats = statsResponse?.success ? statsResponse.data : {} as InvoiceStatisticsDto;
+  const totalCount = invoicesResponse?.totalCount || 0;
+  const currentPage = invoicesResponse?.page || 1;
+  const currentPageSize = invoicesResponse?.pageSize || 10;
 
-  // Calculate additional stats
+  const stats: InvoiceStatisticsDto = statsResponse?.success ? statsResponse.data : {
+    totalInvoices: 0,
+    totalAmount: 0,
+    totalTax: 0,
+    draftInvoices: 0,
+    pendingInvoices: 0,
+    partiallyPaidInvoices: 0,
+    paidInvoices: 0,
+    cancelledInvoices: 0,
+    unpaidInvoices: 0,
+    partiallyPaidPaymentInvoices: 0,
+    paidPaymentInvoices: 0,
+    overduePaymentInvoices: 0,
+    cancelledPaymentInvoices: 0,
+    todayInvoices: 0,
+    thisMonthInvoices: 0,
+    averageInvoiceAmount: 0,
+  };
+
+  // Calculate additional stats from actual invoices
   const calculateAdditionalStats = () => {
-    const totalAmount = invoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
+    const totalAmount = invoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
     const averageInvoice = invoices.length > 0 ? totalAmount / invoices.length : 0;
-    const paidAmount = invoices.reduce((sum, inv) => sum + inv.amountPaid, 0);
-    const dueAmount = invoices.reduce((sum, inv) => sum + inv.amountDue, 0);
+    const paidAmount = invoices.reduce((sum, inv) => sum + (inv.amountPaid || 0), 0);
+    const dueAmount = invoices.reduce((sum, inv) => sum + (inv.amountDue || 0), 0);
+    const unpaidInvoices = invoices.filter(inv => inv.amountDue > 0).length;
+    const paidInvoices = invoices.filter(inv => inv.amountDue === 0).length;
     
     return {
       totalAmount,
       averageInvoice,
       paidAmount,
       dueAmount,
+      unpaidInvoices,
+      paidInvoices,
       paidPercentage: totalAmount > 0 ? (paidAmount / totalAmount) * 100 : 0,
     };
   };
@@ -251,6 +287,11 @@ export default function InvoiceListPage() {
           <Typography variant="body1" color="text.secondary">
             Manage and track all your customer invoices
           </Typography>
+          {invoicesResponse && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Showing {invoices.length} of {totalCount} invoices
+            </Typography>
+          )}
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
@@ -283,39 +324,39 @@ export default function InvoiceListPage() {
 
       {/* Statistics Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
           <InvoiceSummaryCard
             title="Total Invoices"
-            value={stats.totalInvoices || 0}
+            value={totalCount || 0}
             icon={<ReceiptIcon />}
             color="primary"
             tooltip="Total number of invoices"
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
           <InvoiceSummaryCard
             title="Total Amount"
-            value={stats.totalAmount || 0}
+            value={additionalStats.totalAmount || 0}
             icon={<TrendingUpIcon />}
             color="success"
             isCurrency
             tooltip="Total invoice amount"
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
           <InvoiceSummaryCard
             title="Paid Invoices"
-            value={stats.paidInvoices || 0}
+            value={additionalStats.paidInvoices || 0}
             icon={<PaidIcon />}
             color="success"
-            subtitle={`${stats.paidInvoices ? ((stats.paidInvoices / stats.totalInvoices) * 100).toFixed(1) : 0}% of total`}
+            subtitle={`${additionalStats.paidInvoices > 0 ? ((additionalStats.paidInvoices / totalCount) * 100).toFixed(1) : 0}% of total`}
             tooltip="Fully paid invoices"
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
           <InvoiceSummaryCard
             title="Pending Invoices"
-            value={stats.pendingInvoices || 0}
+            value={additionalStats.unpaidInvoices || 0}
             icon={<PendingIcon />}
             color="warning"
             subtitle={`${UAEUtils.formatCurrency(additionalStats.dueAmount)} due`}
@@ -324,54 +365,61 @@ export default function InvoiceListPage() {
         </Grid>
       </Grid>
 
-      {/* Payment Status Stats */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
-          <InvoiceSummaryCard
-            title="Unpaid"
-            value={stats.unpaidInvoices || 0}
-            color="error"
-            progress={stats.totalInvoices ? ((stats.unpaidInvoices || 0) / stats.totalInvoices) * 100 : 0}
-            tooltip="Invoices with no payment"
-          />
+      {/* Payment Status Stats - Using actual invoice data */}
+      {invoices.length > 0 && (
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12} sm={6} md={2.4}>
+            <InvoiceSummaryCard
+              title="Unpaid"
+              value={additionalStats.unpaidInvoices || 0}
+              color="error"
+              progress={totalCount > 0 ? ((additionalStats.unpaidInvoices || 0) / totalCount) * 100 : 0}
+              tooltip="Invoices with no payment"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={2.4}>
+            <InvoiceSummaryCard
+              title="Partially Paid"
+              value={invoices.filter(inv => inv.amountPaid > 0 && inv.amountDue > 0).length}
+              color="warning"
+              progress={totalCount > 0 ? (invoices.filter(inv => inv.amountPaid > 0 && inv.amountDue > 0).length / totalCount) * 100 : 0}
+              tooltip="Invoices with partial payment"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={2.4}>
+            <InvoiceSummaryCard
+              title="Paid"
+              value={additionalStats.paidInvoices || 0}
+              color="success"
+              progress={totalCount > 0 ? ((additionalStats.paidInvoices || 0) / totalCount) * 100 : 0}
+              tooltip="Fully paid invoices"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={2.4}>
+            <InvoiceSummaryCard
+              title="Overdue"
+              value={invoices.filter(inv => {
+                if (!inv.dueDate) return false;
+                const dueDate = new Date(inv.dueDate);
+                const today = new Date();
+                return dueDate < today && inv.amountDue > 0;
+              }).length}
+              color="error"
+              icon={<WarningIcon />}
+              tooltip="Invoices past due date"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={2.4}>
+            <InvoiceSummaryCard
+              title="Avg. Invoice"
+              value={additionalStats.averageInvoice}
+              color="info"
+              isCurrency
+              tooltip="Average invoice amount"
+            />
+          </Grid>
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
-          <InvoiceSummaryCard
-            title="Partially Paid"
-            value={stats.partiallyPaidPaymentInvoices || 0}
-            color="warning"
-            progress={stats.totalInvoices ? ((stats.partiallyPaidPaymentInvoices || 0) / stats.totalInvoices) * 100 : 0}
-            tooltip="Invoices with partial payment"
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
-          <InvoiceSummaryCard
-            title="Paid"
-            value={stats.paidPaymentInvoices || 0}
-            color="success"
-            progress={stats.totalInvoices ? ((stats.paidPaymentInvoices || 0) / stats.totalInvoices) * 100 : 0}
-            tooltip="Fully paid invoices"
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
-          <InvoiceSummaryCard
-            title="Overdue"
-            value={stats.overduePaymentInvoices || 0}
-            color="error"
-            icon={<WarningIcon />}
-            tooltip="Invoices past due date"
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
-          <InvoiceSummaryCard
-            title="Avg. Invoice"
-            value={additionalStats.averageInvoice}
-            color="info"
-            isCurrency
-            tooltip="Average invoice amount"
-          />
-        </Grid>
-      </Grid>
+      )}
 
       {/* Filters */}
       <InvoiceFilters

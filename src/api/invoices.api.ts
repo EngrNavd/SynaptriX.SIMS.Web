@@ -14,54 +14,88 @@ import {
 } from '@/types';
 
 export const invoicesApi = {
-  // Get all invoices with pagination - UPDATED to match backend
-  getInvoices: async (params: any): Promise<ApiResponse<InvoiceDto[]>> => {
-    const queryParams: Record<string, any> = {
-      page: params.page || 1,
-      pageSize: params.pageSize || 10,
-    };
+  // Get all invoices with pagination
+getInvoices: async (params: any): Promise<ApiResponse<InvoiceDto[]>> => {
+  const queryParams: Record<string, any> = {
+    page: params.page || 1,
+    pageSize: params.pageSize || 10,
+  };
+  
+  // Add search if provided
+  if (params.search && params.search.trim()) {
+    queryParams.search = params.search.trim();
+  }
+  
+  // Add sorting if provided
+  if (params.sortBy) {
+    queryParams.sortBy = params.sortBy;
+    queryParams.sortDescending = params.sortDescending || false;
+  }
+  
+  // Add date filters if provided
+  if (params.fromDate) {
+    queryParams.startDate = params.fromDate.toISOString();
+  }
+  if (params.toDate) {
+    queryParams.endDate = params.toDate.toISOString();
+  }
+  
+  console.log('API Call - getInvoices params:', queryParams);
+  
+  try {
+    const response = await axiosClient.get('/invoices', { 
+      params: queryParams 
+    });
     
-    // Add search if provided
-    if (params.search && params.search.trim()) {
-      queryParams.search = params.search.trim();
-    }
+    console.log('Raw API Response:', response.data);
     
-    // Add sorting if provided
-    if (params.sortBy) {
-      queryParams.sortBy = params.sortBy;
-      queryParams.sortDescending = params.sortDescending || false;
-    }
+    // Backend returns InvoiceListDto: { invoices: [...], totalCount: X, page: X, pageSize: X }
+    const responseData = response.data;
     
-    // Add date filters if provided
-    if (params.fromDate) {
-      queryParams.startDate = params.fromDate.toISOString();
-    }
-    if (params.toDate) {
-      queryParams.endDate = params.toDate.toISOString();
-    }
-    
-    console.log('API Call - getInvoices params:', queryParams);
-    
-    try {
-      const response = await axiosClient.get('/invoices', { 
-        params: queryParams 
-      });
-      
+    if (responseData && responseData.invoices) {
+      // Success - backend returned InvoiceListDto format
+      return {
+        success: true,
+        message: 'Invoices fetched successfully',
+        data: responseData.invoices,
+        totalCount: responseData.totalCount || responseData.invoices.length,
+        page: responseData.page || params.page || 1,
+        pageSize: responseData.pageSize || params.pageSize || 10
+      };
+    } else if (Array.isArray(responseData)) {
+      // Backend returns array directly
+      return {
+        success: true,
+        message: 'Invoices fetched successfully',
+        data: responseData,
+        totalCount: responseData.length
+      };
+    } else {
+      // Try to extract using existing logic
       const extracted = extractResponseData(response);
-      console.log('API Response - getInvoices:', extracted);
       
-      return ApiUtils.processApiResponse<InvoiceDto[]>(extracted, true);
-    } catch (error: any) {
-      console.error('Get invoices error:', error);
+      if (extracted.success !== undefined) {
+        return ApiUtils.processApiResponse<InvoiceDto[]>(extracted, true);
+      }
+      
+      // Default fallback
       return {
         success: false,
-        message: error.response?.data?.message || error.message || 'Failed to fetch invoices',
+        message: 'Invalid response format from server',
         data: [],
-        errors: error.response?.data?.errors || [error.message || 'Unknown error']
+        errors: ['Server returned unexpected format']
       };
     }
-  },
-
+  } catch (error: any) {
+    console.error('Get invoices error:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || error.message || 'Failed to fetch invoices',
+      data: [],
+      errors: error.response?.data?.errors || [error.message || 'Unknown error']
+    };
+  }
+},
   // Get single invoice by ID
   getInvoice: async (id: string): Promise<ApiResponse<InvoiceDto>> => {
     try {
@@ -206,43 +240,59 @@ createInvoice: async (data: any): Promise<ApiResponse<InvoiceDto>> => {
     }
   },
 
-  // Get invoice statistics - UPDATED to match backend
-  getStatistics: async (fromDate?: Date, toDate?: Date): Promise<ApiResponse<InvoiceStatisticsDto>> => {
-    try {
-      const params: Record<string, any> = {};
-      if (fromDate) params.fromDate = fromDate.toISOString();
-      if (toDate) params.toDate = toDate.toISOString();
-      
-      const response = await axiosClient.get('/invoices/statistics', { params });
-      const extracted = extractResponseData(response);
-      return ApiUtils.processApiResponse<InvoiceStatisticsDto>(extracted, false);
-    } catch (error: any) {
-      console.error('Get statistics error:', error);
-      // Return mock data temporarily
-      return {
-        success: true,
-        message: 'Using mock statistics data',
-        data: {
-          totalInvoices: 0,
-          totalAmount: 0,
-          totalTax: 0,
-          draftInvoices: 0,
-          pendingInvoices: 0,
-          partiallyPaidInvoices: 0,
-          paidInvoices: 0,
-          cancelledInvoices: 0,
-          unpaidInvoices: 0,
-          partiallyPaidPaymentInvoices: 0,
-          paidPaymentInvoices: 0,
-          overduePaymentInvoices: 0,
-          cancelledPaymentInvoices: 0,
-          todayInvoices: 0,
-          thisMonthInvoices: 0,
-          averageInvoiceAmount: 0,
-        }
-      };
-    }
-  },
+  // Get invoice statistics
+	getStatistics: async (fromDate?: Date, toDate?: Date): Promise<ApiResponse<InvoiceStatisticsDto>> => {
+	  try {
+		const params: Record<string, any> = {};
+		if (fromDate) params.fromDate = fromDate.toISOString();
+		if (toDate) params.toDate = toDate.toISOString();
+		
+		console.log('Fetching statistics with params:', params);
+		
+		const response = await axiosClient.get('/invoices/statistics', { params });
+		
+		console.log('Statistics API response:', response.data);
+		
+		// Backend returns InvoiceStatisticsDto directly
+		if (response.data) {
+		  return {
+			success: true,
+			message: 'Statistics fetched successfully',
+			data: response.data
+		  };
+		}
+		
+		const extracted = extractResponseData(response);
+		return ApiUtils.processApiResponse<InvoiceStatisticsDto>(extracted, false);
+		
+	  } catch (error: any) {
+		console.error('Get statistics error:', error);
+		console.error('Error response:', error.response?.data);
+		
+		return {
+		  success: false,
+		  message: error.response?.data?.message || error.message || 'Failed to fetch statistics',
+		  data: {
+			totalInvoices: 0,
+			totalAmount: 0,
+			totalTax: 0,
+			draftInvoices: 0,
+			pendingInvoices: 0,
+			partiallyPaidInvoices: 0,
+			paidInvoices: 0,
+			cancelledInvoices: 0,
+			unpaidInvoices: 0,
+			partiallyPaidPaymentInvoices: 0,
+			paidPaymentInvoices: 0,
+			overduePaymentInvoices: 0,
+			cancelledPaymentInvoices: 0,
+			todayInvoices: 0,
+			thisMonthInvoices: 0,
+			averageInvoiceAmount: 0,
+		  }
+		};
+	  }
+	},
 
   // Get invoice PDF
   getInvoicePdf: async (id: string): Promise<Blob> => {

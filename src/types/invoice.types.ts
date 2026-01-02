@@ -4,6 +4,10 @@ export interface ApiResponse<T = any> {
   message: string;
   data: T;
   errors?: string[];
+  totalCount?: number;
+  page?: number;
+  pageSize?: number;
+  totalPages?: number;
 }
 
 // Match with your .NET backend InvoiceDto
@@ -59,8 +63,8 @@ export interface InvoiceItemDto {
 export interface InvoiceListDto {
   invoices: InvoiceDto[];
   totalCount: number;
-  page?: number;
-  pageSize?: number;
+  page: number;
+  pageSize: number;
   totalPages?: number;
 }
 
