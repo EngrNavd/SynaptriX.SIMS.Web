@@ -1,7 +1,7 @@
 // src/components/layout/Layout.tsx
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Box, AppBar, Toolbar, IconButton, Typography, Drawer, useTheme } from '@mui/material';
+import { Box, IconButton, Typography, Drawer, useTheme } from '@mui/material'; // Removed AppBar, Toolbar
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
@@ -9,7 +9,7 @@ import InventoryIcon from '@mui/icons-material/Inventory';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
-import Footer from './Footer'; // Your existing Footer
+import Footer from './Footer';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
 
@@ -39,7 +39,7 @@ const Layout: React.FC = () => {
           SynaptriX SIMS
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          UAE Business Suite
+          Business Suite
         </Typography>
       </Box>
 
@@ -99,31 +99,6 @@ const Layout: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: theme.palette.background.default }}>
-      {/* App Bar */}
-      <AppBar
-        position="fixed"
-        sx={{
-          width: { md: `calc(100% - ${drawerWidth}px)` },
-          ml: { md: `${drawerWidth}px` },
-        }}
-      >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { md: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap sx={{ flexGrow: 1, fontWeight: 500 }}>
-            {/* Page title can be set dynamically from child routes */}
-            {location.pathname === '/dashboard' ? 'Dashboard' :
-             location.pathname.startsWith('/invoices') ? 'Invoice Management' :
-             location.pathname.split('/').pop()?.charAt(0).toUpperCase() + location.pathname.split('/').pop()?.slice(1)}
-          </Typography>
-        </Toolbar>
-      </AppBar>
 
       {/* Navigation Drawer */}
       <Box
@@ -169,19 +144,37 @@ const Layout: React.FC = () => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
+          p: 1,
           width: { md: `calc(100% - ${drawerWidth}px)` },
-          mt: '70px', // Height of AppBar
-          minHeight: 'calc(100vh - 70px)',
+          minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column',
         }}
       >
-        <Box sx={{ flexGrow: 1 }}>
+        {/* Mobile menu button - Only shows on mobile */}
+        <Box sx={{ display: { xs: 'block', md: 'none' }, p: 1 }}>
+          <IconButton
+            color="inherit"
+            aria-label="open drawer"
+            edge="start"
+            onClick={handleDrawerToggle}
+            sx={{ 
+              color: theme.palette.text.primary,
+              bgcolor: theme.palette.background.paper,
+              border: `1px solid ${theme.palette.divider}`,
+              borderRadius: 1
+            }}
+          >
+            <MenuIcon />
+          </IconButton>
+        </Box>
+
+        <Box sx={{ flexGrow: 1, p: { xs: 1, md: 3 } }}>
           <Outlet /> {/* This renders the child page (Dashboard, Invoices, etc.) */}
         </Box>
+        
         {/* Footer at the bottom of the content area */}
-        <Box sx={{ mt: 'auto', pt: 4 }}>
+        <Box sx={{ mt: 'auto' }}>
           <Footer />
         </Box>
       </Box>
