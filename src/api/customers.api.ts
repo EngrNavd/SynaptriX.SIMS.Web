@@ -46,13 +46,31 @@ export const customersApi = {
   },
 
   // Get customer by mobile
-  getCustomerByMobile: async (mobileNumber: string): Promise<ApiResponse<CustomerDto>> => {
-    // const formattedMobile = ApiUtils.formatMobileForApi(mobileNumber);
-    const response = await axiosClient.get(`/customers/by-mobile/${encodeURIComponent(formattedMobile)}`);
-    const extracted = extractResponseData(response);
-    return ApiUtils.processApiResponse<CustomerDto>(extracted, false);
-  },
-
+	getCustomerByMobile: async (mobileNumber: string): Promise<ApiResponse<CustomerDto>> => {
+	  try {
+		console.log('customersApi.getCustomerByMobile - Requesting mobile:', mobileNumber);
+		
+		const response = await axiosClient.get(`/customers/by-mobile/${encodeURIComponent(mobileNumber)}`);
+		const extracted = extractResponseData(response);
+		
+		console.log('customersApi.getCustomerByMobile - Raw response:', extracted);
+		
+		// TEMPORARY FIX: Return raw data without processing
+		// Remove ApiUtils.processApiResponse to avoid data transformation issues
+		return extracted as ApiResponse<CustomerDto>;
+		
+		// Once fixed, we can re-enable this:
+		// return ApiUtils.processApiResponse<CustomerDto>(extracted, false);
+	  } catch (error: any) {
+		console.error('customersApi.getCustomerByMobile - Error:', error);
+		return {
+		  success: false,
+		  message: error.response?.data?.message || 'Failed to lookup customer',
+		  data: null as any,
+		  errors: error.response?.data?.errors || [error.message]
+		};
+	  }
+	},
   // Create new customer
   createCustomer: async (data: CreateCustomerDto): Promise<ApiResponse<CustomerDto>> => {
     try {

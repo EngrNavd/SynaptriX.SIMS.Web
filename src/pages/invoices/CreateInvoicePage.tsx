@@ -21,24 +21,14 @@ import {
 } from '@mui/icons-material';
 import { useMutation } from '@tanstack/react-query';
 import { invoicesApi } from '../../api/invoices.api';
-import CustomerRegistrationSection from '../../Components/invoices/CustomerRegistrationSection';
+import CustomerSelection from '../../Components/invoices/CustomerSelection'; // UPDATED
 import ProductSelectionSection from '../../Components/invoices/ProductSelectionSection';
 import InvoiceReviewSection from '../../Components/invoices/InvoiceReviewSection';
 
-// Define types based on your API response
-interface CustomerLookupResponse {
-  id: string;
-  name: string;
-  mobile: string;
-  email: string;
-  address: string;
-  city: string;
-  emirates: string;
-  taxRegistrationNumber: string;
-  status: string;
-  createdAt: string;
-}
+// Import types from your types file
+import type { CustomerDto } from '@/types'; // ADDED
 
+// Define local types
 interface ProductDto {
   id: string;
   name: string;
@@ -53,15 +43,24 @@ interface ProductDto {
   isActive: boolean;
 }
 
+interface CustomerFormData {
+  name: string;
+  email: string;
+  address: string;
+  city: string;
+  emirates: string;
+  taxRegistrationNumber: string;
+}
+
 const steps = ['Customer', 'Products', 'Review & Complete'];
 
 const CreateInvoicePage: React.FC = () => {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
   const [mobileNumber, setMobileNumber] = useState<string>('');
-  const [customer, setCustomer] = useState<CustomerLookupResponse | null>(null);
+  const [customer, setCustomer] = useState<CustomerDto | null>(null); // UPDATED TYPE
   const [showCustomerForm, setShowCustomerForm] = useState(false);
-  const [customerFormData, setCustomerFormData] = useState({
+  const [customerFormData, setCustomerFormData] = useState<CustomerFormData>({
     name: '',
     email: '',
     address: '',
@@ -106,10 +105,26 @@ const CreateInvoicePage: React.FC = () => {
     setAmountPaid(0);
   };
 
-  // Handle mobile number change from CustomerRegistrationSection
-  const handleMobileChange = (mobile: string) => {
-    setMobileNumber(mobile);
-    if (mobile !== mobileNumber) {
+  // Handle customer selection from CustomerSelection component
+  const handleCustomerSelected = (selectedCustomer: CustomerDto | null) => {
+    setCustomer(selectedCustomer);
+    
+    if (selectedCustomer) {
+      // Update mobile number from selected customer
+      setMobileNumber(selectedCustomer.mobile || '');
+      
+      // Update customer form data for display in review section
+      setCustomerFormData({
+        name: selectedCustomer.fullName || '',
+        email: selectedCustomer.email || '',
+        address: selectedCustomer.address || '',
+        city: selectedCustomer.city || '',
+        emirates: selectedCustomer.state || '',
+        taxRegistrationNumber: selectedCustomer.taxNumber || ''
+      });
+    } else {
+      // Customer cleared
+      setMobileNumber('');
       clearCustomerData();
     }
   };
@@ -286,8 +301,8 @@ const CreateInvoicePage: React.FC = () => {
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     };
 
-    console.log('📤 Sending invoice data:', invoiceData);
-    console.log('💰 Payment details:', {
+    console.log('Sending invoice data:', invoiceData);
+    console.log('Payment details:', {
       discountAmount: invoiceData.discountAmount,
       amountPaid: invoiceData.amountPaid,
       paymentStatus: invoiceData.paymentStatus
@@ -342,21 +357,37 @@ const CreateInvoicePage: React.FC = () => {
     setSelectedProducts(updated);
   };
 
+  // Get customer display name
+  const getCustomerDisplayName = () => {
+    if (customer) {
+      return customer.fullName || '';
+    }
+    if (customerFormData.name) {
+      return customerFormData.name;
+    }
+    return '';
+  };
+
+  // Get customer display mobile
+  const getCustomerDisplayMobile = () => {
+    if (customer?.mobile) {
+      return customer.mobile;
+    }
+    if (mobileNumber) {
+      return mobileNumber;
+    }
+    return '';
+  };
+
   // Render step content
   const renderStepContent = (step: number) => {
     switch (step) {
       case 0:
         return (
-          <CustomerRegistrationSection
-            customer={customer}
-            setCustomer={setCustomer}
-            mobileNumber={mobileNumber}
-            setMobileNumber={handleMobileChange}
-            showCustomerForm={showCustomerForm}
-            setShowCustomerForm={setShowCustomerForm}
-            customerFormData={customerFormData}
-            setCustomerFormData={setCustomerFormData}
-            onMobileNumberChange={clearCustomerData}
+          <CustomerSelection
+            onCustomerSelected={handleCustomerSelected}
+            initialCustomer={customer}
+            disabled={createInvoiceMutation.isPending}
           />
         );
       case 1:
@@ -372,17 +403,17 @@ const CreateInvoicePage: React.FC = () => {
       case 2:
         return (
           <InvoiceReviewSection
-            customer={customer || {
-              id: '',
-              name: customerFormData.name,
-              mobile: mobileNumber,
-              email: customerFormData.email,
-              address: customerFormData.address,
-              city: customerFormData.city,
-              emirates: customerFormData.emirates,
-              taxRegistrationNumber: customerFormData.taxRegistrationNumber,
+            customer={{
+              id: customer?.id || '',
+              name: getCustomerDisplayName(),
+              mobile: getCustomerDisplayMobile(),
+              email: customer?.email || customerFormData.email || '',
+              address: customer?.address || customerFormData.address || '',
+              city: customer?.city || customerFormData.city || '',
+              emirates: customer?.state || customerFormData.emirates || '',
+              taxRegistrationNumber: customer?.taxNumber || customerFormData.taxRegistrationNumber || '',
               status: 'Active',
-              createdAt: new Date().toISOString()
+              createdAt: customer?.createdAt || new Date().toISOString()
             }}
             selectedProducts={selectedProducts}
             shippingCharges={shippingCharges}

@@ -1,6 +1,6 @@
 import { api } from './index';
-import type { ApiResponse } from '../types/api.types';
-import type { CustomerLookupResponse } from '../types/customer.types';
+import type { ApiResponse, CustomerDto } from '../types/api.types';
+// import type { CustomerLookupResponse } from '../types/customer.types';
 import { UAEUtils } from '@/utils/uae.utils';
 
 /**
@@ -13,7 +13,7 @@ export const posApi = {
    * @param mobile - UAE mobile number (with or without country code)
    * @returns Customer data if found
    */
- lookupCustomer: async (mobile: string): Promise<ApiResponse<CustomerLookupResponse>> => {
+ lookupCustomer: async (mobile: string): Promise<ApiResponse<CustomerDto>> => {
   try {
     console.log(`[POS API] Looking up customer with mobile: ${mobile}`);
     
@@ -23,7 +23,7 @@ export const posApi = {
 	console.log('POS API - Formatted mobile for API:', cleanMobile);
     
     // Use makeFreshRequest to bypass deduplication cache
-    const response = await api.get<ApiResponse<CustomerLookupResponse>>(
+    const response = await api.get<ApiResponse<CustomerDto>>(
       `/customers/by-mobile/${cleanMobile}`
     );
     

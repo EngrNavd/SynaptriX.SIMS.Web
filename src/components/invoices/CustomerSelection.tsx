@@ -6,7 +6,7 @@ import {
   Paper,
   Typography,
   CircularProgress,
-  Grid, // CHANGED BACK to regular Grid
+  Grid,
   Button,
   Chip,
   Alert,
@@ -22,7 +22,7 @@ import {
   Phone as PhoneIcon,
   Clear as ClearIcon,
 } from '@mui/icons-material';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { customersApi } from '@/api/customers.api';
 import { UAEUtils } from '@/utils/uae.utils';
 import type { CustomerDto, CreateCustomerDto } from '@/types';
@@ -91,14 +91,43 @@ const CustomerSelection: React.FC<CustomerSelectionProps> = ({
     setValidationError('');
   };
 
-  // Lookup customer by mobile
+  // Lookup customer by mobile - FIXED VERSION
   const lookupCustomerMutation = useMutation({
     mutationFn: (mobile: string) => 
       customersApi.getCustomerByMobile(UAEUtils.formatMobileForApi(mobile)),
     onSuccess: (response) => {
       setIsSearching(false);
+      
       if (response.success && response.data) {
-        const customer = response.data;
+        // Ensure we have a proper CustomerDto object
+        const customerData = response.data;
+        
+        // Create a clean customer object with all required fields
+        const customer: CustomerDto = {
+          id: customerData.id,
+          customerCode: customerData.customerCode || '',
+          fullName: customerData.fullName || '',
+          email: customerData.email || '',
+          mobile: customerData.mobile || '',
+          address: customerData.address || '',
+          city: customerData.city || '',
+          state: customerData.state || '',
+          country: customerData.country || 'United Arab Emirates',
+          postalCode: customerData.postalCode || '',
+          dateOfBirth: customerData.dateOfBirth,
+          gender: customerData.gender,
+          occupation: customerData.occupation,
+          company: customerData.company,
+          taxNumber: customerData.taxNumber,
+          creditLimit: customerData.creditLimit || 0,
+          currentBalance: customerData.currentBalance || 0,
+          lastPurchaseDate: customerData.lastPurchaseDate,
+          totalPurchaseAmount: customerData.totalPurchaseAmount || 0,
+          totalPurchases: customerData.totalPurchases || 0,
+          notes: customerData.notes,
+          createdAt: customerData.createdAt
+        };
+        
         setFoundCustomer(customer);
         setMobileNumber(customer.mobile);
         setMobileInput(UAEUtils.formatMobileForDisplay(customer.mobile));
@@ -271,7 +300,7 @@ const CustomerSelection: React.FC<CustomerSelectionProps> = ({
                   </Typography>
                 </Box>
                 <Typography variant="body2">
-                  <strong>Name:</strong> {foundCustomer?.fullName}
+                  <strong>Name:</strong> {foundCustomer?.fullName || 'Not available'}
                 </Typography>
                 <Typography variant="body2">
                   <strong>Mobile:</strong> {getFormattedMobile(foundCustomer?.mobile || '')}

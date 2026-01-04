@@ -1,6 +1,7 @@
 import { ApiResponse, UpdateCustomerDto } from '@/types';
 import toast from 'react-hot-toast';
 import axios, { AxiosError, AxiosResponse } from 'axios';
+import { UAEUtils } from './uae.utils';
 
 /**
  * Enhanced API Utilities with comprehensive error handling,
@@ -23,7 +24,7 @@ export class ApiUtils {
     tenantId: 'TenantId',
     
     // Customer fields
-    fullName: 'FullName',
+    fullName: 'fullName',
     mobile: 'Mobile',
     email: 'Email',
     address: 'Address',
@@ -233,7 +234,7 @@ export class ApiUtils {
       
       // Handle special transformations
       if (key === 'mobile' && typeof value === 'string') {
-        result[backendKey] = this.formatMobileForApi(value);
+        result[backendKey] = UAEUtils.formatMobileForApi(value);
       }
       else if (key === 'dateOfBirth' && value) {
         result[backendKey] = this.formatDateForBackend(value, dateFormat);
@@ -295,7 +296,7 @@ export class ApiUtils {
 
       // Handle special transformations
       if (key === 'Mobile' && typeof value === 'string') {
-        result[frontendKey] = this.formatMobileForDisplay(value);
+        result[frontendKey] = UAEUtils.formatMobileForDisplay(value);
       }
       else if (key === 'DateOfBirth' || key === 'CreatedAt' || key === 'UpdatedAt' || 
                key === 'InvoiceDate' || key === 'DueDate') {
@@ -346,7 +347,7 @@ export class ApiUtils {
       
       // Special handling for specific fields
       if (key === 'mobile' && value) {
-        result[backendKey] = this.formatMobileForApi(value as string);
+        result[backendKey] = UAEUtils.formatMobileForApi(value as string);
       } else if (key === 'dateOfBirth' && value) {
         result[backendKey] = this.formatDateForBackend(value);
       } else if (key === 'creditLimit') {
@@ -410,6 +411,7 @@ export class ApiUtils {
    * Process API response by converting backend DTOs to frontend DTOs
    */
   static processApiResponse<T>(response: ApiResponse<any>, isArray: boolean = false): ApiResponse<T> {
+    console.log('DEBUG - processApiResponse received:', response);
     if (!response.success || !response.data) {
       return response;
     }
@@ -417,10 +419,18 @@ export class ApiUtils {
     try {
       let processedData: any;
       
-      if (isArray && Array.isArray(response.data)) {
-        processedData = response.data.map(item => this.toFrontendDto(item));
+      if (isArray && Array.isArray(response.data)) {	  
+        console.log('DEBUG - Processing array data:', response.data);
+        processedData = response.data.map(item => {
+        console.log('DEBUG - Item before toFrontendDto:', item);
+        const result = this.toFrontendDto(item);
+        console.log('DEBUG - Item after toFrontendDto:', result);
+		return result;
+		});
       } else if (!isArray && response.data && typeof response.data === 'object') {
-        processedData = this.toFrontendDto(response.data);
+		  console.log('DEBUG - Processing object data before:', response.data);
+		  processedData = this.toFrontendDto(response.data);
+		  console.log('DEBUG - Processing object data after:', processedData);
       } else {
         processedData = response.data;
       }
@@ -499,31 +509,6 @@ export class ApiUtils {
   static isValidEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
-  }
-
-  /**
-   * Validate UAE mobile number
-   */
-  static isValidUaeMobile(mobile: string): boolean {
-    if (!mobile) return false;
-    
-    const cleaned = mobile.replace(/\D/g, '');
-    
-    // Check for UAE mobile prefixes
-    const uaePrefixes = ['50', '55', '56', '52', '54', '58'];
-    
-    if (cleaned.length === 12 && cleaned.startsWith('971')) {
-      const prefix = cleaned.substring(3, 5);
-      return uaePrefixes.includes(prefix);
-    } else if (cleaned.length === 10 && cleaned.startsWith('0')) {
-      const prefix = cleaned.substring(1, 3);
-      return uaePrefixes.includes(prefix);
-    } else if (cleaned.length === 9 && cleaned.startsWith('5')) {
-      const prefix = cleaned.substring(0, 2);
-      return uaePrefixes.includes(prefix);
-    }
-    
-    return false;
   }
 
   /**
@@ -614,6 +599,18 @@ export class ApiUtils {
     
     return error?.message || 'Unknown error';
   }
+  
+	static formatMobileForApi(mobile: string): string {
+	return UAEUtils.formatMobileForApi(mobile); // Delegate
+	}
+
+	static formatMobileForDisplay(mobile: string): string {
+	  return UAEUtils.formatMobileForDisplay(mobile); // Delegate
+	}
+
+	static isValidUaeMobile(mobile: string): boolean {
+	  return UAEUtils.isValidUaeMobile(mobile); // Delegate
+	}
 
   /**
    * Log API call for debugging
@@ -644,8 +641,6 @@ export const {
   toBackendDto,
   toFrontendDto,
   toUpdateCustomerDto,
-  formatMobileForApi,
-  formatMobileForDisplay,
   formatDateForBackend,
   formatDateForFrontend,
   processApiResponse,
@@ -654,7 +649,6 @@ export const {
   isValidGuid,
   generateGuid,
   isValidEmail,
-  isValidUaeMobile,
   debounce,
   withTimeout,
   safeJsonParse,
