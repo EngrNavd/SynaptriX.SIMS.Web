@@ -266,7 +266,7 @@ export default function InvoiceListPage() {
         <Typography color="text.primary">Invoices</Typography>
       </Breadcrumbs>
 
-      {/* Header - FIXED: Removed hard-coded colors */}
+      {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Box>
           <Typography variant="h4" fontWeight="bold" gutterBottom>
@@ -304,9 +304,9 @@ export default function InvoiceListPage() {
       {/* Loading Overlay */}
       {invoicesLoading && <LinearProgress sx={{ mb: 3 }} />}
 
-      {/* Statistics Cards - FIXED: Using theme colors */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
+      {/* Statistics Cards - First 4 boxes */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6} md={4} lg={3}>
           <InvoiceSummaryCard
             title="Total Invoices"
             value={totalCount || 0}
@@ -315,7 +315,7 @@ export default function InvoiceListPage() {
             tooltip="Total number of invoices"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={4} lg={3}>
           <InvoiceSummaryCard
             title="Total Amount"
             value={additionalStats.totalAmount || 0}
@@ -325,17 +325,48 @@ export default function InvoiceListPage() {
             tooltip="Total invoice amount"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <InvoiceSummaryCard
-            title="Paid Invoices"
-            value={additionalStats.paidInvoices || 0}
-            icon={<PaidIcon />}
-            color="success"
-            subtitle={`${additionalStats.paidInvoices > 0 ? ((additionalStats.paidInvoices / totalCount) * 100).toFixed(1) : 0}% of total`}
-            tooltip="Fully paid invoices"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={12} sm={6} md={4} lg={2.4}>
+            <InvoiceSummaryCard
+              title="Avg. Invoice"
+              value={additionalStats.averageInvoice}
+              color="info"
+              isCurrency
+              tooltip="Average invoice amount"
+            />
+          </Grid>
+      </Grid>
+
+      {/* Payment Status Stats - Next 5 boxes */}
+      {invoices.length > 0 && (
+        <Grid container spacing={2} sx={{ mb: 4 }}>
+          <Grid item xs={12} sm={6} md={4} lg={2.4}>
+            <InvoiceSummaryCard
+              title="Paid"
+              value={additionalStats.paidInvoices || 0}
+              color="success"
+              progress={totalCount > 0 ? ((additionalStats.paidInvoices || 0) / totalCount) * 100 : 0}
+              tooltip="Fully paid invoices"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={4} lg={2.4}>
+            <InvoiceSummaryCard
+              title="Unpaid"
+              value={additionalStats.unpaidInvoices || 0}
+              color="error"
+              progress={totalCount > 0 ? ((additionalStats.unpaidInvoices || 0) / totalCount) * 100 : 0}
+              tooltip="Invoices with no payment"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={4} lg={2.4}>
+            <InvoiceSummaryCard
+              title="Partially Paid"
+              value={invoices.filter(inv => inv.amountPaid > 0 && inv.amountDue > 0).length}
+              color="warning"
+              progress={totalCount > 0 ? (invoices.filter(inv => inv.amountPaid > 0 && inv.amountDue > 0).length / totalCount) * 100 : 0}
+              tooltip="Invoices with partial payment"
+            />
+          </Grid>
+        <Grid item xs={12} sm={6} md={4} lg={3}>
           <InvoiceSummaryCard
             title="Pending Invoices"
             value={additionalStats.unpaidInvoices || 0}
@@ -345,39 +376,7 @@ export default function InvoiceListPage() {
             tooltip="Invoices pending payment"
           />
         </Grid>
-      </Grid>
-
-      {/* Payment Status Stats */}
-      {invoices.length > 0 && (
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={2.4}>
-            <InvoiceSummaryCard
-              title="Unpaid"
-              value={additionalStats.unpaidInvoices || 0}
-              color="error"
-              progress={totalCount > 0 ? ((additionalStats.unpaidInvoices || 0) / totalCount) * 100 : 0}
-              tooltip="Invoices with no payment"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={2.4}>
-            <InvoiceSummaryCard
-              title="Partially Paid"
-              value={invoices.filter(inv => inv.amountPaid > 0 && inv.amountDue > 0).length}
-              color="warning"
-              progress={totalCount > 0 ? (invoices.filter(inv => inv.amountPaid > 0 && inv.amountDue > 0).length / totalCount) * 100 : 0}
-              tooltip="Invoices with partial payment"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={2.4}>
-            <InvoiceSummaryCard
-              title="Paid"
-              value={additionalStats.paidInvoices || 0}
-              color="success"
-              progress={totalCount > 0 ? ((additionalStats.paidInvoices || 0) / totalCount) * 100 : 0}
-              tooltip="Fully paid invoices"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={2.4}>
+          <Grid item xs={12} sm={6} md={4} lg={2.4}>
             <InvoiceSummaryCard
               title="Overdue"
               value={invoices.filter(inv => {
@@ -389,15 +388,6 @@ export default function InvoiceListPage() {
               color="error"
               icon={<WarningIcon />}
               tooltip="Invoices past due date"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={2.4}>
-            <InvoiceSummaryCard
-              title="Avg. Invoice"
-              value={additionalStats.averageInvoice}
-              color="info"
-              isCurrency
-              tooltip="Average invoice amount"
             />
           </Grid>
         </Grid>
