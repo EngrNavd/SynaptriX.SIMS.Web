@@ -110,7 +110,7 @@ const Orders: React.FC = () => {
 
   return (
     <Container maxWidth="xl">
-      {/* Header */}
+      {/* Header - FIXED: Removed hard-coded color */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" component="h1" fontWeight={600} gutterBottom>
           Orders Management
@@ -120,10 +120,10 @@ const Orders: React.FC = () => {
         </Typography>
       </Box>
 
-      {/* Stats Cards */}
+      {/* Stats Cards - FIXED: Updated to use proper Grid item props */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
+          <Card sx={{ bgcolor: 'background.paper' }}>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
                 <Box sx={{ p: 1, bgcolor: 'primary.light', borderRadius: 1 }}>
@@ -143,7 +143,7 @@ const Orders: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
+          <Card sx={{ bgcolor: 'background.paper' }}>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
                 <Box sx={{ p: 1, bgcolor: 'success.light', borderRadius: 1 }}>
@@ -163,7 +163,7 @@ const Orders: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
+          <Card sx={{ bgcolor: 'background.paper' }}>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
                 <Box sx={{ p: 1, bgcolor: 'warning.light', borderRadius: 1 }}>
@@ -183,7 +183,7 @@ const Orders: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
+          <Card sx={{ bgcolor: 'background.paper' }}>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
                 <Box sx={{ p: 1, bgcolor: 'info.light', borderRadius: 1 }}>
@@ -204,7 +204,7 @@ const Orders: React.FC = () => {
       </Grid>
 
       {/* Search and Actions */}
-      <Card sx={{ mb: 3 }}>
+      <Card sx={{ mb: 3, bgcolor: 'background.paper' }}>
         <CardContent>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
             <TextField
@@ -235,12 +235,12 @@ const Orders: React.FC = () => {
       </Card>
 
       {/* Orders Table */}
-      <Card>
+      <Card sx={{ bgcolor: 'background.paper' }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
             Recent Orders
           </Typography>
-          <TableContainer component={Paper} variant="outlined">
+          <TableContainer component={Paper} variant="outlined" sx={{ bgcolor: 'background.paper' }}>
             <Table>
               <TableHead>
                 <TableRow>
@@ -301,7 +301,7 @@ const Orders: React.FC = () => {
       </Card>
 
       {/* Quick Actions */}
-      <Card sx={{ mt: 3 }}>
+      <Card sx={{ mt: 3, bgcolor: 'background.paper' }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
             Quick Actions

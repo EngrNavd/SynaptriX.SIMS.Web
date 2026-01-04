@@ -41,7 +41,7 @@ export interface CustomerDto {
   createdAt: string;
 }
 
-// Match EXACTLY with your .NET CreateCustomerDto
+// Match EXACTLY with .NET CreateCustomerDto
 export interface CreateCustomerDto {
   customerCode: string;
   fullName: string;
@@ -61,7 +61,7 @@ export interface CreateCustomerDto {
   notes?: string;
 }
 
-// Match EXACTLY with your .NET UpdateCustomerDto
+// Match EXACTLY with .NET UpdateCustomerDto
 export interface UpdateCustomerDto {
   fullName?: string;
   email?: string;

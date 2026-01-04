@@ -17,13 +17,12 @@ import {
   Grid,
   Card,
   CardContent,
-  Badge,
+  Avatar,
   Tabs,
   Tab,
   Menu,
   MenuItem,
   Divider,
-  Avatar,
   LinearProgress,
 } from '@mui/material';
 import {
@@ -274,7 +273,7 @@ export default function Customers() {
     handleFilterClose();
   };
 
-  // Enhanced Customer Details View
+  // Enhanced Customer Details View - FIXED: Removed hard-coded colors
   const CustomerDetailsView = ({ customer }: { customer: CustomerDto }) => (
     <Box sx={{ p: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 4 }}>
@@ -317,10 +316,10 @@ export default function Customers() {
 
       <Grid container spacing={3}>
         {/* Contact Information */}
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid item xs={12} md={6}>
           <Card className="hover-card">
             <CardContent>
-              <Typography variant="h6" fontWeight="bold" color="primary.main" gutterBottom>
+              <Typography variant="h6" fontWeight="bold" color="primary" gutterBottom>
                 Contact Information
               </Typography>
               <Box sx={{ display: 'grid', gap: 2 }}>
@@ -338,7 +337,7 @@ export default function Customers() {
                     <Typography variant="body1">{customer.email || 'Not provided'}</Typography>
                   </Box>
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{ display: '-flex', alignItems: 'center', gap: 2 }}>
                   <LocationOn color="action" />
                   <Box>
                     <Typography variant="caption" color="text.secondary">Address</Typography>
@@ -355,28 +354,28 @@ export default function Customers() {
         </Grid>
 
         {/* Personal Details */}
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid item xs={12} md={6}>
           <Card className="hover-card">
             <CardContent>
-              <Typography variant="h6" fontWeight="bold" color="primary.main" gutterBottom>
+              <Typography variant="h6" fontWeight="bold" color="primary" gutterBottom>
                 Personal Details
               </Typography>
               <Grid container spacing={2}>
-                <Grid size={{ xs: 6 }}>
+                <Grid item xs={6}>
                   <Typography variant="caption" color="text.secondary">Occupation</Typography>
                   <Typography variant="body2">{customer.occupation || 'Not specified'}</Typography>
                 </Grid>
-                <Grid size={{ xs: 6 }}>
+                <Grid item xs={6}>
                   <Typography variant="caption" color="text.secondary">Gender</Typography>
                   <Typography variant="body2">{customer.gender || 'Not specified'}</Typography>
                 </Grid>
-                <Grid size={{ xs: 6 }}>
+                <Grid item xs={6}>
                   <Typography variant="caption" color="text.secondary">Date of Birth</Typography>
                   <Typography variant="body2">
                     {customer.dateOfBirth ? format(new Date(customer.dateOfBirth), 'MMM dd, yyyy') : 'Not specified'}
                   </Typography>
                 </Grid>
-                <Grid size={{ xs: 6 }}>
+                <Grid item xs={6}>
                   <Typography variant="caption" color="text.secondary">Tax Number</Typography>
                   <Typography variant="body2">{customer.taxNumber || 'Not provided'}</Typography>
                 </Grid>
@@ -386,14 +385,14 @@ export default function Customers() {
         </Grid>
 
         {/* Financial Overview */}
-        <Grid size={{ xs: 12 }}>
+        <Grid item xs={12}>
           <Card className="hover-card">
             <CardContent>
-              <Typography variant="h6" fontWeight="bold" color="primary.main" gutterBottom>
+              <Typography variant="h6" fontWeight="bold" color="primary" gutterBottom>
                 Financial Overview
               </Typography>
               <Grid container spacing={3}>
-                <Grid size={{ xs: 12, md: 3 }}>
+                <Grid item xs={12} md={3}>
                   <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'background.default' }}>
                     <Typography variant="caption" color="text.secondary">Current Balance</Typography>
                     <Typography 
@@ -415,7 +414,7 @@ export default function Customers() {
                     )}
                   </Paper>
                 </Grid>
-                <Grid size={{ xs: 12, md: 3 }}>
+                <Grid item xs={12} md={3}>
                   <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'background.default' }}>
                     <Typography variant="caption" color="text.secondary">Credit Limit</Typography>
                     <Typography variant="h5" fontWeight="bold" gutterBottom>
@@ -426,7 +425,7 @@ export default function Customers() {
                     </Typography>
                   </Paper>
                 </Grid>
-                <Grid size={{ xs: 12, md: 3 }}>
+                <Grid item xs={12} md={3}>
                   <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'background.default' }}>
                     <Typography variant="caption" color="text.secondary">Available Credit</Typography>
                     <Typography 
@@ -443,7 +442,7 @@ export default function Customers() {
                       sx={{ 
                         height: 4,
                         borderRadius: 2,
-                        backgroundColor: 'grey.200',
+                        backgroundColor: 'divider',
                         '& .MuiLinearProgress-bar': {
                           backgroundColor: customer.currentBalance > customer.creditLimit * 0.8 ? 'error.main' : 'warning.main',
                         }
@@ -451,13 +450,13 @@ export default function Customers() {
                     />
                   </Paper>
                 </Grid>
-                <Grid size={{ xs: 12, md: 3 }}>
+                <Grid item xs={12} md={3}>
                   <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'background.default' }}>
                     <Typography variant="caption" color="text.secondary">Total Purchases</Typography>
                     <Typography variant="h5" fontWeight="bold" gutterBottom>
                       {customer.totalPurchases}
                     </Typography>
-                    <Typography variant="body2" color="primary.main">
+                    <Typography variant="body2" color="primary">
                       {UAEUtils.formatCurrency(customer.totalPurchaseAmount)}
                     </Typography>
                   </Paper>
@@ -469,13 +468,13 @@ export default function Customers() {
 
         {/* Notes Section */}
         {customer.notes && (
-          <Grid size={{ xs: 12 }}>
+          <Grid item xs={12}>
             <Card className="hover-card">
               <CardContent>
-                <Typography variant="h6" fontWeight="bold" color="primary.main" gutterBottom>
+                <Typography variant="h6" fontWeight="bold" color="primary" gutterBottom>
                   Notes
                 </Typography>
-                <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
+                <Paper sx={{ p: 2, bgcolor: 'action.hover' }}>
                   <Typography variant="body2">{customer.notes}</Typography>
                 </Paper>
               </CardContent>
@@ -497,18 +496,18 @@ export default function Customers() {
     }
   };
 
-  // Columns for DataGrid
+  // Columns for DataGrid - FIXED: Using theme colors
   const columns: GridColDef<CustomerDto>[] = [
     {
       field: 'customerCode',
       headerName: 'Code',
-      width: 100,
+      width: 160,
       renderCell: (params) => (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: 14 }}>
+          <Avatar sx={{ width: 32, height: 32, fontSize: 14 }}>
             {params.row.fullName?.charAt(0)}
           </Avatar>
-          <Typography variant="body2" fontWeight="bold" color="primary.main">
+          <Typography variant="body2" fontWeight="bold">
             {params.value || 'N/A'}
           </Typography>
         </Box>
@@ -555,7 +554,7 @@ export default function Customers() {
     {
       field: 'currentBalance',
       headerName: 'Balance',
-      width: 140,
+      width: 160,
       type: 'number',
       renderCell: (params) => (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -576,7 +575,7 @@ export default function Customers() {
     {
       field: 'creditLimit',
       headerName: 'Credit',
-      width: 120,
+      width: 160,
       type: 'number',
       renderCell: (params) => (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -660,15 +659,14 @@ export default function Customers() {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      {/* Header */}
+    <Box sx={{ p: 3 }}>	
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Box>
-          <Typography variant="h4" fontWeight="bold" color="primary.main" gutterBottom>
+          <Typography variant="h4" fontWeight="bold" gutterBottom>
             Customer Management
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Manage your customer in an effient way ..!!!
+            Manage your customers efficiently
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
@@ -684,27 +682,21 @@ export default function Customers() {
             startIcon={<Add />}
             onClick={handleOpenCreate}
             disabled={saveMutation.isPending || deleteMutation.isPending}
-            sx={{
-              background: 'linear-gradient(135deg, #0A2463 0%, #1E3A8A 100%)',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #07163E 0%, #0A2463 100%)',
-              },
-            }}
           >
             Add Customer
           </Button>
         </Box>
       </Box>
 
-      {/* Stats Cards */}
+      {/* Stats Cards - FIXED: Using theme colors */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <Card className="hover-card stat-card">
             <CardContent sx={{ textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
                 Total Customers
               </Typography>
-              <Typography variant="h4" fontWeight="bold" color="primary.main">
+              <Typography variant="h4" fontWeight="bold" color="primary">
                 {stats.totalCustomers}
               </Typography>
               <Typography variant="caption" color="text.secondary">
@@ -713,7 +705,7 @@ export default function Customers() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <Card className="hover-card stat-card">
             <CardContent sx={{ textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -728,7 +720,7 @@ export default function Customers() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <Card className="hover-card stat-card">
             <CardContent sx={{ textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -743,7 +735,7 @@ export default function Customers() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <Card className="hover-card stat-card">
             <CardContent sx={{ textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -758,7 +750,7 @@ export default function Customers() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <Card className="hover-card stat-card">
             <CardContent sx={{ textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -776,11 +768,11 @@ export default function Customers() {
       </Grid>
 
       {/* Search and Filter Bar */}
-      <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
+      <Paper sx={{ p: 3, mb: 4, borderRadius: 2, bgcolor: 'background.paper' }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
           <TextField
             fullWidth
-            placeholder="Search customers by name, mobile, email, or code..."
+            placeholder="Search Customers by Name, Mobile, Email, or Code."
             value={search}
             onChange={handleSearchChange}
             InputProps={{
@@ -857,7 +849,7 @@ export default function Customers() {
       </Paper>
 
       {/* Customer Table */}
-      <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
+      <Paper sx={{ borderRadius: 2, overflow: 'hidden', bgcolor: 'background.paper' }}>
         <DataGrid
           rows={filteredCustomers}
           columns={columns}
@@ -876,21 +868,22 @@ export default function Customers() {
           sx={{
             border: 0,
             '& .MuiDataGrid-columnHeaders': {
-              backgroundColor: '#F8FAFC',
+              backgroundColor: 'action.hover',
               borderBottom: '2px solid',
               borderColor: 'divider',
             },
             '& .MuiDataGrid-cell': {
-              borderBottom: '1px solid #E2E8F0',
+              borderBottom: '1px solid',
+              borderColor: 'divider',
             },
             '& .MuiDataGrid-row:hover': {
-              backgroundColor: 'rgba(10, 36, 99, 0.02)',
+              backgroundColor: 'action.hover',
             },
           }}
           slots={{
             noRowsOverlay: () => (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', p: 4 }}>
-                <AccountCircle sx={{ fontSize: 60, color: 'grey.400', mb: 2 }} />
+                <AccountCircle sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
                 <Typography color="text.secondary" gutterBottom>
                   No customers found
                 </Typography>
@@ -914,6 +907,7 @@ export default function Customers() {
           sx: {
             borderRadius: 3,
             overflow: 'hidden',
+            bgcolor: 'background.paper',
           },
         }}
       >
@@ -941,14 +935,14 @@ export default function Customers() {
             </Box>
           )}
         </DialogContent>
-		<DialogActions sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
-		  <Button 
-			onClick={handleCloseDialog}
-			disabled={saveMutation.isPending}
-			variant="outlined"
-		  >
-			Cancel
-		  </Button>
+        <DialogActions sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
+          <Button 
+            onClick={handleCloseDialog}
+            disabled={saveMutation.isPending}
+            variant="outlined"
+          >
+            Cancel
+          </Button>
           {viewMode && selectedCustomer && (
             <>
               <Button 
@@ -970,24 +964,18 @@ export default function Customers() {
               </Button>
             </>
           )}
-		  {!viewMode && (
-			<Button 
-			  variant="contained" 
-			  type="submit"
-			  form="customer-form"
-			  disabled={saveMutation.isPending}
-			  startIcon={saveMutation.isPending ? <CircularProgress size={16} /> : null}
-			  sx={{
-				background: 'linear-gradient(135deg, #0A2463 0%, #1E3A8A 100%)',
-				'&:hover': {
-				  background: 'linear-gradient(135deg, #07163E 0%, #0A2463 100%)',
-				},
-			  }}
-			>
-			  {isEdit ? 'Update Customer' : 'Create Customer'}
-			</Button>
-		  )}
-		</DialogActions>
+          {!viewMode && (
+            <Button 
+              variant="contained" 
+              type="submit"
+              form="customer-form"
+              disabled={saveMutation.isPending}
+              startIcon={saveMutation.isPending ? <CircularProgress size={16} /> : null}
+            >
+              {isEdit ? 'Update Customer' : 'Create Customer'}
+            </Button>
+          )}
+        </DialogActions>
       </Dialog>
     </Box>
   );

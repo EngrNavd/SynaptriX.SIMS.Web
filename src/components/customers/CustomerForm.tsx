@@ -151,7 +151,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
           <Grid size={{ xs: 12, md: isEdit ? 6 : 12 }}>
             <TextField
               fullWidth
-              label="Full Name *"
+              label="Full Name "
               name="fullName"
               value={formData.fullName}
               onChange={handleChange}
@@ -164,7 +164,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
           <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               fullWidth
-              label="Mobile Number *"
+              label="Mobile Number "
               name="mobile"
               value={formData.mobile}
               onChange={handleChange}
@@ -174,6 +174,30 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
               helperText={mobileError || "UAE format: +9715XXXXXXXX"}
               placeholder="+9715XXXXXXXX"
             />
+          </Grid>
+
+          {/* Emirates (Replaced City) */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <FormControl fullWidth disabled={isLoading}>
+              <InputLabel>Emirate *</InputLabel>
+              <Select
+                name="emirate"
+                value={formData.emirate}
+                onChange={handleSelectChange}
+                label="Emirate *"
+                required
+              >
+                <MenuItem value="">
+                  <em>Select Emirate</em>
+                </MenuItem>
+                {emirates.map((emirate) => (
+                  <MenuItem key={emirate} value={emirate}>
+                    {emirate}
+                  </MenuItem>
+                ))}
+              </Select>
+              <FormHelperText>Select the UAE emirate</FormHelperText>
+            </FormControl>
           </Grid>
 
           {/* Email - Optional */}
@@ -186,6 +210,22 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
               value={formData.email}
               onChange={handleChange}
               disabled={isLoading}
+            />
+          </Grid>
+
+          {/* TRN with validation */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              fullWidth
+              label="Tax Registration Number (TRN)"
+              name="taxNumber"
+              value={formData.taxNumber}
+              onChange={handleChange}
+              disabled={isLoading}
+              error={!!trnError}
+              helperText={trnError || "UAE TRN: 15 digits"}
+              placeholder="123456789012345"
+              inputProps={{ maxLength: 15 }}
             />
           </Grid>
 
@@ -210,22 +250,6 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
               value={formData.occupation}
               onChange={handleChange}
               disabled={isLoading}
-            />
-          </Grid>
-
-          {/* TRN with validation */}
-          <Grid size={{ xs: 12, md: 6 }}>
-            <TextField
-              fullWidth
-              label="Tax Registration Number (TRN)"
-              name="taxNumber"
-              value={formData.taxNumber}
-              onChange={handleChange}
-              disabled={isLoading}
-              error={!!trnError}
-              helperText={trnError || "UAE TRN: 15 digits"}
-              placeholder="123456789012345"
-              inputProps={{ maxLength: 15 }}
             />
           </Grid>
 
@@ -277,42 +301,16 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
             />
           </Grid>
 
-          {/* Address */}
-          <Grid size={{ xs: 12 }}>
+          {/* Country (Fixed as UAE) */}
+          <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               fullWidth
-              label="Address"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              disabled={isLoading}
-              multiline
-              rows={2}
+              label="Country"
+              name="country"
+              value="United Arab Emirates"
+              disabled
+              helperText="System default: United Arab Emirates"
             />
-          </Grid>
-
-          {/* Emirates (Replaced City) */}
-          <Grid size={{ xs: 12, md: 6 }}>
-            <FormControl fullWidth disabled={isLoading}>
-              <InputLabel>Emirate *</InputLabel>
-              <Select
-                name="emirate"
-                value={formData.emirate}
-                onChange={handleSelectChange}
-                label="Emirate *"
-                required
-              >
-                <MenuItem value="">
-                  <em>Select Emirate</em>
-                </MenuItem>
-                {emirates.map((emirate) => (
-                  <MenuItem key={emirate} value={emirate}>
-                    {emirate}
-                  </MenuItem>
-                ))}
-              </Select>
-              <FormHelperText>Select the UAE emirate</FormHelperText>
-            </FormControl>
           </Grid>
 
           {/* Area/State within Emirate */}
@@ -340,15 +338,17 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
             />
           </Grid>
 
-          {/* Country (Fixed as UAE) */}
-          <Grid size={{ xs: 12, md: 6 }}>
+          {/* Address */}
+          <Grid size={{ xs: 12 }}>
             <TextField
               fullWidth
-              label="Country"
-              name="country"
-              value="United Arab Emirates"
-              disabled
-              helperText="System default: United Arab Emirates"
+              label="Address"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              disabled={isLoading}
+              multiline
+              rows={2}
             />
           </Grid>
 
@@ -364,26 +364,6 @@ const CustomerForm: React.FC<CustomerFormProps> = ({
               multiline
               rows={3}
             />
-          </Grid>
-
-          {/* Form Submission Info */}
-          <Grid size={{ xs: 12 }}>
-            <Box sx={{ 
-              p: 2, 
-              bgcolor: 'info.light', 
-              borderRadius: 1,
-              borderLeft: '4px solid',
-              borderColor: 'info.main'
-            }}>
-              <Typography variant="body2">
-                <strong>Note:</strong> 
-                {isEdit 
-                  ? ' Customer code cannot be changed after creation.'
-                  : ' Customer code will be auto-generated by the system.'
-                }
-                {' '}Mobile numbers are automatically formatted to UAE standard (+971).
-              </Typography>
-            </Box>
           </Grid>
         </Grid>
       </form>

@@ -517,7 +517,7 @@ const Products: React.FC = () => {
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
             <TextField
               fullWidth
-              placeholder="Search products by name, SKU, or description..."
+              placeholder="Search products by name, IMEI, or description..."
               value={searchTerm}
               onChange={handleSearch}
               InputProps={{
@@ -620,7 +620,7 @@ const Products: React.FC = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>SKU</TableCell>
+                <TableCell>IMEI</TableCell>
                 <TableCell>Product Name</TableCell>
                 <TableCell>Category</TableCell>
                 <TableCell align="right">Stock</TableCell>
@@ -690,7 +690,7 @@ const Products: React.FC = () => {
                             {product.name || 'Unnamed Product'}
                           </Typography>
                           {product.description && (
-                            <Typography variant="caption" color="text.secondary" noWrap>
+                            <Typography variant="caption" color="text.secondary">
                               {product.description}
                             </Typography>
                           )}

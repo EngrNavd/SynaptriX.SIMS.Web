@@ -62,9 +62,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
   }, [open]);
 
   const validationSchema = Yup.object({
-    sku: Yup.string()
-      .required('SKU is required')
-      .matches(/^[A-Z0-9-]+$/, 'SKU can only contain uppercase letters, numbers, and hyphens'),
+    IMEI: Yup.string()
+      .required('IMEI is required')
+      .matches(/^[A-Z0-9-]+$/, 'IMEI can only contain uppercase letters, numbers, and hyphens'),
     name: Yup.string()
       .required('Product name is required')
       .min(3, 'Product name must be at least 3 characters'),
@@ -101,7 +101,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
   const formik = useFormik({
     initialValues: {
-      sku: initialData?.sku || '',
+      IMEI: initialData?.IMEI || '',
       name: initialData?.name || '',
       description: initialData?.description || '',
       purchasePrice: initialData?.purchasePrice || 0,
@@ -133,27 +133,28 @@ const ProductForm: React.FC<ProductFormProps> = ({
     }
   });
 
-  // Generate SKU on component mount for new products
+  // Generate IMEI on component mount for new products
   useEffect(() => {
     if (!isEdit && !initialData) {
-      const generateSku = () => {
-        const prefix = 'PRD';
-        const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-        const date = new Date().getFullYear().toString().slice(-2);
-        return `${prefix}-${date}-${random}`;
+      const generateIMEI = () => {
+        const random1 = Math.floor(Math.random() * 10000).toString().padStart(5, '0');
+        const random2 = Math.floor(Math.random() * 10000).toString().padStart(5, '0');
+        const random3 = Math.floor(Math.random() * 10000).toString().padStart(5, '0');
+        // const date = new Date().getFullYear().toString().slice(-2);
+        return `${random1}${random2}${random1}`;
       };
-      formik.setFieldValue('sku', generateSku());
+      formik.setFieldValue('IMEI', generateIMEI());
     }
 
     // Load categories (mock data - replace with API call)
     const loadCategories = async () => {
       // TODO: Replace with actual API call
       const mockCategories = [
-        { id: 1, name: 'Electronics' },
-        { id: 2, name: 'Clothing' },
-        { id: 3, name: 'Furniture' },
-        { id: 4, name: 'Books' },
-        { id: 5, name: 'Food & Beverages' }
+        { id: 1, name: 'Phones' },
+        { id: 2, name: 'Tablets' },
+        { id: 3, name: 'Laptops' },
+        { id: 4, name: 'Desktops' },
+        { id: 5, name: 'Accessories' }
       ];
       setCategories(mockCategories);
     };
@@ -163,7 +164,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
   useEffect(() => {
     if (initialData) {
       formik.setValues({
-        sku: initialData.sku,
+        IMEI: initialData.IMEI,
         name: initialData.name,
         description: initialData.description,
         purchasePrice: initialData.purchasePrice,
@@ -263,13 +264,13 @@ const ProductForm: React.FC<ProductFormProps> = ({
                   <TextField
                     inputRef={firstInputRef}
                     fullWidth
-                    label="SKU *"
-                    name="sku"
-                    value={formik.values.sku}
+                    label="IMEI *"
+                    name="IMEI"
+                    value={formik.values.IMEI}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    error={formik.touched.sku && Boolean(formik.errors.sku)}
-                    helperText={formik.touched.sku && formik.errors.sku}
+                    error={formik.touched.IMEI && Boolean(formik.errors.IMEI)}
+                    helperText={formik.touched.IMEI && formik.errors.IMEI}
                     disabled={isEdit}
                     InputProps={{
                       startAdornment: <InputAdornment position="start">#</InputAdornment>,
@@ -307,19 +308,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
                     onBlur={formik.handleBlur}
                     error={formik.touched.name && Boolean(formik.errors.name)}
                     helperText={formik.touched.name && formik.errors.name}
-                  />
-                </Grid>
-
-                <Grid size={{ xs: 12 }}>
-                  <TextField
-                    fullWidth
-                    label="Description"
-                    name="description"
-                    value={formik.values.description}
-                    onChange={formik.handleChange}
-                    onBlur={formik.handleBlur}
-                    multiline
-                    rows={3}
                   />
                 </Grid>
 
@@ -509,6 +497,19 @@ const ProductForm: React.FC<ProductFormProps> = ({
                     value={formik.values.size}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
+                  />
+                </Grid>
+
+                <Grid size={{ xs: 12 }}>
+                  <TextField
+                    fullWidth
+                    label="Description"
+                    name="description"
+                    value={formik.values.description}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    multiline
+                    rows={3}
                   />
                 </Grid>
 

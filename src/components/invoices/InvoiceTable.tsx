@@ -72,14 +72,14 @@ const InvoiceTable: React.FC<InvoiceTableProps> = ({
   const columns: GridColDef<InvoiceDto>[] = [
     {
       field: 'invoiceNumber',
-      headerName: 'Invoice #',
-      width: 130,
+      headerName: 'Invoice No.',
+      width: 140,
       renderCell: (params) => (
         <Box onClick={() => onRowClick(params.row.id)} sx={{ cursor: 'pointer' }}>
-          <Typography variant="body2" fontWeight="bold" color="primary.main">
+          <Typography variant="body2" fontWeight="bold">
             {params.value}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" color="text.secondary"  display="block">
             {format(new Date(params.row.invoiceDate), 'dd MMM yyyy')}
           </Typography>
         </Box>
@@ -110,7 +110,7 @@ const InvoiceTable: React.FC<InvoiceTableProps> = ({
           <Typography variant="body2" fontWeight="bold">
             {UAEUtils.formatCurrency(params.value)}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" color="text.secondary"  display="block">
             Due: {UAEUtils.formatCurrency(params.row.amountDue)}
           </Typography>
         </Box>
@@ -145,7 +145,7 @@ const InvoiceTable: React.FC<InvoiceTableProps> = ({
       headerName: 'Method',
       width: 120,
       renderCell: (params) => (
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2">
           {params.value || '—'}
         </Typography>
       ),
@@ -154,7 +154,7 @@ const InvoiceTable: React.FC<InvoiceTableProps> = ({
       field: 'dueDate',
       headerName: 'Due Date',
       width: 120,
-      valueGetter: (_, row) => row.dueDate ? format(new Date(row.dueDate), 'dd MMM') : '—',
+      valueGetter: (_, row) => row.dueDate ? format(new Date(row.dueDate), 'dd MMM yyyy') : '—',
       renderCell: (params) => (
         <Typography variant="body2">
           {params.value}
@@ -164,7 +164,7 @@ const InvoiceTable: React.FC<InvoiceTableProps> = ({
     {
       field: 'actions',
       type: 'actions',
-      headerName: '',
+      headerName: 'Actions',
       width: 80,
       getActions: (params) => [
         <InvoiceActionsMenu

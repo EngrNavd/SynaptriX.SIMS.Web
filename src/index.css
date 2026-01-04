@@ -15,35 +15,37 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #0F172A; /* Match theme.background.default */
+  color: #F1F5F9; /* Match theme.text.primary */
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar for dark theme */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #1E293B; /* Dark track */
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #0A2463;
+  background: #3E92CC; /* Primary light blue */
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #07163E;
+  background: #0A2463; /* Primary navy */
 }
 
 /* Selection color */
 ::selection {
-  background-color: rgba(10, 36, 99, 0.2);
-  color: #0A2463;
+  background-color: rgba(62, 146, 204, 0.5); /* Lighter blue for selection */
+  color: #FFFFFF;
 }
 
-/* Smooth transitions */
+/* Smooth transitions (keep as is) */
 .MuiButton-root,
 .MuiPaper-root,
 .MuiListItem-root,
@@ -51,18 +53,24 @@ body {
   transition: all 0.2s ease-in-out !important;
 }
 
-/* DataGrid customization */
+/* DataGrid customization for dark theme */
+.MuiDataGrid-root {
+  border-color: #334155 !important;
+  color: #F1F5F9;
+}
 .MuiDataGrid-root .MuiDataGrid-columnHeader {
-  background-color: #F8FAFC;
+  background-color: #1E293B !important;
 }
-
 .MuiDataGrid-root .MuiDataGrid-row:hover {
-  background-color: rgba(10, 36, 99, 0.02);
+  background-color: rgba(62, 146, 204, 0.08) !important;
+}
+.MuiDataGrid-root .MuiDataGrid-cell {
+  border-bottom-color: #334155 !important;
 }
 
-/* Dialog backdrop */
+/* Dialog backdrop for dark theme */
 .MuiBackdrop-root {
-  background-color: rgba(0, 0, 0, 0.5) !important;
+  background-color: rgba(0, 0, 0, 0.7) !important;
   backdrop-filter: blur(3px);
 }
 
@@ -70,21 +78,20 @@ body {
 .hover-card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-
 .hover-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3) !important;
 }
 
 /* Gradient text */
 .gradient-text {
-  background: linear-gradient(135deg, #0A2463 0%, #3E92CC 100%);
+  background: linear-gradient(135deg, #3E92CC 0%, #0A2463 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Status badges */
+/* Status badges (colors already work in dark mode) */
 .status-badge {
   padding: 4px 12px;
   border-radius: 20px;
@@ -93,120 +100,31 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-
 .status-active {
-  background-color: rgba(16, 185, 129, 0.1);
+  background-color: rgba(16, 185, 129, 0.15);
   color: #10B981;
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
-
 .status-inactive {
-  background-color: rgba(239, 68, 68, 0.1);
+  background-color: rgba(239, 68, 68, 0.15);
   color: #EF4444;
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
-
 .status-pending {
-  background-color: rgba(245, 158, 11, 0.1);
+  background-color: rgba(245, 158, 11, 0.15);
   color: #F59E0B;
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
-/* Dashboard stats cards */
+/* Dashboard stats cards for dark theme */
 .stat-card {
-  background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
-  border-left: 4px solid #0A2463;
+  background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+  border-left: 4px solid #3E92CC; /* Light blue accent */
 }
 
-/* Form input focus */
+/* Form input focus - overridden by theme, but kept for safety */
 .Mui-focused .MuiOutlinedInput-notchedOutline {
-  border-color: #0A2463 !important;
-  border-width: 2px !important;
+  border-color: #3E92CC !important;
 }
 
-/* Tab styling */
-.MuiTab-root {
-  text-transform: none !important;
-  font-weight: 500 !important;
-}
-
-.Mui-selected {
-  color: #0A2463 !important;
-  font-weight: 600 !important;
-}
-
-.MuiTabs-indicator {
-  background-color: #0A2463 !important;
-  height: 3px !important;
-}
-
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-}
+/* REMOVED: The entire conflicting ":root", "a", "body", "h1", "button", "@media" block from the Vite template */

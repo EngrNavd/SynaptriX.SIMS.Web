@@ -9,6 +9,7 @@ import {
   LinearProgress,
   Alert,
   Chip,
+  Button,
 } from '@mui/material';
 import {
   TrendingUp,
@@ -32,41 +33,37 @@ export default function Dashboard() {
     queryFn: () => customersApi.getStatistics(),
   });
 
-  // Dashboard stats - Updated with navy theme
+  // Dashboard stats - UPDATED: Using theme colors
   const stats = [
     {
       title: "Today's Revenue",
       value: 'AED 12,450',
-      icon: <AttachMoney sx={{ fontSize: 40, color: '#0A2463' }} />,
-      color: 'rgba(10, 36, 99, 0.08)',
-      borderColor: '#0A2463',
+      icon: <AttachMoney sx={{ fontSize: 40 }} />,
+      color: 'info.main',
       description: '+12.5% from yesterday',
       trend: 'up',
     },
     {
       title: 'Monthly Sales',
       value: 'AED 245,800',
-      icon: <Receipt sx={{ fontSize: 40, color: '#10B981' }} />,
-      color: 'rgba(16, 185, 129, 0.08)',
-      borderColor: '#10B981',
+      icon: <Receipt sx={{ fontSize: 40 }} />,
+      color: 'success.main',
       description: '+8.2% from last month',
       trend: 'up',
     },
     {
       title: 'Total Customers',
       value: customerStats?.data?.totalCustomers?.toString() || '1,245',
-      icon: <People sx={{ fontSize: 40, color: '#3B82F6' }} />,
-      color: 'rgba(59, 130, 246, 0.08)',
-      borderColor: '#3B82F6',
+      icon: <People sx={{ fontSize: 40 }} />,
+      color: 'info.main',
       description: customerStats?.data ? 'Active customers' : '+15.7% growth',
       trend: 'up',
     },
     {
       title: 'Inventory Value',
       value: 'AED 125,430',
-      icon: <Inventory sx={{ fontSize: 40, color: '#F59E0B' }} />,
-      color: 'rgba(245, 158, 11, 0.08)',
-      borderColor: '#F59E0B',
+      icon: <Inventory sx={{ fontSize: 40 }} />,
+      color: 'warning.main',
       description: '856 total products',
       trend: 'stable',
     },
@@ -74,17 +71,17 @@ export default function Dashboard() {
 
   // Quick actions
   const quickActions = [
-    { label: 'New Sale', icon: <ShoppingCart />, color: 'primary' },
-    { label: 'Add Customer', icon: <People />, color: 'primary' },
-    { label: 'Add Product', icon: <Inventory />, color: 'primary' },
-    { label: 'View Reports', icon: <Receipt />, color: 'primary' },
+    { label: 'Create Invoice', icon: <ShoppingCart />, color: 'info' },
+    { label: 'Add Customer', icon: <People />, color: 'info.main' },
+    { label: 'Add Product', icon: <Inventory />, color: 'info.main' },
+    { label: 'View Reports', icon: <Receipt />, color: 'info.main' },
   ];
 
   return (
     <Box sx={{ p: 3 }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" fontWeight="bold" gutterBottom color="primary.main">
+        <Typography variant="h4" fontWeight="bold" gutterBottom>
           Dashboard Overview
         </Typography>
         <Typography variant="body1" color="text.secondary">
@@ -99,30 +96,19 @@ export default function Dashboard() {
         </Alert>
       )}
 
-      {/* Stats Grid - UPDATED for MUI v6 */}
+      {/* Stats Grid - UPDATED: Using theme colors */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {stats.map((stat, index) => (
-          <Grid key={index} size={{ xs: 12, sm: 6, md: 3 }}>
+          <Grid key={index} item xs={12} sm={6} md={3}>
             <Card 
               className="hover-card"
               sx={{ 
                 height: '100%',
-                backgroundColor: stat.color,
-                borderLeft: `4px solid ${stat.borderColor}`,
-                borderTop: 'none',
-                borderRight: 'none',
-                borderBottom: 'none',
+                borderLeft: `4px solid`,
+                borderColor: stat.color,
                 position: 'relative',
                 overflow: 'hidden',
-                '&:before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: '4px',
-                  background: `linear-gradient(90deg, ${stat.borderColor} 0%, transparent 100%)`,
-                },
+                bgcolor: 'background.paper',
               }}
             >
               <CardContent sx={{ p: 3 }}>
@@ -134,17 +120,27 @@ export default function Dashboard() {
                     {isLoading && stat.title === 'Total Customers' ? (
                       <LinearProgress sx={{ width: '60%', mb: 1 }} />
                     ) : (
-                      <Typography variant="h4" fontWeight="bold" color="text.primary" gutterBottom>
+                      <Typography variant="h4" fontWeight="bold" gutterBottom>
                         {stat.value}
                       </Typography>
                     )}
-                    <Typography variant="caption" sx={{ color: stat.trend === 'up' ? 'success.main' : 'text.secondary' }}>
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        color: stat.trend === 'up' ? 'success.main' : 'text.secondary',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5
+                      }}
+                    >
+                      {stat.trend === 'up' && <TrendingUp sx={{ fontSize: 14 }} />}
                       {stat.description}
                     </Typography>
                   </Box>
                   <Box
                     sx={{
-                      backgroundColor: `${stat.borderColor}15`,
+                      color: stat.color,
+                      backgroundColor: 'action.hover',
                       borderRadius: 2,
                       p: 1.5,
                       display: 'flex',
@@ -162,29 +158,29 @@ export default function Dashboard() {
       </Grid>
 
       {/* Quick Actions */}
-      <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
-        <Typography variant="h6" fontWeight="bold" color="primary.main" gutterBottom>
+      <Paper sx={{ p: 3, mb: 4, borderRadius: 2, bgcolor: 'background.paper' }}>
+        <Typography variant="h6" fontWeight="bold" gutterBottom>
           Quick Actions
         </Typography>
         <Grid container spacing={2}>
           {quickActions.map((action, index) => (
-            <Grid key={index} size={{ xs: 6, sm: 3 }}>
+            <Grid key={index} item xs={6} sm={3}>
               <Card
                 className="hover-card"
                 sx={{
                   textAlign: 'center',
                   p: 2,
                   cursor: 'pointer',
-                  backgroundColor: 'background.paper',
+                  bgcolor: 'background.paper',
                   border: '2px solid',
                   borderColor: 'divider',
                   '&:hover': {
                     borderColor: 'primary.main',
-                    backgroundColor: 'rgba(10, 36, 99, 0.02)',
+                    bgcolor: 'action.hover',
                   },
                 }}
               >
-                <Box sx={{ color: 'primary.main', mb: 1 }}>
+                <Box sx={{ color: 'info.main', mb: 1 }}>
                   {action.icon}
                 </Box>
                 <Typography variant="body2" fontWeight="medium">
@@ -196,13 +192,13 @@ export default function Dashboard() {
         </Grid>
       </Paper>
 
-      {/* Additional Content - UPDATED for MUI v6 */}
+      {/* Additional Content */}
       <Grid container spacing={3}>
         {/* Recent Activity */}
-        <Grid size={{ xs: 12, md: 8 }}>
-          <Paper sx={{ p: 3, borderRadius: 2, height: '100%' }}>
+        <Grid item xs={12} md={8}>
+          <Paper sx={{ p: 3, borderRadius: 2, height: '100%', bgcolor: 'background.paper' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <Typography variant="h6" fontWeight="bold" color="primary.main">
+              <Typography variant="h6" fontWeight="bold">
                 Recent Activity
               </Typography>
               <Chip label="Today" size="small" color="primary" />
@@ -223,7 +219,7 @@ export default function Dashboard() {
                     p: 2,
                     mb: 1,
                     borderRadius: 1,
-                    backgroundColor: index === 0 ? 'rgba(10, 36, 99, 0.03)' : 'transparent',
+                    bgcolor: index === 0 ? 'action.hover' : 'transparent',
                     borderLeft: index === 0 ? '3px solid' : 'none',
                     borderColor: 'primary.main',
                   }}
@@ -233,7 +229,7 @@ export default function Dashboard() {
                       width: 40,
                       height: 40,
                       borderRadius: '50%',
-                      backgroundColor: 'primary.light',
+                      bgcolor: 'primary.light',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -263,9 +259,9 @@ export default function Dashboard() {
         </Grid>
 
         {/* Quick Stats */}
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Paper sx={{ p: 3, borderRadius: 2, height: '100%' }}>
-            <Typography variant="h6" fontWeight="bold" color="primary.main" gutterBottom>
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 3, borderRadius: 2, height: '100%', bgcolor: 'background.paper' }}>
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
               Business Overview
             </Typography>
             
@@ -280,14 +276,14 @@ export default function Dashboard() {
                   sx={{ 
                     height: 8, 
                     borderRadius: 4,
-                    backgroundColor: 'grey.200',
+                    bgcolor: 'divider',
                     '& .MuiLinearProgress-bar': {
-                      background: 'linear-gradient(90deg, #0A2463 0%, #3E92CC 100%)',
+                      bgcolor: 'primary.main',
                     }
                   }} 
                 />
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                  <Typography variant="caption">This Month</Typography>
+                  <Typography variant="caption" color="text.secondary">This Month</Typography>
                   <Typography variant="caption" fontWeight="bold">75%</Typography>
                 </Box>
               </Box>
@@ -299,11 +295,11 @@ export default function Dashboard() {
                   alignItems: 'center',
                   p: 2,
                   borderRadius: 1,
-                  backgroundColor: 'grey.50',
+                  bgcolor: 'action.hover',
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <AccountBalance sx={{ color: 'primary.main', fontSize: 20 }} />
-                    <Typography>Active Customers</Typography>
+                    <Typography variant="body2">Active Customers</Typography>
                   </Box>
                   <Typography fontWeight="bold">{customerStats?.data?.activeCustomers || '1,045'}</Typography>
                 </Box>
@@ -314,11 +310,11 @@ export default function Dashboard() {
                   alignItems: 'center',
                   p: 2,
                   borderRadius: 1,
-                  backgroundColor: 'grey.50',
+                  bgcolor: 'action.hover',
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <CreditCard sx={{ color: 'success.main', fontSize: 20 }} />
-                    <Typography>New This Month</Typography>
+                    <Typography variant="body2">New This Month</Typography>
                   </Box>
                   <Typography fontWeight="bold">{customerStats?.data?.newCustomersThisMonth || '45'}</Typography>
                 </Box>
@@ -329,11 +325,11 @@ export default function Dashboard() {
                   alignItems: 'center',
                   p: 2,
                   borderRadius: 1,
-                  backgroundColor: 'grey.50',
+                  bgcolor: 'action.hover',
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <LocalShipping sx={{ color: 'warning.main', fontSize: 20 }} />
-                    <Typography>Pending Orders</Typography>
+                    <Typography variant="body2">Pending Orders</Typography>
                   </Box>
                   <Typography fontWeight="bold">12</Typography>
                 </Box>
@@ -345,9 +341,9 @@ export default function Dashboard() {
 
       {/* Performance Metrics */}
       <Grid container spacing={3} sx={{ mt: 3 }}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Paper sx={{ p: 3, borderRadius: 2 }}>
-            <Typography variant="h6" fontWeight="bold" color="primary.main" gutterBottom>
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3, borderRadius: 2, bgcolor: 'background.paper' }}>
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
               Top Selling Products
             </Typography>
             <Box sx={{ mt: 2 }}>
@@ -361,10 +357,10 @@ export default function Dashboard() {
                     p: 2,
                     mb: 1,
                     borderRadius: 1,
-                    backgroundColor: index < 3 ? 'rgba(10, 36, 99, 0.03)' : 'transparent',
+                    bgcolor: index < 3 ? 'action.hover' : 'transparent',
                   }}
                 >
-                  <Typography>{product}</Typography>
+                  <Typography variant="body2">{product}</Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Typography variant="body2" color="text.secondary">
                       {['AED 4,200', 'AED 3,800', 'AED 3,500', 'AED 1,200', 'AED 2,800'][index]}
@@ -382,9 +378,9 @@ export default function Dashboard() {
           </Paper>
         </Grid>
 
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Paper sx={{ p: 3, borderRadius: 2 }}>
-            <Typography variant="h6" fontWeight="bold" color="primary.main" gutterBottom>
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3, borderRadius: 2, bgcolor: 'background.paper' }}>
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
               Customer Locations
             </Typography>
             <Box sx={{ mt: 2 }}>
@@ -408,9 +404,9 @@ export default function Dashboard() {
                     sx={{ 
                       height: 6, 
                       borderRadius: 3,
-                      backgroundColor: 'grey.200',
+                      bgcolor: 'divider',
                       '& .MuiLinearProgress-bar': {
-                        background: 'linear-gradient(90deg, #0A2463 0%, #3E92CC 100%)',
+                        bgcolor: 'primary.main',
                         opacity: 1 - (index * 0.15),
                       }
                     }} 

@@ -49,7 +49,7 @@ import type {
 export default function InvoiceListPage() {
   const navigate = useNavigate();
   
-  // State
+  // State (keep as is)
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(0);
@@ -68,17 +68,16 @@ export default function InvoiceListPage() {
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
 
-  // Debounce search
+  // Debounce search (keep as is)
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
-      setPage(0); // Reset to first page when search changes
+      setPage(0);
     }, 500);
-
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Fetch invoices - FIXED response handling
+  // Fetch invoices (keep as is)
   const { 
     data: invoicesResponse, 
     isLoading: invoicesLoading, 
@@ -87,7 +86,7 @@ export default function InvoiceListPage() {
   } = useQuery({
     queryKey: ['invoices', page, pageSize, debouncedSearch, filters, sortModel],
     queryFn: () => invoicesApi.getInvoices({
-      page: page + 1, // Convert to 1-based for API
+      page: page + 1,
       pageSize,
       search: debouncedSearch || undefined,
       sortBy: sortModel.field,
@@ -96,17 +95,7 @@ export default function InvoiceListPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Log the response to debug
-  useEffect(() => {
-    if (invoicesResponse) {
-      console.log('Invoices API Response:', invoicesResponse);
-      console.log('Response success:', invoicesResponse.success);
-      console.log('Response data:', invoicesResponse.data);
-      console.log('Response totalCount:', invoicesResponse.totalCount);
-    }
-  }, [invoicesResponse]);
-
-  // Fetch statistics - FIXED: using the correct API endpoint
+  // Fetch statistics (keep as is)
   const { 
     data: statsResponse, 
     isLoading: statsLoading,
@@ -117,7 +106,7 @@ export default function InvoiceListPage() {
     staleTime: 2 * 60 * 1000,
   });
 
-  // Export mutation
+  // Export mutation (keep as is)
   const exportMutation = useMutation({
     mutationFn: (params: ExportInvoicesRequestDto) => invoicesApi.exportInvoices(params),
     onSuccess: (blob) => {
@@ -139,7 +128,7 @@ export default function InvoiceListPage() {
     },
   });
 
-  // FIXED: Extract data correctly from response
+  // Extract data (keep as is)
   const invoices: InvoiceDto[] = invoicesResponse?.success && Array.isArray(invoicesResponse.data) 
     ? invoicesResponse.data 
     : [];
@@ -167,7 +156,7 @@ export default function InvoiceListPage() {
     averageInvoiceAmount: 0,
   };
 
-  // Calculate additional stats from actual invoices
+  // Calculate additional stats (keep as is)
   const calculateAdditionalStats = () => {
     const totalAmount = invoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
     const averageInvoice = invoices.length > 0 ? totalAmount / invoices.length : 0;
@@ -189,7 +178,7 @@ export default function InvoiceListPage() {
 
   const additionalStats = calculateAdditionalStats();
 
-  // Handlers
+  // Handlers (keep as is)
   const handleFilterChange = (newFilters: any) => {
     setFilters(newFilters);
     setPage(0);
@@ -243,7 +232,6 @@ export default function InvoiceListPage() {
     }
   };
 
-  // Check if filters are active
   const isFilterActive = 
     filters.status || 
     filters.paymentStatus || 
@@ -278,10 +266,10 @@ export default function InvoiceListPage() {
         <Typography color="text.primary">Invoices</Typography>
       </Breadcrumbs>
 
-      {/* Header */}
+      {/* Header - FIXED: Removed hard-coded colors */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Box>
-          <Typography variant="h4" fontWeight="bold" color="primary.main" gutterBottom>
+          <Typography variant="h4" fontWeight="bold" gutterBottom>
             Invoice Management
           </Typography>
           <Typography variant="body1" color="text.secondary">
@@ -307,12 +295,6 @@ export default function InvoiceListPage() {
             startIcon={<AddIcon />}
             onClick={handleCreateInvoice}
             disabled={invoicesLoading}
-            sx={{
-              background: 'linear-gradient(135deg, #0A2463 0%, #1E3A8A 100%)',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #07163E 0%, #0A2463 100%)',
-              },
-            }}
           >
             Create Invoice
           </Button>
@@ -322,7 +304,7 @@ export default function InvoiceListPage() {
       {/* Loading Overlay */}
       {invoicesLoading && <LinearProgress sx={{ mb: 3 }} />}
 
-      {/* Statistics Cards */}
+      {/* Statistics Cards - FIXED: Using theme colors */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
           <InvoiceSummaryCard
@@ -365,7 +347,7 @@ export default function InvoiceListPage() {
         </Grid>
       </Grid>
 
-      {/* Payment Status Stats - Using actual invoice data */}
+      {/* Payment Status Stats */}
       {invoices.length > 0 && (
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={2.4}>

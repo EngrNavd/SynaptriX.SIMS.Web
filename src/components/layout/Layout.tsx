@@ -1,316 +1,188 @@
-import React, { ReactNode } from 'react';
-import {
-  AppBar,
-  Box,
-  Drawer,
-  IconButton,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Toolbar,
-  Typography,
-  Avatar,
-  Menu,
-  MenuItem,
-  Divider,
-  useTheme,
-} from '@mui/material';
-import {
-  Menu as MenuIcon,
-  Dashboard,
-  People,
-  Inventory,
-  Receipt,
-  Settings,
-  Logout,
-  ChevronLeft,
-  Notifications,
-  AccountCircle,
-  Business,
-  ShoppingCart,
-} from '@mui/icons-material';
-import { useState } from 'react';
-import { useNavigate, useLocation, NavLink, Outlet } from 'react-router-dom'; // Added Outlet
+// src/components/layout/Layout.tsx
+import React, { useState } from 'react';
+import { Outlet } from 'react-router-dom';
+import { Box, AppBar, Toolbar, IconButton, Typography, Drawer, useTheme } from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import PeopleIcon from '@mui/icons-material/People';
+import InventoryIcon from '@mui/icons-material/Inventory';
+import ReceiptIcon from '@mui/icons-material/Receipt';
+import SettingsIcon from '@mui/icons-material/Settings';
+import LogoutIcon from '@mui/icons-material/Logout';
+import Footer from './Footer'; // Your existing Footer
+import { useNavigate, useLocation } from 'react-router-dom';
+import { List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
 
 const drawerWidth = 280;
 
-// Remove the children prop since we'll use Outlet
-const Layout = () => {
-  const [drawerOpen, setDrawerOpen] = useState(true);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+const menuItems = [
+  { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
+  { text: 'Customers', icon: <PeopleIcon />, path: '/customers' },
+  { text: 'Products', icon: <InventoryIcon />, path: '/products' },
+  { text: 'Invoices', icon: <ReceiptIcon />, path: '/invoices' },
+  { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
+];
+
+const Layout: React.FC = () => {
+  const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const menuItems = [
-    { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
-    { text: 'Customers', icon: <People />, path: '/customers' },
-    { text: 'Products', icon: <Inventory />, path: '/products' },
-    { text: 'Orders', icon: <ShoppingCart />, path: '/orders' },
-    { text: 'Invoices', icon: <Receipt />, path: '/invoices' },
-    { text: 'Settings', icon: <Settings />, path: '/settings' },
-  ];
+  const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 
-  const handleDrawerToggle = () => {
-    setDrawerOpen(!drawerOpen);
-  };
+  const drawer = (
+    <Box>
+      {/* Logo & Brand Area */}
+      <Box sx={{ p: 3, borderBottom: 1, borderColor: 'divider' }}>
+        <Typography variant="h5" sx={{ fontWeight: 700, color: theme.palette.primary.light }}>
+          SynaptriX SIMS
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          UAE Business Suite
+        </Typography>
+      </Box>
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    navigate('/login');
-  };
-
-  return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
-      {/* AppBar */}
-      <AppBar 
-        position="fixed" 
-        sx={{ 
-          zIndex: theme.zIndex.drawer + 1,
-          bgcolor: 'primary.dark',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-        }}
-      >
-        <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <IconButton
-              color="inherit"
-              edge="start"
-              onClick={handleDrawerToggle}
-              sx={{ mr: 2 }}
-            >
-              {drawerOpen ? <ChevronLeft /> : <MenuIcon />}
-            </IconButton>
-            <Business sx={{ fontSize: 32 }} />
-            <Box>
-              <Typography variant="h6" fontWeight="bold" noWrap>
-                SYNAPATRIX SIMS
-              </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                Smart Inventory Management System
-              </Typography>
-            </Box>
-          </Box>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <IconButton color="inherit">
-              <Notifications />
-            </IconButton>
-            
-            <IconButton
-              onClick={handleMenuOpen}
-              sx={{ p: 0 }}
-            >
-              <Avatar
-                sx={{
-                  bgcolor: 'secondary.main',
-                  width: 40,
-                  height: 40,
-                  border: '2px solid rgba(255,255,255,0.3)',
-                }}
-              >
-                <AccountCircle />
-              </Avatar>
-            </IconButton>
-            
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={handleMenuClose}
-              PaperProps={{
-                elevation: 3,
-                sx: {
-                  mt: 1.5,
-                  minWidth: 200,
-                  borderRadius: 2,
-                  overflow: 'visible',
-                  '&:before': {
-                    content: '""',
-                    display: 'block',
-                    position: 'absolute',
-                    top: 0,
-                    right: 14,
-                    width: 10,
-                    height: 10,
-                    bgcolor: 'background.paper',
-                    transform: 'translateY(-50%) rotate(45deg)',
-                    zIndex: 0,
-                  },
+      {/* Navigation Menu */}
+      <List sx={{ p: 2 }}>
+        {menuItems.map((item) => {
+          const isActive = location.pathname.startsWith(item.path);
+          return (
+            <ListItem
+              button
+              key={item.text}
+              onClick={() => navigate(item.path)}
+              sx={{
+                mb: 1,
+                borderRadius: 2,
+                backgroundColor: isActive ? 'rgba(10, 36, 99, 0.2)' : 'transparent',
+                borderLeft: isActive ? `4px solid ${theme.palette.primary.light}` : '4px solid transparent',
+                '&:hover': {
+                  backgroundColor: 'rgba(62, 146, 204, 0.1)',
                 },
               }}
             >
-              <Box sx={{ px: 2, py: 1 }}>
-                <Typography variant="subtitle1" fontWeight="bold">
-                  Super Admin
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Administrator
-                </Typography>
-              </Box>
-              <Divider />
-              <MenuItem onClick={() => navigate('/settings')}>
-                <ListItemIcon>
-                  <Settings fontSize="small" />
-                </ListItemIcon>
-                Settings
-              </MenuItem>
-              <Divider />
-              <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
-                <ListItemIcon>
-                  <Logout fontSize="small" color="error" />
-                </ListItemIcon>
-                Logout
-              </MenuItem>
-            </Menu>
-          </Box>
+              <ListItemIcon sx={{ color: isActive ? theme.palette.primary.light : 'inherit', minWidth: 40 }}>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText
+                primary={item.text}
+                primaryTypographyProps={{
+                  fontWeight: isActive ? 600 : 400,
+                  color: isActive ? theme.palette.primary.light : 'inherit',
+                }}
+              />
+            </ListItem>
+          );
+        })}
+        {/* Logout Item at bottom */}
+        <ListItem
+          button
+          sx={{
+            mt: 'auto',
+            borderRadius: 2,
+            '&:hover': { backgroundColor: 'rgba(239, 68, 68, 0.1)' },
+          }}
+          onClick={() => {
+            localStorage.removeItem('accessToken');
+            navigate('/login');
+          }}
+        >
+          <ListItemIcon sx={{ color: theme.palette.error.light, minWidth: 40 }}>
+            <LogoutIcon />
+          </ListItemIcon>
+          <ListItemText primary="Logout" primaryTypographyProps={{ color: theme.palette.error.light }} />
+        </ListItem>
+      </List>
+    </Box>
+  );
+
+  return (
+    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: theme.palette.background.default }}>
+      {/* App Bar */}
+      <AppBar
+        position="fixed"
+        sx={{
+          width: { md: `calc(100% - ${drawerWidth}px)` },
+          ml: { md: `${drawerWidth}px` },
+        }}
+      >
+        <Toolbar>
+          <IconButton
+            color="inherit"
+            edge="start"
+            onClick={handleDrawerToggle}
+            sx={{ mr: 2, display: { md: 'none' } }}
+          >
+            <MenuIcon />
+          </IconButton>
+          <Typography variant="h6" noWrap sx={{ flexGrow: 1, fontWeight: 500 }}>
+            {/* Page title can be set dynamically from child routes */}
+            {location.pathname === '/dashboard' ? 'Dashboard' :
+             location.pathname.startsWith('/invoices') ? 'Invoice Management' :
+             location.pathname.split('/').pop()?.charAt(0).toUpperCase() + location.pathname.split('/').pop()?.slice(1)}
+          </Typography>
         </Toolbar>
       </AppBar>
 
-      {/* Sidebar Drawer */}
-      <Drawer
-        variant="permanent"
-        open={drawerOpen}
-        sx={{
-          width: drawerOpen ? drawerWidth : 72,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: drawerOpen ? drawerWidth : 72,
-            boxSizing: 'border-box',
-            backgroundColor: '#FFFFFF',
-            borderRight: '1px solid #E2E8F0',
-            transition: theme.transitions.create('width', {
-              easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.enteringScreen,
-            }),
-            overflowX: 'hidden',
-          },
-        }}
+      {/* Navigation Drawer */}
+      <Box
+        component="nav"
+        sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
       >
-        <Toolbar />
-        
-        <Box sx={{ overflow: 'auto', pt: 2 }}>
-          <List>
-            {menuItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              return (
-                <ListItem
-                  key={item.text}
-                  disablePadding
-                  sx={{
-                    mx: 1,
-                    mb: 0.5,
-                    borderRadius: 2,
-                  }}
-                >
-                  <NavLink
-                    to={item.path}
-                    style={{
-                      textDecoration: 'none',
-                      color: 'inherit',
-                      width: '100%',
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        px: 2,
-                        py: 1.5,
-                        borderRadius: 2,
-                        backgroundColor: isActive ? 'primary.main' : 'transparent',
-                        color: isActive ? 'white' : 'text.primary',
-                        '&:hover': {
-                          backgroundColor: isActive ? 'primary.dark' : 'rgba(10, 36, 99, 0.04)',
-                        },
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <ListItemIcon
-                        sx={{
-                          minWidth: 40,
-                          color: isActive ? 'white' : 'inherit',
-                        }}
-                      >
-                        {item.icon}
-                      </ListItemIcon>
-                      {drawerOpen && (
-                        <ListItemText 
-                          primary={item.text} 
-                          primaryTypographyProps={{
-                            fontWeight: isActive ? 600 : 400,
-                          }}
-                        />
-                      )}
-                    </Box>
-                  </NavLink>
-                </ListItem>
-              );
-            })}
-          </List>
-          
-          {/* Tenant/Company Info */}
-          {drawerOpen && (
-            <Box sx={{ p: 3, mt: 'auto', borderTop: '1px solid #E2E8F0' }}>
-              <Typography variant="caption" color="text.secondary" display="block">
-                Current Tenant
-              </Typography>
-              <Typography variant="subtitle2" fontWeight="bold" color="primary.main">
-                Dubai Main Branch
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Premium License
-              </Typography>
-            </Box>
-          )}
-        </Box>
-      </Drawer>
+        <Drawer
+          variant="temporary"
+          open={mobileOpen}
+          onClose={handleDrawerToggle}
+          ModalProps={{ keepMounted: true }}
+          sx={{
+            display: { xs: 'block', md: 'none' },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: drawerWidth,
+              backgroundColor: theme.palette.background.paper,
+              borderRight: `1px solid ${theme.palette.divider}`,
+            },
+          }}
+        >
+          {drawer}
+        </Drawer>
+        <Drawer
+          variant="permanent"
+          sx={{
+            display: { xs: 'none', md: 'block' },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: drawerWidth,
+              backgroundColor: theme.palette.background.paper,
+              borderRight: `1px solid ${theme.palette.divider}`,
+            },
+          }}
+          open
+        >
+          {drawer}
+        </Drawer>
+      </Box>
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
           p: 3,
-          width: { sm: `calc(100% - ${drawerOpen ? drawerWidth : 72}px)` },
-          minHeight: '100vh',
-          backgroundColor: 'background.default',
+          width: { md: `calc(100% - ${drawerWidth}px)` },
+          mt: '70px', // Height of AppBar
+          minHeight: 'calc(100vh - 70px)',
           display: 'flex',
           flexDirection: 'column',
         }}
       >
-        <Toolbar />
-        
-        {/* Page Content - This is where child routes render */}
         <Box sx={{ flexGrow: 1 }}>
-          <Outlet />
+          <Outlet /> {/* This renders the child page (Dashboard, Invoices, etc.) */}
         </Box>
-        
-        {/* Footer */}
-        <Box
-          component="footer"
-          sx={{
-            pt: 4,
-            pb: 2,
-            mt: 'auto',
-            borderTop: '1px solid #E2E8F0',
-            textAlign: 'center',
-          }}
-        >
-          <Typography variant="body2" color="text.secondary">
-            © {new Date().getFullYear()} SynaptriX SIMS. All rights reserved.
-          </Typography>
-          <Typography variant="caption" color="text.secondary" display="block">
-            Version 2.0.1 • UAE Localized
-          </Typography>
+        {/* Footer at the bottom of the content area */}
+        <Box sx={{ mt: 'auto', pt: 4 }}>
+          <Footer />
         </Box>
       </Box>
     </Box>

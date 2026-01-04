@@ -22,49 +22,43 @@ export default function Login() {
   const [error, setError] = useState('');
   const { login } = useAuthStore();
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError('');
-  setIsLoading(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
 
-  try {
-    console.log('Attempting login with:', { username, password });
-    
-    // Make login API call
-    const response = await authApi.login({ username, password });
-    
-    console.log('API Response:', response);
-    
-    // Now response is already the extracted data (ApiResponse)
-    if (response.success && response.data) {
-      const { token, refreshToken, user } = response.data;
+    try {
+      console.log('Attempting login with:', { username, password });
       
-      console.log('Login successful:', { token, refreshToken, user });
+      const response = await authApi.login({ username, password });
       
-      // Save to auth store
-      login(user, token, refreshToken);
+      console.log('API Response:', response);
       
-      // Show success message
-      toast.success(response.message || 'Login successful');
+      if (response.success && response.data) {
+        const { token, refreshToken, user } = response.data;
+        
+        console.log('Login successful:', { token, refreshToken, user });
+        
+        login(user, token, refreshToken);
+        
+        toast.success(response.message || 'Login successful');
+        
+        navigate('/dashboard');
+      } else {
+        const errorMsg = response.message || 'Login failed';
+        console.error('Login failed:', errorMsg);
+        setError(errorMsg);
+        toast.error(errorMsg);
+      }
+    } catch (error: any) {
+      console.error('Login catch error:', error);
       
-      // Navigate to dashboard
-      navigate('/dashboard');
-    } else {
-      const errorMsg = response.message || 'Login failed';
-      console.error('Login failed:', errorMsg);
-      setError(errorMsg);
-      toast.error(errorMsg);
+      const errorMessage = error.message || 'An error occurred during login';
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error: any) {
-    console.error('Login catch error:', error);
-    
-    // Error already handled by axios interceptor
-    const errorMessage = error.message || 'An error occurred during login';
-    setError(errorMessage);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   return (
     <Box
@@ -73,7 +67,7 @@ const handleSubmit = async (e: React.FormEvent) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#f5f5f5',
+        backgroundColor: 'background.default', // FIXED: Changed from #f5f5f5 to theme color
         p: 2,
       }}
     >
@@ -84,6 +78,7 @@ const handleSubmit = async (e: React.FormEvent) => {
           width: '100%',
           maxWidth: 400,
           borderRadius: 2,
+          bgcolor: 'background.paper', // FIXED: Added background color
         }}
       >
         <Box sx={{ textAlign: 'center', mb: 3 }}>

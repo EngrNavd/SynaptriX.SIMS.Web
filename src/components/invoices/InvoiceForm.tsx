@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Grid, // CHANGED BACK to regular Grid
+  Grid,
   Paper,
   Typography,
   TextField,
@@ -162,7 +162,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
       <Box sx={{ width: '100%' }}>
         {/* Customer Selection Section */}
         <Box sx={{ mb: 4 }}>
-          <Typography variant="h6" gutterBottom color="primary.main">
+          <Typography variant="h6" gutterBottom color="primary">
             Customer Information
           </Typography>
           <CustomerSelection
@@ -175,7 +175,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
 
         {/* Product Selection Section */}
         <Box sx={{ mb: 4 }}>
-          <Typography variant="h6" gutterBottom color="primary.main">
+          <Typography variant="h6" gutterBottom color="primary">
             Products & Services
           </Typography>
           <ProductSelection
@@ -240,8 +240,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                       }
                     }}
                   >
-                    {/* Product Info - Would come from API in real app */}
-                    <Typography variant="body2">Product #{item.productId.substring(0, 8)}...</Typography>
+                    {/* Product Info*/}
+                    <Typography variant="body2">Product No.{item.productId.substring(0, 8)}...</Typography>
                     
                     {/* Unit Price */}
                     <TextField
@@ -339,7 +339,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                 <Typography variant="body2" color="text.secondary">
                   Shipping: {UAEUtils.formatCurrency(totals.shipping)}
                 </Typography>
-                <Typography variant="h6" fontWeight="bold" color="primary.main" sx={{ mt: 1 }}>
+                <Typography variant="h6" fontWeight="bold" color="primary" sx={{ mt: 1 }}>
                   Total: {UAEUtils.formatCurrency(totals.total)}
                 </Typography>
               </Box>
@@ -351,7 +351,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
         <Grid container spacing={3}>
           {/* Left Column - Dates */}
           <Grid item xs={12} md={6}>
-            <Typography variant="h6" gutterBottom color="primary.main">
+            <Typography variant="h6" gutterBottom color="primary">
               Invoice Details
             </Typography>
             
@@ -422,7 +422,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
 
           {/* Right Column - Payment & Notes */}
           <Grid item xs={12} md={6}>
-            <Typography variant="h6" gutterBottom color="primary.main">
+            <Typography variant="h6" gutterBottom color="primary">
               Payment Information
             </Typography>
             
@@ -454,7 +454,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
               sx={{ mb: 2 }}
             />
             
-            <Typography variant="h6" gutterBottom color="primary.main" sx={{ mt: 3 }}>
+            <Typography variant="h6" gutterBottom color="primary" sx={{ mt: 3 }}>
               Notes
             </Typography>
             

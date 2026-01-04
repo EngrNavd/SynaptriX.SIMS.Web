@@ -22,7 +22,6 @@ import {
   FormControl,
   InputLabel,
   Stack,
-  IconButton,
   Paper
 } from '@mui/material';
 import {
@@ -82,12 +81,10 @@ const Settings: React.FC = () => {
 
   const handleSave = () => {
     alert('Settings saved successfully!');
-    // In real app: API call to save settings
   };
 
   const handleReset = () => {
     if (window.confirm('Reset all settings to default?')) {
-      // Reset logic here
       alert('Settings reset to default');
     }
   };
@@ -103,13 +100,13 @@ const Settings: React.FC = () => {
 
   const renderGeneralSettings = () => (
     <Grid container spacing={3}>
-      <Grid  xs={12}>
+      <Grid item xs={12}>
         <Alert severity="info" icon={<Info />}>
           General application settings. Changes will be applied to all users.
         </Alert>
       </Grid>
 
-      <Grid  xs={12} md={6}>
+      <Grid item xs={12} md={6}>
         <TextField
           fullWidth
           label="Company Name"
@@ -119,7 +116,7 @@ const Settings: React.FC = () => {
         />
       </Grid>
 
-      <Grid  xs={12} md={6}>
+      <Grid item xs={12} md={6}>
         <TextField
           fullWidth
           label="Contact Email"
@@ -130,7 +127,7 @@ const Settings: React.FC = () => {
         />
       </Grid>
 
-      <Grid  xs={12} md={6}>
+      <Grid item xs={12} md={6}>
         <TextField
           fullWidth
           label="Phone Number"
@@ -140,7 +137,7 @@ const Settings: React.FC = () => {
         />
       </Grid>
 
-      <Grid  xs={12} md={6}>
+      <Grid item xs={12} md={6}>
         <FormControl fullWidth>
           <InputLabel>Currency</InputLabel>
           <Select
@@ -157,7 +154,7 @@ const Settings: React.FC = () => {
         </FormControl>
       </Grid>
 
-      <Grid  xs={12} md={6}>
+      <Grid item xs={12} md={6}>
         <FormControl fullWidth>
           <InputLabel>Language</InputLabel>
           <Select
@@ -171,7 +168,7 @@ const Settings: React.FC = () => {
         </FormControl>
       </Grid>
 
-      <Grid  xs={12} md={6}>
+      <Grid item xs={12} md={6}>
         <FormControl fullWidth>
           <InputLabel>Timezone</InputLabel>
           <Select
@@ -191,13 +188,13 @@ const Settings: React.FC = () => {
 
   const renderSecuritySettings = () => (
     <Grid container spacing={3}>
-      <Grid  xs={12}>
+      <Grid item xs={12}>
         <Alert severity="warning" icon={<Warning />}>
           Security settings affect user authentication and data protection.
         </Alert>
       </Grid>
 
-      <Grid  xs={12}>
+      <Grid item xs={12}>
         <FormControlLabel
           control={
             <Switch
@@ -217,7 +214,7 @@ const Settings: React.FC = () => {
         />
       </Grid>
 
-      <Grid  xs={12} md={6}>
+      <Grid item xs={12} md={6}>
         <FormControl fullWidth>
           <InputLabel>Session Timeout (minutes)</InputLabel>
           <Select
@@ -234,7 +231,7 @@ const Settings: React.FC = () => {
         </FormControl>
       </Grid>
 
-      <Grid  xs={12} md={6}>
+      <Grid item xs={12} md={6}>
         <FormControl fullWidth>
           <InputLabel>Password Expiry (days)</InputLabel>
           <Select
@@ -251,12 +248,12 @@ const Settings: React.FC = () => {
         </FormControl>
       </Grid>
 
-      <Grid  xs={12}>
+      <Grid item xs={12}>
         <Divider sx={{ my: 2 }} />
         <Typography variant="h6" gutterBottom>
           Security Audit Log
         </Typography>
-        <Paper variant="outlined" sx={{ p: 2 }}>
+        <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
           <List>
             <ListItem>
               <ListItemIcon>
@@ -293,7 +290,7 @@ const Settings: React.FC = () => {
 
   const renderNotificationSettings = () => (
     <Grid container spacing={3}>
-      <Grid  xs={12}>
+      <Grid item xs={12}>
         <FormControlLabel
           control={
             <Switch
@@ -313,7 +310,7 @@ const Settings: React.FC = () => {
         />
       </Grid>
 
-      <Grid  xs={12}>
+      <Grid item xs={12}>
         <FormControlLabel
           control={
             <Switch
@@ -333,17 +330,17 @@ const Settings: React.FC = () => {
         />
       </Grid>
 
-      <Grid  xs={12}>
+      <Grid item xs={12}>
         <Divider />
       </Grid>
 
-      <Grid  xs={12}>
+      <Grid item xs={12}>
         <Typography variant="h6" gutterBottom>
           Alert Preferences
         </Typography>
       </Grid>
 
-      <Grid  xs={12} md={6}>
+      <Grid item xs={12} md={6}>
         <FormControlLabel
           control={
             <Switch
@@ -356,7 +353,7 @@ const Settings: React.FC = () => {
         />
       </Grid>
 
-      <Grid  xs={12} md={6}>
+      <Grid item xs={12} md={6}>
         <FormControlLabel
           control={
             <Switch
@@ -369,7 +366,7 @@ const Settings: React.FC = () => {
         />
       </Grid>
 
-      <Grid  xs={12}>
+      <Grid item xs={12}>
         <TextField
           fullWidth
           label="Notification Email"
@@ -384,7 +381,7 @@ const Settings: React.FC = () => {
 
   const renderBusinessSettings = () => (
     <Grid container spacing={3}>
-      <Grid  xs={12} md={6}>
+      <Grid item xs={12} md={6}>
         <TextField
           fullWidth
           label="Tax Rate (%)"
@@ -398,7 +395,7 @@ const Settings: React.FC = () => {
         />
       </Grid>
 
-      <Grid  xs={12} md={6}>
+      <Grid item xs={12} md={6}>
         <TextField
           fullWidth
           label="Invoice Prefix"
@@ -408,7 +405,7 @@ const Settings: React.FC = () => {
         />
       </Grid>
 
-      <Grid  xs={12}>
+      <Grid item xs={12}>
         <FormControlLabel
           control={
             <Switch
@@ -428,12 +425,12 @@ const Settings: React.FC = () => {
         />
       </Grid>
 
-      <Grid  xs={12}>
+      <Grid item xs={12}>
         <Divider sx={{ my: 2 }} />
         <Typography variant="h6" gutterBottom>
           Storage Information
         </Typography>
-        <Paper variant="outlined" sx={{ p: 2 }}>
+        <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
           <Stack direction="row" spacing={3} alignItems="center">
             <Cloud color="primary" />
             <Box sx={{ flexGrow: 1 }}>
@@ -442,7 +439,7 @@ const Settings: React.FC = () => {
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Box sx={{ flexGrow: 1 }}>
-                  <Box sx={{ height: 8, bgcolor: 'grey.200', borderRadius: 4, overflow: 'hidden' }}>
+                  <Box sx={{ height: 8, bgcolor: 'divider', borderRadius: 4, overflow: 'hidden' }}>
                     <Box sx={{ width: '45%', height: '100%', bgcolor: 'primary.main' }} />
                   </Box>
                 </Box>
@@ -473,7 +470,7 @@ const Settings: React.FC = () => {
 
   return (
     <Container maxWidth="lg">
-      {/* Header */}
+      {/* Header - FIXED: Removed hard-coded color */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" component="h1" fontWeight={600} gutterBottom>
           Settings
@@ -485,8 +482,8 @@ const Settings: React.FC = () => {
 
       <Grid container spacing={3}>
         {/* Sidebar Tabs */}
-        <Grid  xs={12} md={3}>
-          <Card>
+        <Grid item xs={12} md={3}>
+          <Card sx={{ bgcolor: 'background.paper' }}>
             <List disablePadding>
               {tabs.map((tab) => (
                 <ListItem
@@ -497,7 +494,7 @@ const Settings: React.FC = () => {
                   sx={{
                     borderLeft: activeTab === tab.id ? 3 : 0,
                     borderColor: 'primary.main',
-                    bgcolor: activeTab === tab.id ? 'primary.lighter' : 'transparent',
+                    bgcolor: activeTab === tab.id ? 'action.hover' : 'transparent',
                     '&:hover': {
                       bgcolor: 'action.hover'
                     }
@@ -513,7 +510,7 @@ const Settings: React.FC = () => {
           </Card>
 
           {/* Quick Stats */}
-          <Card sx={{ mt: 3 }}>
+          <Card sx={{ mt: 3, bgcolor: 'background.paper' }}>
             <CardContent>
               <Typography variant="subtitle2" gutterBottom color="text.secondary">
                 System Status
@@ -541,8 +538,8 @@ const Settings: React.FC = () => {
         </Grid>
 
         {/* Main Content */}
-        <Grid  xs={12} md={9}>
-          <Card>
+        <Grid item xs={12} md={9}>
+          <Card sx={{ bgcolor: 'background.paper' }}>
             <CardHeader
               title={tabs.find(t => t.id === activeTab)?.label}
               subheader="Configure settings for this section"
