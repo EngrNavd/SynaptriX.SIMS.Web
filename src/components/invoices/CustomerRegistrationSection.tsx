@@ -302,7 +302,7 @@ const CustomerRegistrationSection: React.FC<CustomerRegistrationSectionProps> = 
               error={!!mobileError}
               helperText={mobileError || "Enter UAE mobile number and press Enter to search"}
               InputProps={{
-                startAdornment: <InputAdornment position="start">+971</InputAdornment>,
+                startAdornment: <InputAdornment position="start"></InputAdornment>,
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton

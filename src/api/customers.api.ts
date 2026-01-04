@@ -47,7 +47,7 @@ export const customersApi = {
 
   // Get customer by mobile
   getCustomerByMobile: async (mobileNumber: string): Promise<ApiResponse<CustomerDto>> => {
-    const formattedMobile = ApiUtils.formatMobileForApi(mobileNumber);
+    // const formattedMobile = ApiUtils.formatMobileForApi(mobileNumber);
     const response = await axiosClient.get(`/customers/by-mobile/${encodeURIComponent(formattedMobile)}`);
     const extracted = extractResponseData(response);
     return ApiUtils.processApiResponse<CustomerDto>(extracted, false);

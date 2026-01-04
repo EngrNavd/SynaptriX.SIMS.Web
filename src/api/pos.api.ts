@@ -1,6 +1,7 @@
 import { api } from './index';
 import type { ApiResponse } from '../types/api.types';
 import type { CustomerLookupResponse } from '../types/customer.types';
+import { UAEUtils } from '@/utils/uae.utils';
 
 /**
  * POS (Point of Sale) API client
@@ -16,8 +17,10 @@ export const posApi = {
   try {
     console.log(`[POS API] Looking up customer with mobile: ${mobile}`);
     
-    // Clean the mobile number for API call
-    const cleanMobile = mobile.replace(/\D/g, '').replace(/^971/, '');
+    // Clean the mobile number for API call	
+    // const cleanMobile = mobile.replace(/\D/g, '').replace(/^971/, '');
+	const cleanMobile = UAEUtils.formatMobileForApi(mobile);
+	console.log('POS API - Formatted mobile for API:', cleanMobile);
     
     // Use makeFreshRequest to bypass deduplication cache
     const response = await api.get<ApiResponse<CustomerLookupResponse>>(

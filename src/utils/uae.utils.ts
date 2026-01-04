@@ -1,66 +1,80 @@
 // src/utils/uae.utils.ts
 export class UAEUtils {
   // Format UAE mobile number for display
-  static formatMobileForDisplay(mobile: string): string {
-    if (!mobile) return '';
-    
-    // Remove any non-digit characters
-    const digits = mobile.replace(/\D/g, '');
-    
-    // Handle different formats
-    if (digits.length === 9 && digits.startsWith('5')) {
-      // 5xxxxxxxx format
-      return `+971 ${digits.substring(0, 2)} ${digits.substring(2, 5)} ${digits.substring(5)}`;
-    } else if (digits.length === 12 && digits.startsWith('971')) {
-      // 9715xxxxxxxx format
-      const mobileNumber = digits.substring(3);
-      return `+971 ${mobileNumber.substring(0, 2)} ${mobileNumber.substring(2, 5)} ${mobileNumber.substring(5)}`;
-    } else if (digits.length === 13 && digits.startsWith('971')) {
-      // +9715xxxxxxxx format already
-      const mobileNumber = digits.substring(3);
-      return `+971 ${mobileNumber.substring(0, 2)} ${mobileNumber.substring(2, 5)} ${mobileNumber.substring(5)}`;
-    }
-    
-    return mobile;
-  }
+	static formatMobileForDisplay(mobile: string): string {
+	  if (!mobile) return '';
+	  
+	  const digits = mobile.replace(/\D/g, '');
+	  
+	  // Convert to +971 5X XXX XXXX format for display
+	  if (digits.length === 10 && digits.startsWith('05')) {
+		// 0555588380 → +971 55 558 8380
+		const mobilePart = digits.substring(1); // Remove leading 0
+		return `+971 ${mobilePart.substring(0, 2)} ${mobilePart.substring(2, 5)} ${mobilePart.substring(5)}`;
+	  } else if (digits.length === 9 && digits.startsWith('5')) {
+		// 555588380 → +971 55 558 8380
+		return `+971 ${digits.substring(0, 2)} ${digits.substring(2, 5)} ${digits.substring(5)}`;
+	  } else if (digits.length === 12 && digits.startsWith('971')) {
+		// 971555588380 → +971 55 558 8380
+		const mobilePart = digits.substring(3);
+		return `+971 ${mobilePart.substring(0, 2)} ${mobilePart.substring(2, 5)} ${mobilePart.substring(5)}`;
+	  }
+	  
+	  return mobile;
+	}
 
   // Format mobile number for API/backend
-  static formatMobileForApi(mobile: string): string {
-    if (!mobile) return '';
-    
-    // Remove any non-digit characters
-    const digits = mobile.replace(/\D/g, '');
-    
-    // Convert to +9715XXXXXXXX format
-    if (digits.length === 9 && digits.startsWith('5')) {
-      return `+971${digits}`;
-    } else if (digits.length === 12 && digits.startsWith('971')) {
-      return `+${digits}`;
-    } else if (digits.length === 13 && digits.startsWith('971')) {
-      return `+${digits}`;
-    } else if (digits.startsWith('+971') && digits.length === 13) {
-      return digits; // Already in correct format
-    }
-    
-    // If it starts with 0, remove it and add +971
-    if (digits.length === 10 && digits.startsWith('05')) {
-      return `+971${digits.substring(1)}`;
-    }
-    
-    return mobile;
-  }
-
+	static formatMobileForApi(mobile: string): string {
+	  if (!mobile) return '';
+	  
+	  // Remove any non-digit characters
+	  const digits = mobile.replace(/\D/g, '');
+	  
+	  console.log('DEBUG - formatMobileForApi input:', mobile, 'digits:', digits); // Add this
+	  
+	  // Convert to 05XXXXXXXX format (what backend expects)
+	  if (digits.length === 9 && digits.startsWith('5')) {
+		// 555588380 → 0555588380
+		return `0${digits}`;
+	  } else if (digits.length === 12 && digits.startsWith('971')) {
+		// 971555588380 → 0555588380
+		return `0${digits.substring(3)}`; // Remove 971, add 0
+	  } else if (digits.length === 13 && digits.startsWith('971')) {
+		// +971555588380 → 0555588380
+		return `0${digits.substring(3)}`; // Remove 971, add 0
+	  } else if (digits.startsWith('+971') && digits.length === 13) {
+		// +971555588380 → 0555588380
+		return `0${digits.substring(4)}`; // Remove +971, add 0
+	  } else if (digits.length === 10 && digits.startsWith('05')) {
+		// 0555588380 → 0555588380 (already correct)
+		return digits;
+	  }
+	  
+	  // If we can't determine the format, return as-is
+	  return mobile;
+	}
   // Validate UAE mobile number
-  static isValidUaeMobile(mobile: string): boolean {
-    if (!mobile) return false;
-    
-    const formatted = this.formatMobileForApi(mobile);
-    
-    // UAE mobile regex: +971 followed by 5, 50, 52, 54, 55, 56, 58
-    const uaeMobileRegex = /^\+971(5[0-9]|50|52|54|55|56|58)\d{7}$/;
-    
-    return uaeMobileRegex.test(formatted);
-  }
+	static isValidUaeMobile(mobile: string): boolean {
+	  if (!mobile) return false;
+	  
+	  const digits = mobile.replace(/\D/g, '');
+	  
+	  // Accept multiple formats but all must be valid UAE mobile
+	  if (digits.length === 10 && digits.startsWith('05')) {
+		// 0555588386 format
+		const mobilePart = digits.substring(1);
+		return mobilePart.length === 9 && mobilePart.startsWith('5');
+	  } else if (digits.length === 9 && digits.startsWith('5')) {
+		// 555588386 format
+		return true;
+	  } else if ((digits.length === 12 || digits.length === 13) && digits.startsWith('971')) {
+		// 971555588386 or +971555588386 format
+		const mobilePart = digits.substring(3);
+		return mobilePart.length === 9 && mobilePart.startsWith('5');
+	  }
+	  
+	  return false;
+	}
 
   // Validate UAE TRN (Tax Registration Number)
   static isValidTrn(trn: string): boolean {
