@@ -362,60 +362,6 @@ export class ApiUtils {
   }
 
   /**
-   * Format mobile number for API (UAE format: +971501234567)
-   */
-  static formatMobileForApi(mobile: string): string {
-    if (!mobile) return '';
-    
-    // Remove any non-digit characters
-    let cleaned = mobile.replace(/\D/g, '');
-    
-    // Handle different formats
-    if (cleaned.startsWith('971')) {
-      return '+' + cleaned;
-    } else if (cleaned.startsWith('0') && cleaned.length === 10) {
-      // 0501234567 -> +971501234567
-      cleaned = '971' + cleaned.substring(1);
-    } else if (cleaned.length === 9 && cleaned.startsWith('5')) {
-      // 501234567 -> +971501234567
-      cleaned = '971' + cleaned;
-    } else if (cleaned.length === 12 && cleaned.startsWith('971')) {
-      // Already in correct format
-    } else if (cleaned.length === 10 && cleaned.startsWith('05')) {
-      // 0501234567 -> +971501234567
-      cleaned = '971' + cleaned.substring(1);
-    }
-    
-    return cleaned.startsWith('+') ? cleaned : '+' + cleaned;
-  }
-
-  /**
-   * Format mobile number for display (UAE format: 050-123-4567)
-   */
-  static formatMobileForDisplay(mobile: string): string {
-    if (!mobile) return '';
-    
-    // Remove any non-digit characters
-    let cleaned = mobile.replace(/\D/g, '');
-    
-    // Remove country code if present
-    if (cleaned.startsWith('971')) {
-      cleaned = '0' + cleaned.substring(3);
-    } else if (cleaned.startsWith('+971')) {
-      cleaned = '0' + cleaned.substring(4);
-    }
-    
-    // Format as UAE mobile: 050-123-4567
-    if (cleaned.length === 10 && cleaned.startsWith('05')) {
-      return `${cleaned.substring(0, 3)}-${cleaned.substring(3, 6)}-${cleaned.substring(6)}`;
-    } else if (cleaned.length === 9 && cleaned.startsWith('5')) {
-      return `0${cleaned.substring(0, 2)}-${cleaned.substring(2, 5)}-${cleaned.substring(5)}`;
-    }
-    
-    return mobile;
-  }
-
-  /**
    * Format date for backend API (.NET DateTime)
    */
   static formatDateForBackend(date: string | Date, format: 'iso' | 'string' = 'iso'): string {
