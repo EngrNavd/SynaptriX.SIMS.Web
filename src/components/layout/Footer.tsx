@@ -5,10 +5,7 @@ const Footer: React.FC = () => {
   return (
     <Box sx={{ textAlign: 'center' }}>
       <Typography variant="body2" color="text.secondary">
-        © 2025 SynaptriX SIMS. All rights reserved.
-      </Typography>
-      <Typography variant="caption" color="text.secondary">
-        Version 2.0.1 • UAE Localized
+        © 2026 SynaptriX SIMS. All rights reserved.
       </Typography>
       <Box sx={{ mt: 1 }}>
         <Link
