@@ -646,7 +646,7 @@ const Products: React.FC = () => {
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
             <TextField
               fullWidth
-              placeholder="Search products by name, IMEI, or description..."
+              placeholder="Search products by name, Sku, or description..."
               value={searchTerm}
               onChange={handleSearch}
               InputProps={{
@@ -767,7 +767,7 @@ const Products: React.FC = () => {
                     : alpha(theme.palette.primary.light, 0.2),
                   color: theme.palette.mode === 'dark' ? 'white' : theme.palette.primary.dark
                 }}>
-                  IMEI
+                  Sku
                 </TableCell>
                 <TableCell sx={{ 
                   fontWeight: 600,
@@ -913,7 +913,7 @@ const Products: React.FC = () => {
                     >
                       <TableCell>
                         <Typography variant="body2" fontWeight={500}>
-                          {product.sku || 'N/A'}
+                          {product.Sku || 'N/A'}
                         </Typography>
                       </TableCell>
                       <TableCell>

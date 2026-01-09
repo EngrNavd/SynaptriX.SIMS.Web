@@ -63,9 +63,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
   }, [open]);
 
   const validationSchema = Yup.object({
-    IMEI: Yup.string()
-      .required('IMEI is required')
-      .matches(/^[A-Z0-9-]+$/, 'IMEI can only contain uppercase letters, numbers, and hyphens'),
+    sku: Yup.string()
+      .required('SKU is required')
+      .matches(/^[A-Z0-9-]+$/, 'SKU can only contain uppercase letters, numbers, and hyphens'),
     name: Yup.string()
       .required('Product name is required')
       .min(3, 'Product name must be at least 3 characters'),
@@ -102,7 +102,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
   const formik = useFormik({
     initialValues: {
-      IMEI: initialData?.IMEI || '',
+      sku: initialData?.sku || initialData?.SKU || '',
       name: initialData?.name || '',
       description: initialData?.description || '',
       purchasePrice: initialData?.purchasePrice || 0,
@@ -136,12 +136,13 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
   useEffect(() => {
     if (!isEdit && !initialData) {
-      const generateIMEI = () => {
-        const random1 = Math.floor(Math.random() * 10000).toString().padStart(5, '0');
-        const random2 = Math.floor(Math.random() * 10000).toString().padStart(5, '0');
-        return `${random1}${random2}${random1}`;
+      const generateSKU = () => {
+        const prefix = 'PRD';
+        const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+        const date = new Date().getFullYear().toString().slice(-2);
+        return `${prefix}-${date}-${random}`;
       };
-      formik.setFieldValue('IMEI', generateIMEI());
+      formik.setFieldValue('sku', generateSKU());
     }
 
     const loadCategories = async () => {
@@ -160,7 +161,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
   useEffect(() => {
     if (initialData) {
       formik.setValues({
-        IMEI: initialData.IMEI,
+        sku: initialData.sku || initialData.SKU || '',
         name: initialData.name,
         description: initialData.description,
         purchasePrice: initialData.purchasePrice,
@@ -219,10 +220,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
     ? alpha(theme.palette.primary.dark, 0.2)
     : alpha(theme.palette.primary.light, 0.1);
   
-  const cardBackground = theme.palette.mode === 'dark'
-    ? alpha(theme.palette.background.paper, 0.8)
-    : theme.palette.background.paper;
-  
   const borderColor = theme.palette.mode === 'dark'
     ? alpha(theme.palette.primary.main, 0.3)
     : alpha(theme.palette.primary.main, 0.2);
@@ -280,13 +277,13 @@ const ProductForm: React.FC<ProductFormProps> = ({
                   <TextField
                     inputRef={firstInputRef}
                     fullWidth
-                    label="IMEI *"
-                    name="IMEI"
-                    value={formik.values.IMEI}
+                    label="SKU *"
+                    name="sku"
+                    value={formik.values.sku}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    error={formik.touched.IMEI && Boolean(formik.errors.IMEI)}
-                    helperText={formik.touched.IMEI && formik.errors.IMEI}
+                    error={formik.touched.sku && Boolean(formik.errors.sku)}
+                    helperText={formik.touched.sku && formik.errors.sku}
                     disabled={isEdit}
                     InputProps={{
                       startAdornment: <InputAdornment position="start">#</InputAdornment>,
