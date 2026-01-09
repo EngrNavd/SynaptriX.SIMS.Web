@@ -3,13 +3,11 @@ import {
   IconButton,
   Tooltip,
   Box,
-  Typography,
   useTheme,
 } from '@mui/material';
 import {
   LightMode as LightModeIcon,
   DarkMode as DarkModeIcon,
-  AutoMode as AutoModeIcon,
 } from '@mui/icons-material';
 import { useThemeStore } from '@/stores/theme.store';
 
@@ -26,7 +24,6 @@ const ThemeToggle: React.FC = () => {
       <IconButton
         onClick={toggleTheme}
         sx={{
-          color: 'inherit',
           position: 'relative',
           width: 40,
           height: 40,
@@ -37,7 +34,9 @@ const ThemeToggle: React.FC = () => {
           '&:hover': {
             backgroundColor: theme.palette.action.hover,
             transform: 'scale(1.05)',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            boxShadow: theme.palette.mode === 'dark' 
+              ? '0 4px 12px rgba(0, 0, 0, 0.3)' 
+              : '0 4px 12px rgba(0, 0, 0, 0.1)',
           },
           '&:active': {
             transform: 'scale(0.95)',
@@ -48,14 +47,18 @@ const ThemeToggle: React.FC = () => {
           <LightModeIcon 
             sx={{ 
               fontSize: 20,
-              color: theme.palette.warning.light,
+              color: theme.palette.mode === 'dark' 
+                ? theme.palette.warning.light 
+                : theme.palette.warning.main,
             }} 
           />
         ) : (
           <DarkModeIcon 
             sx={{ 
               fontSize: 20,
-              color: theme.palette.primary.main,
+              color: theme.palette.mode === 'dark' 
+                ? theme.palette.primary.light 
+                : theme.palette.primary.main,
             }} 
           />
         )}

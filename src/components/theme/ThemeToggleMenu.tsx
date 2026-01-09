@@ -46,21 +46,21 @@ const ThemeToggleMenu: React.FC = () => {
       label: 'Light',
       icon: <LightModeIcon />,
       description: 'For daytime use',
-      color: '#F59E0B',
+      color: theme.palette.mode === 'dark' ? '#FBBF24' : '#D97706',
     },
     {
       mode: 'dark' as PaletteMode,
       label: 'Dark',
       icon: <DarkModeIcon />,
       description: 'For nighttime use',
-      color: '#3B82F6',
+      color: theme.palette.mode === 'dark' ? '#93C5FD' : '#2563EB',
     },
     {
       mode: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light' as PaletteMode,
       label: 'System',
       icon: <AutoModeIcon />,
       description: 'Follows system settings',
-      color: '#10B981',
+      color: theme.palette.mode === 'dark' ? '#34D399' : '#059669',
     },
   ];
 
@@ -70,7 +70,6 @@ const ThemeToggleMenu: React.FC = () => {
         <IconButton
           onClick={handleClick}
           sx={{
-            color: 'inherit',
             position: 'relative',
             width: 40,
             height: 40,
@@ -81,11 +80,20 @@ const ThemeToggleMenu: React.FC = () => {
             '&:hover': {
               backgroundColor: theme.palette.action.hover,
               transform: 'scale(1.05)',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+              boxShadow: theme.palette.mode === 'dark' 
+                ? '0 4px 12px rgba(0, 0, 0, 0.3)' 
+                : '0 4px 12px rgba(0, 0, 0, 0.1)',
             },
           }}
         >
-          <SettingsIcon sx={{ fontSize: 20 }} />
+          <SettingsIcon 
+            sx={{ 
+              fontSize: 20,
+              color: theme.palette.mode === 'dark' 
+                ? theme.palette.primary.light 
+                : theme.palette.primary.main,
+            }} 
+          />
         </IconButton>
       </Tooltip>
 
@@ -101,6 +109,8 @@ const ThemeToggleMenu: React.FC = () => {
             borderRadius: 2,
             overflow: 'visible',
             mt: 1.5,
+            backgroundColor: theme.palette.background.paper,
+            border: `1px solid ${theme.palette.divider}`,
             '&:before': {
               content: '""',
               display: 'block',
@@ -109,9 +119,11 @@ const ThemeToggleMenu: React.FC = () => {
               right: 14,
               width: 10,
               height: 10,
-              bgcolor: 'background.paper',
+              bgcolor: theme.palette.background.paper,
               transform: 'translateY(-50%) rotate(45deg)',
               zIndex: 0,
+              borderTop: `1px solid ${theme.palette.divider}`,
+              borderLeft: `1px solid ${theme.palette.divider}`,
             },
           },
         }}
@@ -119,8 +131,12 @@ const ThemeToggleMenu: React.FC = () => {
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
         <Box sx={{ px: 2, py: 1 }}>
-          <Typography variant="subtitle2" color="text.secondary">
-            Theme
+          <Typography 
+            variant="subtitle2" 
+            color={theme.palette.mode === 'dark' ? 'text.secondary' : 'text.primary'}
+            fontWeight={600}
+          >
+            Theme Settings
           </Typography>
         </Box>
         
@@ -157,10 +173,11 @@ const ThemeToggleMenu: React.FC = () => {
               primaryTypographyProps={{
                 fontSize: '0.875rem',
                 fontWeight: 500,
+                color: theme.palette.mode === 'dark' ? 'text.primary' : 'text.primary',
               }}
               secondaryTypographyProps={{
                 fontSize: '0.75rem',
-                color: 'text.secondary',
+                color: theme.palette.mode === 'dark' ? 'text.secondary' : 'text.secondary',
               }}
             />
             {mode === option.mode && (
@@ -168,7 +185,9 @@ const ThemeToggleMenu: React.FC = () => {
                 sx={{ 
                   ml: 2, 
                   fontSize: 16,
-                  color: theme.palette.primary.main,
+                  color: theme.palette.mode === 'dark' 
+                    ? theme.palette.primary.light 
+                    : theme.palette.primary.main,
                 }} 
               />
             )}
