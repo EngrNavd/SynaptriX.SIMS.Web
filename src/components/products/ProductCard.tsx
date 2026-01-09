@@ -9,7 +9,8 @@ import {
   IconButton,
   Menu,
   MenuItem,
-  Stack
+  Stack,
+  useTheme
 } from '@mui/material';
 import {
   MoreVert,
@@ -35,6 +36,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   onDelete,
   onAdjustStock
 }) => {
+  const theme = useTheme();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -85,7 +87,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
             position: 'absolute',
             top: 8,
             left: 8,
-            backgroundColor: 'rgba(255, 255, 255, 0.8)'
+            backgroundColor: theme.palette.mode === 'dark' 
+              ? 'rgba(0, 0, 0, 0.7)' 
+              : 'rgba(255, 255, 255, 0.8)'
           }}
         >
           <QrCode fontSize="small" />

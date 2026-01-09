@@ -18,7 +18,9 @@ import {
   CircularProgress,
   Typography,
   InputAdornment,
-  Divider
+  Divider,
+  useTheme,
+  alpha
 } from '@mui/material';
 import { Close, AttachFile } from '@mui/icons-material';
 import { useFormik } from 'formik';
@@ -40,15 +42,14 @@ const ProductForm: React.FC<ProductFormProps> = ({
   initialData,
   isEdit = false
 }) => {
+  const theme = useTheme();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   
-  // Refs for focus management
   const firstInputRef = useRef<HTMLInputElement>(null);
   const dialogTitleRef = useRef<HTMLDivElement>(null);
 
-  // Focus management
   useEffect(() => {
     if (open) {
       setTimeout(() => {
@@ -133,22 +134,17 @@ const ProductForm: React.FC<ProductFormProps> = ({
     }
   });
 
-  // Generate IMEI on component mount for new products
   useEffect(() => {
     if (!isEdit && !initialData) {
       const generateIMEI = () => {
         const random1 = Math.floor(Math.random() * 10000).toString().padStart(5, '0');
         const random2 = Math.floor(Math.random() * 10000).toString().padStart(5, '0');
-        const random3 = Math.floor(Math.random() * 10000).toString().padStart(5, '0');
-        // const date = new Date().getFullYear().toString().slice(-2);
         return `${random1}${random2}${random1}`;
       };
       formik.setFieldValue('IMEI', generateIMEI());
     }
 
-    // Load categories (mock data - replace with API call)
     const loadCategories = async () => {
-      // TODO: Replace with actual API call
       const mockCategories = [
         { id: 1, name: 'Phones' },
         { id: 2, name: 'Tablets' },
@@ -190,11 +186,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // In production, upload to server and get URL
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
-        // formik.setFieldValue('imageFile', file);
       };
       reader.readAsDataURL(file);
     }
@@ -214,12 +208,24 @@ const ProductForm: React.FC<ProductFormProps> = ({
   };
 
   const handleDialogClose = () => {
-    // Clear any focus before closing
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
     onClose();
   };
+
+  // Theme-aware styling with blue/navy theme
+  const sectionBackground = theme.palette.mode === 'dark' 
+    ? alpha(theme.palette.primary.dark, 0.2)
+    : alpha(theme.palette.primary.light, 0.1);
+  
+  const cardBackground = theme.palette.mode === 'dark'
+    ? alpha(theme.palette.background.paper, 0.8)
+    : theme.palette.background.paper;
+  
+  const borderColor = theme.palette.mode === 'dark'
+    ? alpha(theme.palette.primary.main, 0.3)
+    : alpha(theme.palette.primary.main, 0.2);
 
   return (
     <Dialog 
@@ -230,7 +236,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
       aria-labelledby="product-form-title"
       onTransitionEnd={(node, isAppearing) => {
         if (!isAppearing && !open) {
-          // Clean up focus after dialog closes
           const activeElement = document.activeElement as HTMLElement;
           if (activeElement && activeElement.closest('.MuiDialog-root')) {
             activeElement.blur();
@@ -242,20 +247,31 @@ const ProductForm: React.FC<ProductFormProps> = ({
         id="product-form-title"
         ref={dialogTitleRef}
         tabIndex={-1}
-        sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+        sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          bgcolor: theme.palette.mode === 'dark' 
+            ? alpha(theme.palette.primary.dark, 0.8)
+            : theme.palette.primary.main,
+          color: theme.palette.mode === 'dark' 
+            ? theme.palette.getContrastText(alpha(theme.palette.primary.dark, 0.8))
+            : 'white'
+        }}
       >
         {isEdit ? 'Edit Product' : 'Add New Product'}
         <IconButton 
           onClick={handleDialogClose} 
           size="small"
           aria-label="Close"
+          sx={{ color: 'inherit' }}
         >
           <Close />
         </IconButton>
       </DialogTitle>
       
       <form onSubmit={formik.handleSubmit}>
-        <DialogContent dividers>
+        <DialogContent dividers sx={{ bgcolor: theme.palette.background.default }}>
           <Grid container spacing={3}>
             {/* Left Column - Basic Info */}
             <Grid size={{ xs: 12, md: 8 }}>
@@ -313,7 +329,19 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
                 {/* Pricing Section */}
                 <Grid size={{ xs: 12 }}>
-                  <Typography variant="subtitle1" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
+                  <Typography variant="subtitle1" gutterBottom sx={{ 
+                    color: 'primary.main', 
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1
+                  }}>
+                    <Box sx={{ 
+                      width: 4, 
+                      height: 20, 
+                      bgcolor: 'primary.main',
+                      borderRadius: 1 
+                    }} />
                     Pricing Information
                   </Typography>
                 </Grid>
@@ -370,9 +398,18 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 </Grid>
 
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                  <Box sx={{ 
+                    p: 2, 
+                    bgcolor: sectionBackground, 
+                    borderRadius: 2,
+                    border: `1px solid ${borderColor}`
+                  }}>
                     <Typography variant="body2" color="text.secondary">
-                      Profit: <strong style={{ color: calculateProfit() >= 0 ? 'green' : 'red' }}>
+                      Profit: <strong style={{ 
+                        color: calculateProfit() >= 0 
+                          ? theme.palette.success.main 
+                          : theme.palette.error.main 
+                      }}>
                         AED {calculateProfit().toFixed(2)}
                       </strong>
                     </Typography>
@@ -380,9 +417,18 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 </Grid>
 
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                  <Box sx={{ 
+                    p: 2, 
+                    bgcolor: sectionBackground, 
+                    borderRadius: 2,
+                    border: `1px solid ${borderColor}`
+                  }}>
                     <Typography variant="body2" color="text.secondary">
-                      Profit Margin: <strong style={{ color: calculateProfitMargin() >= 0 ? 'green' : 'red' }}>
+                      Profit Margin: <strong style={{ 
+                        color: calculateProfitMargin() >= 0 
+                          ? theme.palette.success.main 
+                          : theme.palette.error.main 
+                      }}>
                         {calculateProfitMargin().toFixed(2)}%
                       </strong>
                     </Typography>
@@ -391,7 +437,19 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
                 {/* Stock Information */}
                 <Grid size={{ xs: 12 }}>
-                  <Typography variant="subtitle1" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
+                  <Typography variant="subtitle1" gutterBottom sx={{ 
+                    color: 'primary.main', 
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1
+                  }}>
+                    <Box sx={{ 
+                      width: 4, 
+                      height: 20, 
+                      bgcolor: 'primary.main',
+                      borderRadius: 1 
+                    }} />
                     Stock Information
                   </Typography>
                 </Grid>
@@ -440,7 +498,19 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
                 {/* Product Details */}
                 <Grid size={{ xs: 12 }}>
-                  <Typography variant="subtitle1" gutterBottom sx={{ color: 'primary.main', fontWeight: 600 }}>
+                  <Typography variant="subtitle1" gutterBottom sx={{ 
+                    color: 'primary.main', 
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1
+                  }}>
+                    <Box sx={{ 
+                      width: 4, 
+                      height: 20, 
+                      bgcolor: 'primary.main',
+                      borderRadius: 1 
+                    }} />
                     Product Details
                   </Typography>
                 </Grid>
@@ -537,15 +607,15 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 <Box
                   sx={{
                     border: '2px dashed',
-                    borderColor: 'grey.300',
+                    borderColor: borderColor,
                     borderRadius: 2,
                     p: 3,
                     textAlign: 'center',
                     cursor: 'pointer',
-                    bgcolor: 'grey.50',
+                    bgcolor: sectionBackground,
                     '&:hover': {
                       borderColor: 'primary.main',
-                      bgcolor: 'grey.100'
+                      bgcolor: alpha(theme.palette.primary.main, 0.05)
                     }
                   }}
                   onClick={() => document.getElementById('image-upload')?.click()}
@@ -577,7 +647,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
                     </Box>
                   ) : (
                     <>
-                      <AttachFile sx={{ fontSize: 48, color: 'grey.400', mb: 1 }} />
+                      <AttachFile sx={{ fontSize: 48, color: 'primary.light', mb: 1 }} />
                       <Typography variant="body2" color="text.secondary">
                         Click to upload product image
                       </Typography>
@@ -590,11 +660,29 @@ const ProductForm: React.FC<ProductFormProps> = ({
               </Box>
 
               {/* Stock Status Preview */}
-              <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2, mb: 3 }}>
-                <Typography variant="subtitle2" gutterBottom>
+              <Box sx={{ 
+                p: 2.5, 
+                bgcolor: sectionBackground, 
+                borderRadius: 2, 
+                mb: 3,
+                border: `1px solid ${borderColor}`
+              }}>
+                <Typography variant="subtitle2" gutterBottom sx={{ 
+                  fontWeight: 600,
+                  color: 'primary.main',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1
+                }}>
+                  <Box sx={{ 
+                    width: 3, 
+                    height: 16, 
+                    bgcolor: 'primary.main',
+                    borderRadius: 0.5 
+                  }} />
                   Stock Status Preview
                 </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="body2">Current Stock:</Typography>
                     <Typography
@@ -639,11 +727,28 @@ const ProductForm: React.FC<ProductFormProps> = ({
               </Box>
 
               {/* Financial Summary */}
-              <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
-                <Typography variant="subtitle2" gutterBottom>
+              <Box sx={{ 
+                p: 2.5, 
+                bgcolor: sectionBackground, 
+                borderRadius: 2,
+                border: `1px solid ${borderColor}`
+              }}>
+                <Typography variant="subtitle2" gutterBottom sx={{ 
+                  fontWeight: 600,
+                  color: 'primary.main',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1
+                }}>
+                  <Box sx={{ 
+                    width: 3, 
+                    height: 16, 
+                    bgcolor: 'primary.main',
+                    borderRadius: 0.5 
+                  }} />
                   Financial Summary
                 </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="body2">Total Cost Value:</Typography>
                     <Typography variant="body2">
@@ -656,7 +761,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
                       AED {(formik.values.quantity * formik.values.sellingPrice).toFixed(2)}
                     </Typography>
                   </Box>
-                  <Divider sx={{ my: 1 }} />
+                  <Divider sx={{ my: 1, borderColor: borderColor }} />
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="body2" fontWeight="bold">Potential Profit:</Typography>
                     <Typography
@@ -673,11 +778,17 @@ const ProductForm: React.FC<ProductFormProps> = ({
           </Grid>
         </DialogContent>
 
-        <DialogActions sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}>
+        <DialogActions sx={{ 
+          p: 3, 
+          borderTop: 1, 
+          borderColor: 'divider',
+          bgcolor: theme.palette.background.default 
+        }}>
           <Button 
             onClick={handleDialogClose} 
             disabled={loading}
             aria-label="Cancel"
+            variant="outlined"
           >
             Cancel
           </Button>
@@ -687,6 +798,16 @@ const ProductForm: React.FC<ProductFormProps> = ({
             disabled={loading}
             startIcon={loading ? <CircularProgress size={20} /> : null}
             aria-label={isEdit ? 'Update Product' : 'Create Product'}
+            sx={{
+              bgcolor: theme.palette.mode === 'dark' 
+                ? alpha(theme.palette.primary.dark, 0.9)
+                : theme.palette.primary.main,
+              '&:hover': {
+                bgcolor: theme.palette.mode === 'dark' 
+                  ? theme.palette.primary.dark
+                  : theme.palette.primary.dark
+              }
+            }}
           >
             {loading ? 'Saving...' : isEdit ? 'Update Product' : 'Create Product'}
           </Button>

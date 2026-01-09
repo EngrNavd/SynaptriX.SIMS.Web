@@ -23,11 +23,12 @@ import {
   Alert,
   Badge,
   Tooltip,
-  Paper,
   Divider,
   Stack,
   Grid,
-  Skeleton
+  Skeleton,
+  useTheme,
+  alpha
 } from '@mui/material';
 import {
   Search,
@@ -58,6 +59,7 @@ const Products: React.FC = () => {
   console.log('🔑 Token exists:', !!localStorage.getItem('token'));
   
   const queryClient = useQueryClient();
+  const theme = useTheme();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
@@ -380,7 +382,17 @@ const Products: React.FC = () => {
     <Grid container spacing={3} sx={{ mb: 4 }}>
       {[1, 2, 3, 4].map((index) => (
         <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
-          <Card>
+          <Card sx={{ 
+            bgcolor: theme.palette.mode === 'dark' 
+              ? alpha(theme.palette.primary.dark, 0.2)
+              : alpha(theme.palette.primary.light, 0.1),
+            border: `1px solid ${
+              theme.palette.mode === 'dark' 
+                ? alpha(theme.palette.primary.main, 0.3)
+                : alpha(theme.palette.primary.main, 0.2)
+            }`,
+            borderRadius: 2,
+          }}>
             <CardContent>
               <Skeleton variant="circular" width={24} height={24} sx={{ mb: 1 }} />
               <Skeleton variant="text" width="60%" height={20} sx={{ mb: 1 }} />
@@ -424,6 +436,16 @@ const Products: React.FC = () => {
             variant="contained"
             startIcon={<Add />}
             onClick={handleAddProduct}
+            sx={{
+              bgcolor: theme.palette.mode === 'dark' 
+                ? alpha(theme.palette.primary.dark, 0.9)
+                : theme.palette.primary.main,
+              '&:hover': {
+                bgcolor: theme.palette.mode === 'dark' 
+                  ? theme.palette.primary.dark
+                  : theme.palette.primary.dark
+              }
+            }}
           >
             Add Product
           </Button>
@@ -440,15 +462,39 @@ const Products: React.FC = () => {
       {!(productsLoading || inventoryLoading || lowStockLoading) && (
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Card>
+            <Card sx={{ 
+              bgcolor: theme.palette.mode === 'dark' 
+                ? alpha(theme.palette.primary.dark, 0.3)
+                : alpha(theme.palette.primary.light, 0.1),
+              border: `1px solid ${
+                theme.palette.mode === 'dark' 
+                  ? alpha(theme.palette.primary.main, 0.3)
+                  : alpha(theme.palette.primary.main, 0.2)
+              }`,
+              borderRadius: 2,
+              boxShadow: theme.shadows[1],
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: theme.shadows[4],
+                borderColor: theme.palette.primary.main
+              }
+            }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Inventory color="primary" sx={{ mr: 1 }} />
+                  <Box sx={{ 
+                    p: 1, 
+                    borderRadius: 1.5, 
+                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                    mr: 1.5 
+                  }}>
+                    <Inventory color="primary" />
+                  </Box>
                   <Typography variant="subtitle2" color="text.secondary">
                     Total Products
                   </Typography>
                 </Box>
-                <Typography variant="h4" fontWeight={600}>
+                <Typography variant="h4" fontWeight={700} color="primary.main">
                   {stats.totalProducts.toLocaleString()}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
@@ -459,15 +505,39 @@ const Products: React.FC = () => {
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Card>
+            <Card sx={{ 
+              bgcolor: theme.palette.mode === 'dark' 
+                ? alpha(theme.palette.success.dark, 0.3)
+                : alpha(theme.palette.success.light, 0.1),
+              border: `1px solid ${
+                theme.palette.mode === 'dark' 
+                  ? alpha(theme.palette.success.main, 0.3)
+                  : alpha(theme.palette.success.main, 0.2)
+              }`,
+              borderRadius: 2,
+              boxShadow: theme.shadows[1],
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: theme.shadows[4],
+                borderColor: theme.palette.success.main
+              }
+            }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <TrendingUp color="success" sx={{ mr: 1 }} />
+                  <Box sx={{ 
+                    p: 1, 
+                    borderRadius: 1.5, 
+                    bgcolor: alpha(theme.palette.success.main, 0.1),
+                    mr: 1.5 
+                  }}>
+                    <TrendingUp color="success" />
+                  </Box>
                   <Typography variant="subtitle2" color="text.secondary">
                     Inventory Value
                   </Typography>
                 </Box>
-                <Typography variant="h4" fontWeight={600}>
+                <Typography variant="h4" fontWeight={700} color="success.main">
                   {formatCurrency(stats.totalValue)}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
@@ -478,15 +548,39 @@ const Products: React.FC = () => {
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Card>
+            <Card sx={{ 
+              bgcolor: theme.palette.mode === 'dark' 
+                ? alpha(theme.palette.warning.dark, 0.3)
+                : alpha(theme.palette.warning.light, 0.1),
+              border: `1px solid ${
+                theme.palette.mode === 'dark' 
+                  ? alpha(theme.palette.warning.main, 0.3)
+                  : alpha(theme.palette.warning.main, 0.2)
+              }`,
+              borderRadius: 2,
+              boxShadow: theme.shadows[1],
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: theme.shadows[4],
+                borderColor: theme.palette.warning.main
+              }
+            }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Warning color="warning" sx={{ mr: 1 }} />
+                  <Box sx={{ 
+                    p: 1, 
+                    borderRadius: 1.5, 
+                    bgcolor: alpha(theme.palette.warning.main, 0.1),
+                    mr: 1.5 
+                  }}>
+                    <Warning color="warning" />
+                  </Box>
                   <Typography variant="subtitle2" color="text.secondary">
                     Low Stock
                   </Typography>
                 </Box>
-                <Typography variant="h4" fontWeight={600} color="warning.main">
+                <Typography variant="h4" fontWeight={700} color="warning.main">
                   {stats.lowStockCount}
                 </Typography>
               </CardContent>
@@ -494,15 +588,39 @@ const Products: React.FC = () => {
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Card>
+            <Card sx={{ 
+              bgcolor: theme.palette.mode === 'dark' 
+                ? alpha(theme.palette.error.dark, 0.3)
+                : alpha(theme.palette.error.light, 0.1),
+              border: `1px solid ${
+                theme.palette.mode === 'dark' 
+                  ? alpha(theme.palette.error.main, 0.3)
+                  : alpha(theme.palette.error.main, 0.2)
+              }`,
+              borderRadius: 2,
+              boxShadow: theme.shadows[1],
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: theme.shadows[4],
+                borderColor: theme.palette.error.main
+              }
+            }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Cancel color="error" sx={{ mr: 1 }} />
+                  <Box sx={{ 
+                    p: 1, 
+                    borderRadius: 1.5, 
+                    bgcolor: alpha(theme.palette.error.main, 0.1),
+                    mr: 1.5 
+                  }}>
+                    <Cancel color="error" />
+                  </Box>
                   <Typography variant="subtitle2" color="text.secondary">
                     Out of Stock
                   </Typography>
                 </Box>
-                <Typography variant="h4" fontWeight={600} color="error.main">
+                <Typography variant="h4" fontWeight={700} color="error.main">
                   {stats.outOfStockCount}
                 </Typography>
               </CardContent>
@@ -512,7 +630,18 @@ const Products: React.FC = () => {
       )}
 
       {/* Search and Filters */}
-      <Card sx={{ mb: 3 }}>
+      <Card sx={{ 
+        mb: 3,
+        bgcolor: theme.palette.mode === 'dark' 
+          ? alpha(theme.palette.primary.dark, 0.2)
+          : alpha(theme.palette.primary.light, 0.05),
+        border: `1px solid ${
+          theme.palette.mode === 'dark' 
+            ? alpha(theme.palette.primary.main, 0.3)
+            : alpha(theme.palette.primary.main, 0.2)
+        }`,
+        borderRadius: 2,
+      }}>
         <CardContent>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
             <TextField
@@ -615,20 +744,103 @@ const Products: React.FC = () => {
       </Card>
 
       {/* Products Table */}
-      <Card>
+      <Card sx={{ 
+        bgcolor: theme.palette.mode === 'dark' 
+          ? alpha(theme.palette.primary.dark, 0.1)
+          : 'white',
+        border: `1px solid ${
+          theme.palette.mode === 'dark' 
+            ? alpha(theme.palette.primary.main, 0.2)
+            : alpha(theme.palette.primary.main, 0.1)
+        }`,
+        borderRadius: 2,
+        overflow: 'hidden'
+      }}>
         <TableContainer>
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>IMEI</TableCell>
-                <TableCell>Product Name</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell align="right">Stock</TableCell>
-                <TableCell align="right">Purchase Price</TableCell>
-                <TableCell align="right">Selling Price</TableCell>
-                <TableCell align="right">Value</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="center">Actions</TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 600,
+                  bgcolor: theme.palette.mode === 'dark' 
+                    ? alpha(theme.palette.primary.dark, 0.3)
+                    : alpha(theme.palette.primary.light, 0.2),
+                  color: theme.palette.mode === 'dark' ? 'white' : theme.palette.primary.dark
+                }}>
+                  IMEI
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 600,
+                  bgcolor: theme.palette.mode === 'dark' 
+                    ? alpha(theme.palette.primary.dark, 0.3)
+                    : alpha(theme.palette.primary.light, 0.2),
+                  color: theme.palette.mode === 'dark' ? 'white' : theme.palette.primary.dark
+                }}>
+                  Product Name
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 600,
+                  bgcolor: theme.palette.mode === 'dark' 
+                    ? alpha(theme.palette.primary.dark, 0.3)
+                    : alpha(theme.palette.primary.light, 0.2),
+                  color: theme.palette.mode === 'dark' ? 'white' : theme.palette.primary.dark
+                }}>
+                  Category
+                </TableCell>
+                <TableCell align="right" sx={{ 
+                  fontWeight: 600,
+                  bgcolor: theme.palette.mode === 'dark' 
+                    ? alpha(theme.palette.primary.dark, 0.3)
+                    : alpha(theme.palette.primary.light, 0.2),
+                  color: theme.palette.mode === 'dark' ? 'white' : theme.palette.primary.dark
+                }}>
+                  Stock
+                </TableCell>
+                <TableCell align="right" sx={{ 
+                  fontWeight: 600,
+                  bgcolor: theme.palette.mode === 'dark' 
+                    ? alpha(theme.palette.primary.dark, 0.3)
+                    : alpha(theme.palette.primary.light, 0.2),
+                  color: theme.palette.mode === 'dark' ? 'white' : theme.palette.primary.dark
+                }}>
+                  Purchase Price
+                </TableCell>
+                <TableCell align="right" sx={{ 
+                  fontWeight: 600,
+                  bgcolor: theme.palette.mode === 'dark' 
+                    ? alpha(theme.palette.primary.dark, 0.3)
+                    : alpha(theme.palette.primary.light, 0.2),
+                  color: theme.palette.mode === 'dark' ? 'white' : theme.palette.primary.dark
+                }}>
+                  Selling Price
+                </TableCell>
+                <TableCell align="right" sx={{ 
+                  fontWeight: 600,
+                  bgcolor: theme.palette.mode === 'dark' 
+                    ? alpha(theme.palette.primary.dark, 0.3)
+                    : alpha(theme.palette.primary.light, 0.2),
+                  color: theme.palette.mode === 'dark' ? 'white' : theme.palette.primary.dark
+                }}>
+                  Value
+                </TableCell>
+                <TableCell sx={{ 
+                  fontWeight: 600,
+                  bgcolor: theme.palette.mode === 'dark' 
+                    ? alpha(theme.palette.primary.dark, 0.3)
+                    : alpha(theme.palette.primary.light, 0.2),
+                  color: theme.palette.mode === 'dark' ? 'white' : theme.palette.primary.dark
+                }}>
+                  Status
+                </TableCell>
+                <TableCell align="center" sx={{ 
+                  fontWeight: 600,
+                  bgcolor: theme.palette.mode === 'dark' 
+                    ? alpha(theme.palette.primary.dark, 0.3)
+                    : alpha(theme.palette.primary.light, 0.2),
+                  color: theme.palette.mode === 'dark' ? 'white' : theme.palette.primary.dark
+                }}>
+                  Actions
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -645,7 +857,7 @@ const Products: React.FC = () => {
                 <TableRow>
                   <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
                     <Box sx={{ textAlign: 'center' }}>
-                      <Inventory sx={{ fontSize: 60, color: 'grey.400', mb: 2 }} />
+                      <Inventory sx={{ fontSize: 60, color: 'primary.light', mb: 2 }} />
                       <Typography variant="h6" color="text.secondary">
                         {debouncedSearchTerm
                           ? `No products matching "${debouncedSearchTerm}"`
@@ -659,6 +871,16 @@ const Products: React.FC = () => {
                           variant="contained"
                           startIcon={<Add />}
                           onClick={handleAddProduct}
+                          sx={{
+                            bgcolor: theme.palette.mode === 'dark' 
+                              ? alpha(theme.palette.primary.dark, 0.9)
+                              : theme.palette.primary.main,
+                            '&:hover': {
+                              bgcolor: theme.palette.mode === 'dark' 
+                                ? theme.palette.primary.dark
+                                : theme.palette.primary.dark
+                            }
+                          }}
                         >
                           Add Product
                         </Button>
@@ -678,7 +900,17 @@ const Products: React.FC = () => {
                     : '0.0';
                   
                   return (
-                    <TableRow key={product.id} hover>
+                    <TableRow 
+                      key={product.id} 
+                      hover
+                      sx={{ 
+                        '&:hover': {
+                          bgcolor: theme.palette.mode === 'dark' 
+                            ? alpha(theme.palette.primary.dark, 0.2)
+                            : alpha(theme.palette.primary.light, 0.05)
+                        }
+                      }}
+                    >
                       <TableCell>
                         <Typography variant="body2" fontWeight={500}>
                           {product.sku || 'N/A'}
@@ -691,7 +923,7 @@ const Products: React.FC = () => {
                           </Typography>
                           {product.description && (
                             <Typography variant="caption" color="text.secondary">
-                              {product.description}
+                              {product.description.substring(0, 50)}...
                             </Typography>
                           )}
                         </Box>
@@ -777,6 +1009,15 @@ const Products: React.FC = () => {
             onRowsPerPageChange={(event) => {
               setRowsPerPage(parseInt(event.target.value, 10));
               setPage(0);
+            }}
+            sx={{
+              borderTop: 1,
+              borderColor: theme.palette.mode === 'dark' 
+                ? alpha(theme.palette.primary.main, 0.2)
+                : alpha(theme.palette.primary.main, 0.1),
+              bgcolor: theme.palette.mode === 'dark' 
+                ? alpha(theme.palette.primary.dark, 0.1)
+                : 'white'
             }}
           />
         )}

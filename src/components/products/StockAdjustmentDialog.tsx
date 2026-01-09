@@ -16,7 +16,8 @@ import {
   CircularProgress,
   Chip,
   IconButton,
-  Grid
+  Grid,
+  useTheme
 } from '@mui/material';
 import { Close, Add, Remove } from '@mui/icons-material';
 import { useFormik } from 'formik';
@@ -36,6 +37,7 @@ const StockAdjustmentDialog: React.FC<StockAdjustmentDialogProps> = ({
   product,
   onSuccess
 }) => {
+  const theme = useTheme();
   const [loading, setLoading] = useState(false);
   
   // Refs for focus management
@@ -112,6 +114,11 @@ const StockAdjustmentDialog: React.FC<StockAdjustmentDialogProps> = ({
   const newStockLevel = product.quantity + (formik.values.quantity || 0);
   const isOutOfStock = newStockLevel <= 0;
   const isLowStock = newStockLevel > 0 && newStockLevel <= product.minStockLevel;
+
+  // Theme-aware background color
+  const lightBackground = theme.palette.mode === 'dark' 
+    ? theme.palette.grey[800] 
+    : theme.palette.grey[50];
 
   return (
     <Dialog 
@@ -214,7 +221,13 @@ const StockAdjustmentDialog: React.FC<StockAdjustmentDialogProps> = ({
               </Button>
             </Box>
 
-            <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, mb: 2 }}>
+            <Box sx={{ 
+              p: 2, 
+              bgcolor: lightBackground, 
+              borderRadius: 1, 
+              mb: 2,
+              border: `1px solid ${theme.palette.divider}` 
+            }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography variant="body2">Current Stock:</Typography>
                 <Typography variant="body2" fontWeight="bold">{product.quantity}</Typography>
