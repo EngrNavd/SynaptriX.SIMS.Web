@@ -1,12 +1,13 @@
-// frontend/App.tsx
-import React from 'react';
+// src/App.tsx
+import React, { useEffect } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster } from 'react-hot-toast';
-import theme from './theme';
+import { createAppTheme } from './theme/index';
+import { useThemeStore, initializeTheme } from './stores/theme.store';
 import Layout from './components/layout/Layout';
 
 // Pages
@@ -23,15 +24,12 @@ import InvoiceListPage from './pages/invoices/InvoiceListPage';
 import InvoiceDetailPage from './pages/invoices/InvoiceDetailPage';
 import EditInvoicePage from './pages/invoices/EditInvoicePage';
 
-// POS Page (coming soon)
-// import PosInvoicePage from './pages/invoices/pos/PosInvoicePage';
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000,
       retry: 1,
-      refetchOnWindowFocus: false, // Better for user experience
+      refetchOnWindowFocus: false,
     },
   },
 });
@@ -48,6 +46,14 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 function App() {
+  const { mode } = useThemeStore();
+  const theme = createAppTheme(mode);
+
+  // Initialize theme on app start
+  useEffect(() => {
+    initializeTheme();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={theme}>
@@ -57,53 +63,24 @@ function App() {
             {/* Public Routes */}
             <Route path="/login" element={<Login />} />
             
-            {/* Protected Routes - Layout is the parent */}
+            {/* Protected Routes */}
             <Route path="/" element={
               <ProtectedRoute>
                 <Layout />
               </ProtectedRoute>
             }>
-              {/* Default redirect to dashboard */}
               <Route index element={<Navigate to="/dashboard" replace />} />
-              
-              {/* Dashboard */}
               <Route path="dashboard" element={<Dashboard />} />
-              
-              {/* Customers */}
               <Route path="customers" element={<Customers />} />
-              
-              {/* Products */}
               <Route path="products" element={<Products />} />
-              
-              {/* Orders */}
               <Route path="orders" element={<Orders />} />
-              
-              {/* Invoice Management */}
               <Route path="invoices">
-                {/* Invoice List */}
                 <Route index element={<InvoiceListPage />} />
-                
-                {/* Create New Invoice */}
                 <Route path="create" element={<CreateInvoicePage />} />
-                
-                {/* View Invoice Details */}
                 <Route path=":id" element={<InvoiceDetailPage />} />
-                
-                {/* Edit Invoice */}
                 <Route path=":id/edit" element={<EditInvoicePage />} />
-                
-                {/* POS Invoice (Coming Soon) */}
-                {/* <Route path="pos" element={<PosInvoicePage />} /> */}
-                
-                {/* Print/Export Routes (Can add later) */}
-                {/* <Route path=":id/print" element={<InvoicePrintPage />} /> */}
-                {/* <Route path=":id/pdf" element={<InvoicePdfPage />} /> */}
               </Route>
-              
-              {/* Settings */}
               <Route path="settings" element={<Settings />} />
-              
-              {/* Catch-all route for 404 */}
               <Route path="*" element={
                 <div style={{ 
                   display: 'flex', 
@@ -116,18 +93,22 @@ function App() {
                 }}>
                   <h1 style={{ fontSize: '4rem', marginBottom: '1rem' }}>404</h1>
                   <h2 style={{ marginBottom: '1rem' }}>Page Not Found</h2>
-                  <p style={{ marginBottom: '2rem', color: '#666' }}>
+                  <p style={{ marginBottom: '2rem', color: theme.palette.text.secondary }}>
                     The page you are looking for doesn't exist or has been moved.
                   </p>
                   <a 
                     href="/dashboard" 
                     style={{
                       padding: '0.75rem 1.5rem',
-                      backgroundColor: '#0A2463',
+                      background: theme.palette.primary.main,
                       color: 'white',
                       textDecoration: 'none',
                       borderRadius: '8px',
-                      fontWeight: 'bold'
+                      fontWeight: 'bold',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        background: theme.palette.primary.dark,
+                      }
                     }}
                   >
                     Go to Dashboard
@@ -143,42 +124,41 @@ function App() {
           toastOptions={{
             duration: 3000,
             style: {
-              background: '#1E293B',
-              color: '#FFFFFF',
+              background: theme.palette.background.paper,
+              color: theme.palette.text.primary,
               borderRadius: '8px',
-              border: '1px solid #334155',
+              border: `1px solid ${theme.palette.divider}`,
               fontSize: '14px',
               fontWeight: 500,
             },
             success: {
               iconTheme: {
-                primary: '#10B981',
-                secondary: '#FFFFFF',
+                primary: theme.palette.success.main,
+                secondary: theme.palette.background.paper,
               },
               style: {
-                background: '#064E3B',
-                borderColor: '#10B981',
+                background: mode === 'dark' ? '#064E3B' : '#D1FAE5',
+                borderColor: theme.palette.success.main,
               },
             },
             error: {
               iconTheme: {
-                primary: '#EF4444',
-                secondary: '#FFFFFF',
+                primary: theme.palette.error.main,
+                secondary: theme.palette.background.paper,
               },
               style: {
-                background: '#7F1D1D',
-                borderColor: '#EF4444',
+                background: mode === 'dark' ? '#7F1D1D' : '#FEE2E2',
+                borderColor: theme.palette.error.main,
               },
             },
             loading: {
               style: {
-                background: '#1E293B',
+                background: theme.palette.background.paper,
               },
             },
           }}
         />
         
-        {/* React Query DevTools - Only in development */}
         {process.env.NODE_ENV === 'development' && (
           <ReactQueryDevtools 
             initialIsOpen={false}

@@ -17,7 +17,8 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [ "./src/*" ],
+      "@theme": [ "src/theme/index.ts" ]
     }
   },
   "include": ["src"],
