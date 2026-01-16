@@ -344,7 +344,7 @@ export default function InvoiceListPage() {
               title="Paid"
               value={additionalStats.paidInvoices || 0}
               color="success"
-              progress={totalCount > 0 ? ((additionalStats.paidInvoices || 0) / totalCount) * 100 : 0}
+              progress={totalCount > 0 ? parseFloat((((additionalStats.paidInvoices || 0) / totalCount) * 100).toFixed(2)) : 0}
               tooltip="Fully paid invoices"
             />
           </Grid>
@@ -353,7 +353,7 @@ export default function InvoiceListPage() {
               title="Unpaid"
               value={additionalStats.unpaidInvoices || 0}
               color="error"
-              progress={totalCount > 0 ? ((additionalStats.unpaidInvoices || 0) / totalCount) * 100 : 0}
+              progress={totalCount > 0 ? parseFloat((((additionalStats.unpaidInvoices || 0) / totalCount) * 100).toFixed(2)) : 0}
               tooltip="Invoices with no payment"
             />
           </Grid>
@@ -362,7 +362,7 @@ export default function InvoiceListPage() {
               title="Partially Paid"
               value={invoices.filter(inv => inv.amountPaid > 0 && inv.amountDue > 0).length}
               color="warning"
-              progress={totalCount > 0 ? (invoices.filter(inv => inv.amountPaid > 0 && inv.amountDue > 0).length / totalCount) * 100 : 0}
+              progress={totalCount > 0 ? parseFloat(((invoices.filter(inv => inv.amountPaid > 0 && inv.amountDue > 0).length / totalCount) * 100).toFixed(2)) : 0}
               tooltip="Invoices with partial payment"
             />
           </Grid>
