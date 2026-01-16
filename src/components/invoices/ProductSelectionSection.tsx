@@ -148,7 +148,7 @@ const ProductSelectionSection: React.FC<ProductSelectionSectionProps> = ({
         return {
           totalItems: totals.totalItems + item.quantity,
           subtotal: totals.subtotal + itemTotal,
-          vatAmount: totals.vatAmount + (itemTotal * 0.05), // 5% VAT
+          vatAmount: totals.vatAmount + (itemTotal * 0.0), // 0% VAT
         };
       },
       { totalItems: 0, subtotal: 0, vatAmount: 0 }
@@ -428,7 +428,7 @@ const ProductSelectionSection: React.FC<ProductSelectionSectionProps> = ({
                 <Typography variant="h6">{UAEUtils.formatCurrency(subtotal)}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
-                <Typography variant="body2" color="textSecondary">VAT (5%)</Typography>
+                <Typography variant="body2" color="textSecondary">VAT (0%)</Typography>
                 <Typography variant="h6">{UAEUtils.formatCurrency(vatAmount)}</Typography>
               </Grid>
               <Grid item xs={12} sm={6} md={3}>

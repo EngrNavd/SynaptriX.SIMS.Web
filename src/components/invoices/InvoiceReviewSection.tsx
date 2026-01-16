@@ -609,7 +609,7 @@ const InvoiceReviewSection: React.FC<InvoiceReviewSectionProps> = ({
                 </Box>
 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body1">VAT (5%)</Typography>
+                  <Typography variant="body1">VAT (0%)</Typography>
                   <Typography variant="body1">{formatCurrency(taxAmount)}</Typography>
                 </Box>
 

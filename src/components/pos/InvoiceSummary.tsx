@@ -68,7 +68,7 @@ const InvoiceSummary: React.FC<InvoiceSummaryProps> = ({
         </Grid>
 
         <Grid size={{ xs: 6 }}>
-          <Typography variant="body1">VAT (5%):</Typography>
+          <Typography variant="body1">VAT (0%):</Typography>
         </Grid>
         <Grid size={{ xs: 6 }} sx={{ textAlign: 'right' }}>
           <Typography variant="body1">AED {vat.toFixed(2)}</Typography>

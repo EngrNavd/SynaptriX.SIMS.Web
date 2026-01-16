@@ -147,7 +147,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
   // Calculate invoice totals
   const calculateTotals = () => {
     const subtotal = items.reduce((sum, item) => sum + calculateItemTotal(item), 0);
-    const taxRate = 5; // UAE VAT 5%
+    const taxRate = 0; // VAT 0%
     const taxAmount = (subtotal * taxRate) / 100;
     const shipping = typeof formData.shippingCharges === 'number' ? formData.shippingCharges : 0;
     const total = subtotal + taxAmount + shipping;
@@ -334,7 +334,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
               </Box>
               <Box sx={{ textAlign: { xs: 'left', md: 'right' } }}>
                 <Typography variant="body2" color="text.secondary">
-                  VAT (5%): {UAEUtils.formatCurrency(totals.taxAmount)}
+                  VAT (0%): {UAEUtils.formatCurrency(totals.taxAmount)}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Shipping: {UAEUtils.formatCurrency(totals.shipping)}

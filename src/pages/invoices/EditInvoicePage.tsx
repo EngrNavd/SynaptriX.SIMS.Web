@@ -224,7 +224,7 @@ const EditInvoicePage: React.FC = () => {
       return sum + (itemTotal - discountAmount);
     }, 0);
 
-    const taxRate = 5; // UAE VAT 5%
+    const taxRate = 0; // VAT 0%
     const taxAmount = (subtotal * taxRate) / 100;
     const shipping = formData.shippingCharges || 0;
     const total = subtotal + taxAmount + shipping;
@@ -398,7 +398,7 @@ const EditInvoicePage: React.FC = () => {
             </Typography>
           </Box>
           <Box>
-            <Typography variant="body2" color="text.secondary">VAT (5%)</Typography>
+            <Typography variant="body2" color="text.secondary">VAT (0%)</Typography>
             <Typography variant="h6" fontWeight="bold">{UAEUtils.formatCurrency(totals.taxAmount)}</Typography>
             <Typography variant="caption" color="text.secondary">
               Original: {UAEUtils.formatCurrency(originalInvoice.taxAmount)}
