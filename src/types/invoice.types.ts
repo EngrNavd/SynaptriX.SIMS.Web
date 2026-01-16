@@ -38,6 +38,7 @@ export interface InvoiceDto {
   updatedAt?: string;
   updatedBy?: string;
   tenantId: string;
+  vatRate: number;
   isActive: boolean;
   items: InvoiceItemDto[];
 }
@@ -57,6 +58,7 @@ export interface InvoiceItemDto {
   totalPrice: number;
   warranty?: string;
   warrantyDays?: number;
+  serializedItems?: any[];
 }
 
 // Invoice List DTO
@@ -79,14 +81,14 @@ export interface InvoiceStatisticsDto {
   partiallyPaidInvoices: number;
   paidInvoices: number;
   cancelledInvoices: number;
-  
+
   // Payment Status Statistics
   unpaidInvoices: number;
   partiallyPaidPaymentInvoices: number;
   paidPaymentInvoices: number;
   overduePaymentInvoices: number;
   cancelledPaymentInvoices: number;
-  
+
   // Additional stats
   todayInvoices: number;
   thisMonthInvoices: number;
@@ -112,7 +114,7 @@ export interface UpdateInvoiceStatusRequest {
 // Enums
 export enum InvoiceStatus {
   Draft = "Draft",
-  Pending = "Pending", 
+  Pending = "Pending",
   Paid = "Paid",
   PartiallyPaid = "PartiallyPaid",
   Cancelled = "Cancelled"
@@ -120,7 +122,7 @@ export enum InvoiceStatus {
 
 export enum PaymentStatus {
   Unpaid = "Unpaid",
-  PartiallyPaid = "PartiallyPaid", 
+  PartiallyPaid = "PartiallyPaid",
   Paid = "Paid",
   Overdue = "Overdue",
   Cancelled = "Cancelled"
@@ -135,14 +137,15 @@ export enum PaymentMethod {
 
 export interface CreateInvoiceDto {
   customerId: string;
-  items: CreateInvoiceItemDto[];
-  shippingCharges?: number;
-  invoiceDate?: Date | string;
-  dueDate?: Date | string;
-  status?: string;
-  paymentMethod?: string;
-  paymentReference?: string;
   notes?: string;
+  vatRate?: number;
+}
+
+export interface CreateInvoiceItemDto {
+  productId: string;
+  quantity: number;
+  discountPercent?: number;
+  productItemIds?: string[];
 }
 
 export interface UpdateInvoiceDto {

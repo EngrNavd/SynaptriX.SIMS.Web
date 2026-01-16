@@ -1,6 +1,6 @@
 import { ApiResponse, UpdateCustomerDto } from '@/types';
 import toast from 'react-hot-toast';
-import axios, { AxiosError, AxiosResponse } from 'axios';
+import axios, { AxiosError } from 'axios';
 import { UAEUtils } from './uae.utils';
 
 /**
@@ -9,9 +9,7 @@ import { UAEUtils } from './uae.utils';
  */
 export class ApiUtils {
   // Configuration
-  private static readonly BACKEND_DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss.SSSZ';
-  private static readonly FRONTEND_DATE_FORMAT = 'YYYY-MM-DD';
-  
+
   // Property mappings between frontend (camelCase) and backend (PascalCase)
   private static readonly PROPERTY_MAPPINGS = {
     // Common fields
@@ -22,7 +20,7 @@ export class ApiUtils {
     updatedBy: 'UpdatedBy',
     isActive: 'IsActive',
     tenantId: 'TenantId',
-    
+
     // Customer fields
     fullName: 'fullName',
     mobile: 'Mobile',
@@ -41,7 +39,7 @@ export class ApiUtils {
     creditLimit: 'CreditLimit',
     currentBalance: 'CurrentBalance',
     notes: 'Notes',
-    
+
     // Product fields
     sku: 'Sku',
     name: 'Name',
@@ -66,7 +64,7 @@ export class ApiUtils {
     categoryId: 'CategoryId',
     categoryName: 'CategoryName',
     currency: 'Currency',
-    
+
     // Invoice fields
     invoiceNumber: 'InvoiceNumber',
     invoiceDate: 'InvoiceDate',
@@ -111,15 +109,15 @@ export class ApiUtils {
    */
   static handleError(error: any, customMessage?: string): void {
     console.error('[API Error]', error);
-    
+
     // Axios error structure
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError;
-      
+
       if (axiosError.response) {
         // Server responded with error status
         const responseData = axiosError.response.data as any;
-        
+
         if (responseData && responseData.errors && Array.isArray(responseData.errors)) {
           toast.error(responseData.errors.join(', ') || customMessage || 'Request failed');
         } else if (responseData && responseData.message) {
@@ -136,7 +134,7 @@ export class ApiUtils {
         // Error setting up request
         toast.error(customMessage || axiosError.message || 'Request configuration error');
       }
-    } 
+    }
     // Custom API error structure
     else if (error && error.apiError) {
       const apiError = error.apiError;
@@ -154,10 +152,10 @@ export class ApiUtils {
   static displayApiErrors(response: ApiResponse<any>): void {
     if (!response.success) {
       if (response.errors && response.errors.length > 0) {
-        const errorMessages = response.errors.map(err => 
+        const errorMessages = response.errors.map(err =>
           this.formatErrorMessage(err)
         ).filter(Boolean);
-        
+
         if (errorMessages.length > 0) {
           toast.error(errorMessages.join(', '));
         } else {
@@ -176,7 +174,7 @@ export class ApiUtils {
    */
   static formatErrorMessage(error: string): string {
     if (!error) return '';
-    
+
     // Remove property names and make user-friendly
     return error
       .replace(/^[A-Za-z]+\.?/, '')
@@ -192,7 +190,7 @@ export class ApiUtils {
    */
   static formatQueryParams(params: Record<string, any>): Record<string, any> {
     const formatted: Record<string, any> = {};
-    
+
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
         // Handle arrays and objects
@@ -208,7 +206,7 @@ export class ApiUtils {
         }
       }
     });
-    
+
     return formatted;
   }
 
@@ -221,7 +219,7 @@ export class ApiUtils {
   } = {}): any {
     const { ignoreNull = true, dateFormat = 'iso' } = options;
     const result: any = {};
-    
+
     for (const [key, value] of Object.entries(data)) {
       // Skip undefined/null values if ignoreNull is true
       if (ignoreNull && (value === undefined || value === null)) {
@@ -229,9 +227,9 @@ export class ApiUtils {
       }
 
       // Get backend property name from mapping or convert to PascalCase
-      const backendKey = this.PROPERTY_MAPPINGS[key as keyof typeof this.PROPERTY_MAPPINGS] || 
-                        key.charAt(0).toUpperCase() + key.slice(1);
-      
+      const backendKey = this.PROPERTY_MAPPINGS[key as keyof typeof this.PROPERTY_MAPPINGS] ||
+        key.charAt(0).toUpperCase() + key.slice(1);
+
       // Handle special transformations
       if (key === 'mobile' && typeof value === 'string') {
         result[backendKey] = UAEUtils.formatMobileForApi(value);
@@ -249,7 +247,7 @@ export class ApiUtils {
         result[backendKey] = Boolean(value);
       }
       else if (Array.isArray(value)) {
-        result[backendKey] = value.map(item => 
+        result[backendKey] = value.map(item =>
           typeof item === 'object' ? this.toBackendDto(item, options) : item
         );
       }
@@ -260,7 +258,7 @@ export class ApiUtils {
         result[backendKey] = value;
       }
     }
-    
+
     return result;
   }
 
@@ -278,7 +276,7 @@ export class ApiUtils {
     }
 
     const result: any = {};
-    
+
     for (const [key, value] of Object.entries(data)) {
       // Skip undefined/null values
       if (value === undefined || value === null) {
@@ -289,7 +287,7 @@ export class ApiUtils {
       let frontendKey = Object.keys(this.PROPERTY_MAPPINGS).find(
         k => this.PROPERTY_MAPPINGS[k as keyof typeof this.PROPERTY_MAPPINGS] === key
       );
-      
+
       if (!frontendKey) {
         frontendKey = key.charAt(0).toLowerCase() + key.slice(1);
       }
@@ -298,8 +296,8 @@ export class ApiUtils {
       if (key === 'Mobile' && typeof value === 'string') {
         result[frontendKey] = UAEUtils.formatMobileForDisplay(value);
       }
-      else if (key === 'DateOfBirth' || key === 'CreatedAt' || key === 'UpdatedAt' || 
-               key === 'InvoiceDate' || key === 'DueDate') {
+      else if (key === 'DateOfBirth' || key === 'CreatedAt' || key === 'UpdatedAt' ||
+        key === 'InvoiceDate' || key === 'DueDate') {
         result[frontendKey] = this.formatDateForFrontend(value);
       }
       else if (key === 'CreditLimit' || key === 'CurrentBalance' || key === 'Price' || key === 'Amount') {
@@ -309,7 +307,7 @@ export class ApiUtils {
         result[frontendKey] = Boolean(value);
       }
       else if (Array.isArray(value)) {
-        result[frontendKey] = value.map(item => 
+        result[frontendKey] = value.map(item =>
           typeof item === 'object' ? this.toFrontendDto(item) : item
         );
       }
@@ -320,7 +318,7 @@ export class ApiUtils {
         result[frontendKey] = value;
       }
     }
-    
+
     return result;
   }
 
@@ -329,22 +327,22 @@ export class ApiUtils {
    */
   static toUpdateCustomerDto(data: UpdateCustomerDto): any {
     const result: any = {};
-    
+
     // Only include fields that are allowed to be updated
     const allowedFields = [
       'fullName', 'email', 'mobile', 'address', 'city', 'state',
       'country', 'postalCode', 'dateOfBirth', 'gender', 'occupation',
       'company', 'taxNumber', 'taxRegistrationNumber', 'creditLimit', 'notes'
     ];
-    
+
     for (const [key, value] of Object.entries(data)) {
       if (!allowedFields.includes(key) || value === undefined || value === null) {
         continue;
       }
-      
-      const backendKey = this.PROPERTY_MAPPINGS[key as keyof typeof this.PROPERTY_MAPPINGS] || 
-                        key.charAt(0).toUpperCase() + key.slice(1);
-      
+
+      const backendKey = this.PROPERTY_MAPPINGS[key as keyof typeof this.PROPERTY_MAPPINGS] ||
+        key.charAt(0).toUpperCase() + key.slice(1);
+
       // Special handling for specific fields
       if (key === 'mobile' && value) {
         result[backendKey] = UAEUtils.formatMobileForApi(value as string);
@@ -358,7 +356,7 @@ export class ApiUtils {
         result[backendKey] = value;
       }
     }
-    
+
     return result;
   }
 
@@ -367,18 +365,18 @@ export class ApiUtils {
    */
   static formatDateForBackend(date: string | Date, format: 'iso' | 'string' = 'iso'): string {
     if (!date) return '';
-    
+
     try {
       const dateObj = typeof date === 'string' ? new Date(date) : date;
-      
+
       if (isNaN(dateObj.getTime())) {
         return '';
       }
-      
+
       if (format === 'string') {
         return dateObj.toLocaleDateString('en-CA'); // YYYY-MM-DD format
       }
-      
+
       return dateObj.toISOString();
     } catch {
       return '';
@@ -390,13 +388,13 @@ export class ApiUtils {
    */
   static formatDateForFrontend(dateString: string): string {
     if (!dateString) return '';
-    
+
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
         return dateString;
       }
-      
+
       return date.toLocaleDateString('en-GB', {
         year: 'numeric',
         month: 'short',
@@ -418,19 +416,19 @@ export class ApiUtils {
 
     try {
       let processedData: any;
-      
-      if (isArray && Array.isArray(response.data)) {	  
+
+      if (isArray && Array.isArray(response.data)) {
         console.log('DEBUG - Processing array data:', response.data);
         processedData = response.data.map(item => {
-        console.log('DEBUG - Item before toFrontendDto:', item);
-        const result = this.toFrontendDto(item);
-        console.log('DEBUG - Item after toFrontendDto:', result);
-		return result;
-		});
+          console.log('DEBUG - Item before toFrontendDto:', item);
+          const result = this.toFrontendDto(item);
+          console.log('DEBUG - Item after toFrontendDto:', result);
+          return result;
+        });
       } else if (!isArray && response.data && typeof response.data === 'object') {
-		  console.log('DEBUG - Processing object data before:', response.data);
-		  processedData = this.toFrontendDto(response.data);
-		  console.log('DEBUG - Processing object data after:', processedData);
+        console.log('DEBUG - Processing object data before:', response.data);
+        processedData = this.toFrontendDto(response.data);
+        console.log('DEBUG - Processing object data after:', processedData);
       } else {
         processedData = response.data;
       }
@@ -459,8 +457,8 @@ export class ApiUtils {
    * Extract and format pagination parameters for .NET API
    */
   static preparePaginationParams(
-    page: number, 
-    pageSize: number, 
+    page: number,
+    pageSize: number,
     filters?: Record<string, any>,
     sortBy?: string,
     sortOrder?: 'asc' | 'desc'
@@ -470,15 +468,15 @@ export class ApiUtils {
       PageSize: pageSize,
       ...this.toBackendDto(filters || {})
     };
-    
+
     if (sortBy) {
       params.SortBy = sortBy;
     }
-    
+
     if (sortOrder) {
       params.SortOrder = sortOrder;
     }
-    
+
     return this.formatQueryParams(params);
   }
 
@@ -487,7 +485,7 @@ export class ApiUtils {
    */
   static isValidGuid(value: string): boolean {
     if (!value) return false;
-    
+
     const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     return guidRegex.test(value);
   }
@@ -496,7 +494,7 @@ export class ApiUtils {
    * Generate a new GUID (for mock data or client-side generation)
    */
   static generateGuid(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
       const r = Math.random() * 16 | 0;
       const v = c === 'x' ? r : (r & 0x3 | 0x8);
       return v.toString(16);
@@ -519,7 +517,7 @@ export class ApiUtils {
     wait: number
   ): (...args: Parameters<T>) => void {
     let timeout: NodeJS.Timeout;
-    
+
     return (...args: Parameters<T>) => {
       clearTimeout(timeout);
       timeout = setTimeout(() => func(...args), wait);
@@ -538,7 +536,7 @@ export class ApiUtils {
       const timeoutId = setTimeout(() => {
         reject(new Error(errorMessage));
       }, timeoutMs);
-  
+
       promise.then(
         (result) => {
           clearTimeout(timeoutId);
@@ -570,18 +568,18 @@ export class ApiUtils {
     if (!obj || typeof obj !== 'object') {
       return obj;
     }
-    
+
     if (Array.isArray(obj)) {
       return obj.map(item => this.deepClone(item)) as T;
     }
-    
+
     const cloned: any = {};
     for (const key in obj) {
       if (Object.prototype.hasOwnProperty.call(obj, key)) {
         cloned[key] = this.deepClone((obj as any)[key]);
       }
     }
-    
+
     return cloned;
   }
 
@@ -592,25 +590,25 @@ export class ApiUtils {
     if (error?.stack) {
       return error.stack;
     }
-    
+
     if (error?.response?.config?.url) {
       return `API Error: ${error.response.status} ${error.response.statusText} - ${error.response.config.url}`;
     }
-    
+
     return error?.message || 'Unknown error';
   }
-  
-	static formatMobileForApi(mobile: string): string {
-	return UAEUtils.formatMobileForApi(mobile); // Delegate
-	}
 
-	static formatMobileForDisplay(mobile: string): string {
-	  return UAEUtils.formatMobileForDisplay(mobile); // Delegate
-	}
+  static formatMobileForApi(mobile: string): string {
+    return UAEUtils.formatMobileForApi(mobile); // Delegate
+  }
 
-	static isValidUaeMobile(mobile: string): boolean {
-	  return UAEUtils.isValidUaeMobile(mobile); // Delegate
-	}
+  static formatMobileForDisplay(mobile: string): string {
+    return UAEUtils.formatMobileForDisplay(mobile); // Delegate
+  }
+
+  static isValidUaeMobile(mobile: string): boolean {
+    return UAEUtils.isValidUaeMobile(mobile); // Delegate
+  }
 
   /**
    * Log API call for debugging
@@ -622,7 +620,7 @@ export class ApiUtils {
     data?: any,
     response?: any
   ): void {
-    if (import.meta.env.DEV) {
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
       console.groupCollapsed(`[API] ${method} ${url}`);
       if (params) console.log('Params:', params);
       if (data) console.log('Request:', data);

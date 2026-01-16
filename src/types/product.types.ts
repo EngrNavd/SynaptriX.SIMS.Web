@@ -47,11 +47,21 @@ export interface Product {
   expiryDate?: string;
   notes?: string;
   tags?: string[];
+  isSerialized: boolean;
+  items?: ProductItem[];
   createdAt: string;
   updatedAt: string;
   createdBy?: string;
   updatedBy?: string;
   tenantId?: string;
+}
+
+export interface ProductItem {
+  id: string;
+  productId: string;
+  serialNumber?: string;
+  imei?: string;
+  status: string;
 }
 
 /**
@@ -105,6 +115,8 @@ export interface CreateProductDto {
   notes?: string;
   tags?: string[];
   imageUrls?: string[];
+  isSerialized: boolean;
+  items?: Array<{ serialNumber?: string; imei?: string }>;
 }
 
 /**
@@ -184,7 +196,7 @@ export interface PagedRequestDto {
 /**
  * Product sortable fields
  */
-export type ProductSortField = 
+export type ProductSortField =
   | 'name'
   | 'sku'
   | 'sellingPrice'
@@ -400,42 +412,5 @@ export interface PagedApiResponse<T> extends ApiResponse<T> {
 }
 
 // ============================================
-// EXPORT ALL TYPES
-// ============================================
-
-export type {
-  // Core
-  Product,
-  ProductDto,
-  CreateProductDto,
-  UpdateProductDto,
-  
-  // Listing
-  ProductListDto,
-  PagedRequestDto,
-  ProductSortField,
-  
-  // Search & Filters
-  ProductSearchParams,
-  ProductFilter,
-  
-  // Stock Management
-  UpdateStockRequest,
-  BulkStockUpdateRequest,
-  StockMovement,
-  
-  // Statistics
-  ProductStats,
-  ProductSaleStat,
-  CategoryDistribution,
-  InventoryValuation,
-  
-  // Categories
-  ProductCategory,
-  CreateCategoryDto,
-  UpdateCategoryDto,
-  
-  // API Responses
-  ApiResponse,
-  PagedApiResponse
-};
+// Note: ApiResponse and PagedApiResponse are exported from api.types.ts
+// to avoid duplicate exports

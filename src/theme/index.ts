@@ -1,36 +1,35 @@
-import { createTheme, Theme, PaletteMode } from '@mui/material/styles';
-import { PaletteOptions } from '@mui/material/styles/createPalette';
+import { createTheme, Theme, PaletteMode, PaletteOptions } from '@mui/material/styles';
 
 // Common typography settings
 const typography = {
   fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-  h1: { 
-    fontWeight: 700, 
+  h1: {
+    fontWeight: 700,
     fontSize: '2.5rem',
     letterSpacing: '-0.025em',
   },
-  h2: { 
-    fontWeight: 700, 
+  h2: {
+    fontWeight: 700,
     fontSize: '2rem',
     letterSpacing: '-0.025em',
   },
-  h3: { 
-    fontWeight: 600, 
+  h3: {
+    fontWeight: 600,
     fontSize: '1.75rem',
     letterSpacing: '-0.025em',
   },
-  h4: { 
-    fontWeight: 600, 
+  h4: {
+    fontWeight: 600,
     fontSize: '1.5rem',
     letterSpacing: '-0.025em',
   },
-  h5: { 
-    fontWeight: 600, 
+  h5: {
+    fontWeight: 600,
     fontSize: '1.25rem',
     letterSpacing: '-0.025em',
   },
-  h6: { 
-    fontWeight: 600, 
+  h6: {
+    fontWeight: 600,
     fontSize: '1rem',
     letterSpacing: '-0.025em',
   },
@@ -50,15 +49,15 @@ const typography = {
     fontSize: '0.875rem',
     lineHeight: 1.5,
   },
-  button: { 
-    fontWeight: 600, 
+  button: {
+    fontWeight: 600,
     textTransform: 'none',
     fontSize: '0.875rem',
   },
 };
 
 // Common shape settings
-const shape = { 
+const shape = {
   borderRadius: 10,
 };
 
@@ -86,29 +85,29 @@ const lightPalette: PaletteOptions = {
     secondary: '#64748B', // Medium gray
     disabled: '#94A3B8',
   },
-  success: { 
-    main: '#10B981', 
+  success: {
+    main: '#10B981',
     light: '#34D399',
     dark: '#059669',
-    contrastText: '#FFFFFF' 
+    contrastText: '#FFFFFF'
   },
-  warning: { 
-    main: '#F59E0B', 
+  warning: {
+    main: '#F59E0B',
     light: '#FBBF24',
     dark: '#D97706',
-    contrastText: '#FFFFFF' 
+    contrastText: '#FFFFFF'
   },
-  error: { 
-    main: '#EF4444', 
+  error: {
+    main: '#EF4444',
     light: '#F87171',
     dark: '#DC2626',
-    contrastText: '#FFFFFF' 
+    contrastText: '#FFFFFF'
   },
-  info: { 
-    main: '#3B82F6', 
+  info: {
+    main: '#3B82F6',
     light: '#60A5FA',
     dark: '#2563EB',
-    contrastText: '#FFFFFF' 
+    contrastText: '#FFFFFF'
   },
   divider: 'rgba(148, 163, 184, 0.2)',
   action: {
@@ -145,25 +144,25 @@ const darkPalette: PaletteOptions = {
     secondary: '#CBD5E1', // Light gray for secondary text
     disabled: '#64748B',
   },
-  success: { 
-    main: '#10B981', 
+  success: {
+    main: '#10B981',
     light: '#34D399', // Brighter green for dark mode
     dark: '#059669',
-    contrastText: '#FFFFFF' 
+    contrastText: '#FFFFFF'
   },
-  warning: { 
-    main: '#F59E0B', 
+  warning: {
+    main: '#F59E0B',
     light: '#FBBF24', // Brighter yellow
     dark: '#D97706',
     contrastText: '#0F172A' // Dark background for contrast
   },
-  error: { 
-    main: '#EF4444', 
+  error: {
+    main: '#EF4444',
     light: '#F87171', // Brighter red
     dark: '#DC2626',
-    contrastText: '#FFFFFF' 
+    contrastText: '#FFFFFF'
   },
-  info: { 
+  info: {
     main: '#60A5FA', // Light blue for info
     light: '#93C5FD',
     dark: '#3B82F6',
@@ -189,9 +188,9 @@ const components = (mode: PaletteMode) => ({
         fontWeight: 600,
         padding: '10px 20px',
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        '&:hover': { 
+        '&:hover': {
           transform: 'translateY(-1px)',
-          boxShadow: mode === 'dark' 
+          boxShadow: mode === 'dark'
             ? '0 10px 25px -5px rgba(96, 165, 250, 0.4)' // Light blue shadow
             : '0 10px 25px -5px rgba(37, 99, 235, 0.2)',
         },
@@ -230,8 +229,8 @@ const components = (mode: PaletteMode) => ({
         color: mode === 'dark' ? '#93C5FD' : '#0A2463', // Very light blue for dark mode
         borderWidth: '2px',
         '&:hover': {
-          backgroundColor: mode === 'dark' 
-            ? 'rgba(96, 165, 250, 0.08)' 
+          backgroundColor: mode === 'dark'
+            ? 'rgba(96, 165, 250, 0.08)'
             : 'rgba(10, 36, 99, 0.08)',
           borderColor: mode === 'dark' ? '#93C5FD' : '#3E92CC',
           boxShadow: mode === 'dark'
@@ -256,8 +255,8 @@ const components = (mode: PaletteMode) => ({
           ? 'linear-gradient(135deg, #1E293B 0%, #1E293B 100%)'
           : 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%)',
         backdropFilter: 'blur(10px)',
-        backgroundColor: mode === 'dark' 
-          ? 'rgba(30, 41, 59, 0.95)' 
+        backgroundColor: mode === 'dark'
+          ? 'rgba(30, 41, 59, 0.95)'
           : 'rgba(255, 255, 255, 0.95)',
         borderBottom: `1px solid ${mode === 'dark' ? 'rgba(100, 116, 139, 0.2)' : 'rgba(148, 163, 184, 0.2)'}`,
         boxShadow: mode === 'dark'
@@ -340,7 +339,7 @@ const components = (mode: PaletteMode) => ({
   },
   MuiDivider: {
     styleOverrides: {
-      root: { 
+      root: {
         borderColor: mode === 'dark' ? 'rgba(100, 116, 139, 0.3)' : 'rgba(148, 163, 184, 0.3)',
         margin: '24px 0',
       },
@@ -361,7 +360,7 @@ const components = (mode: PaletteMode) => ({
         '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
           borderColor: mode === 'dark' ? '#93C5FD' : '#0A2463', // Very light blue for focus
           borderWidth: '2px',
-          boxShadow: mode === 'dark' 
+          boxShadow: mode === 'dark'
             ? '0 0 0 3px rgba(147, 197, 253, 0.1)'
             : '0 0 0 3px rgba(10, 36, 99, 0.1)',
         },
@@ -416,7 +415,7 @@ const components = (mode: PaletteMode) => ({
         fontWeight: 500,
         padding: '8px 12px',
         border: `1px solid ${mode === 'dark' ? 'rgba(96, 165, 250, 0.2)' : 'rgba(255, 255, 255, 0.1)'}`,
-        boxShadow: mode === 'dark' 
+        boxShadow: mode === 'dark'
           ? '0 8px 24px rgba(0, 0, 0, 0.2)'
           : '0 8px 24px rgba(0, 0, 0, 0.15)',
         borderRadius: 8,
@@ -474,7 +473,7 @@ const components = (mode: PaletteMode) => ({
 // Create theme based on mode
 export const createAppTheme = (mode: PaletteMode = 'dark'): Theme => {
   const palette = mode === 'light' ? lightPalette : darkPalette;
-  
+
   return createTheme({
     palette,
     typography,

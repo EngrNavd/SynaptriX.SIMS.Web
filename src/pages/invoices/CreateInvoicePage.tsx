@@ -26,22 +26,7 @@ import ProductSelectionSection from '../../Components/invoices/ProductSelectionS
 import InvoiceReviewSection from '../../Components/invoices/InvoiceReviewSection';
 
 // Import types from your types file
-import type { CustomerDto } from '@/types'; // ADDED
-
-// Define local types
-interface ProductDto {
-  id: string;
-  name: string;
-  sellingPrice: number;
-  purchasePrice?: number;
-  stockQuantity: number;
-  sku?: string;
-  description?: string;
-  category?: string;
-  brand?: string;
-  imageUrl?: string;
-  isActive: boolean;
-}
+import type { CustomerDto } from '@/types';
 
 interface CustomerFormData {
   name: string;
@@ -57,9 +42,7 @@ const steps = ['Customer', 'Products', 'Review & Complete'];
 const CreateInvoicePage: React.FC = () => {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
-  const [mobileNumber, setMobileNumber] = useState<string>('');
   const [customer, setCustomer] = useState<CustomerDto | null>(null); // UPDATED TYPE
-  const [showCustomerForm, setShowCustomerForm] = useState(false);
   const [customerFormData, setCustomerFormData] = useState<CustomerFormData>({
     name: '',
     email: '',
@@ -84,10 +67,9 @@ const CreateInvoicePage: React.FC = () => {
     severity: 'success' as 'success' | 'error'
   });
 
-  // Clear all data when mobile number changes
+  // Clear all data
   const clearCustomerData = () => {
     setCustomer(null);
-    setShowCustomerForm(false);
     setCustomerFormData({
       name: '',
       email: '',
@@ -108,11 +90,8 @@ const CreateInvoicePage: React.FC = () => {
   // Handle customer selection from CustomerSelection component
   const handleCustomerSelected = (selectedCustomer: CustomerDto | null) => {
     setCustomer(selectedCustomer);
-    
+
     if (selectedCustomer) {
-      // Update mobile number from selected customer
-      setMobileNumber(selectedCustomer.mobile || '');
-      
       // Update customer form data for display in review section
       setCustomerFormData({
         name: selectedCustomer.fullName || '',
@@ -124,7 +103,6 @@ const CreateInvoicePage: React.FC = () => {
       });
     } else {
       // Customer cleared
-      setMobileNumber('');
       clearCustomerData();
     }
   };
@@ -135,13 +113,13 @@ const CreateInvoicePage: React.FC = () => {
       (sum, item) => sum + ((item.product.sellingPrice || 0) * (item.quantity || 1)),
       0
     );
-    
+
     const vatRate = 0.05; // 5% UAE VAT
     const taxAmount = subTotal * vatRate;
-    
+
     // Calculate total amount
     const totalAmount = subTotal + taxAmount + (shippingCharges || 0) - (discountAmount || 0);
-    
+
     // Calculate amount due
     const amountDue = totalAmount - (amountPaid || 0);
 
@@ -202,7 +180,7 @@ const CreateInvoicePage: React.FC = () => {
       invoicesApi.createInvoice(invoiceData),
     onSuccess: (response: any) => {
       console.log('Invoice creation response:', response);
-      
+
       if (response.success && response.data) {
         setSnackbar({
           open: true,
@@ -239,9 +217,9 @@ const CreateInvoicePage: React.FC = () => {
     onError: (error: any) => {
       console.error('Create invoice error:', error);
       console.error('Error response data:', error.response?.data);
-      
+
       let errorMessage = 'An error occurred while creating invoice';
-      
+
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.response?.data?.errors?.length > 0) {
@@ -249,7 +227,7 @@ const CreateInvoicePage: React.FC = () => {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       setSnackbar({
         open: true,
         message: errorMessage,
@@ -307,7 +285,7 @@ const CreateInvoicePage: React.FC = () => {
       amountPaid: invoiceData.amountPaid,
       paymentStatus: invoiceData.paymentStatus
     });
-    
+
     createInvoiceMutation.mutate(invoiceData);
   };
 
@@ -370,13 +348,7 @@ const CreateInvoicePage: React.FC = () => {
 
   // Get customer display mobile
   const getCustomerDisplayMobile = () => {
-    if (customer?.mobile) {
-      return customer.mobile;
-    }
-    if (mobileNumber) {
-      return mobileNumber;
-    }
-    return '';
+    return customer?.mobile || '';
   };
 
   // Render step content
@@ -484,7 +456,7 @@ const CreateInvoicePage: React.FC = () => {
             >
               Cancel
             </Button>
-            
+
             {/* Only show Next button on steps 0 and 1 */}
             {activeStep < steps.length - 1 ? (
               <Button

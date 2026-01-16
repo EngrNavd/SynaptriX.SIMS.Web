@@ -445,7 +445,7 @@ const ProductSelectionSection: React.FC<ProductSelectionSectionProps> = ({
       {/* Empty State */}
       {selectedProducts.length === 0 && (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <InventoryIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
+          <Box sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }}>📦</Box>
           <Typography variant="h6" color="textSecondary" gutterBottom>
             No products selected
           </Typography>
