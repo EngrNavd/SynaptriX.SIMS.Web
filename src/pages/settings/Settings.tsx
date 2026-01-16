@@ -67,7 +67,7 @@ const Settings: React.FC = () => {
     stockAlerts: true,
     
     // Business Settings
-    taxRate: 5,
+    taxRate: 0,
     invoicePrefix: 'INV-',
     autoBackup: true
   });
