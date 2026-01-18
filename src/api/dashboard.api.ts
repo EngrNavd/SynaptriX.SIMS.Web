@@ -33,6 +33,8 @@ export interface RevenueByCategory {
   revenue: number;
   percentage: number;
   color?: string;
+  productCount?: number;
+  invoiceCount?: number;
 }
 
 export interface DashboardPeriodData {
@@ -289,27 +291,69 @@ const dashboardApi = {
   // Get revenue by category with error handling
   getRevenueByCategory: async (period: string = 'today'): Promise<RevenueByCategory[]> => {
     try {
-      // This endpoint might not exist yet, so we'll use top products data
+      const { start, end } = DateUtils.getPeriodDates(period);
+      
+      // Try the dedicated endpoint first (if available)
+      try {
+        const response = await axiosClient.get('/dashboard/revenue-by-category', {
+          params: {
+            startDate: DateUtils.toGMT4String(start),
+            endDate: DateUtils.toGMT4String(end)
+          }
+        });
+        
+        const extracted = extractResponseData(response);
+        
+        if (extracted.success && extracted.data && Array.isArray(extracted.data)) {
+          const categoriesData = extracted.data;
+          
+          // Calculate total for percentages
+          const totalRevenue = categoriesData.reduce((sum: number, item: any) => sum + (item.revenue || 0), 0);
+          
+          return categoriesData.map((item: any, index: number) => ({
+            category: item.category || 'Uncategorized',
+            revenue: Number(item.revenue || 0),
+            percentage: totalRevenue > 0 ? (Number(item.revenue || 0) / totalRevenue) * 100 : 0,
+            productCount: item.productCount || 0,
+            invoiceCount: item.invoiceCount || 0,
+            color: getCategoryColor(index)
+          }));
+        }
+      } catch (endpointError) {
+        console.warn('Revenue by category endpoint not available, trying fallback...');
+      }
+      
+      // Fallback: Use top products data with period filter
       const response = await axiosClient.get('/dashboard/top-products', {
-        params: { top: 10 }
+        params: {
+          top: 50,
+          startDate: DateUtils.toGMT4String(start),
+          endDate: DateUtils.toGMT4String(end)
+        }
       });
       
       const extracted = extractResponseData(response);
       
       if (extracted.success && extracted.data && Array.isArray(extracted.data)) {
-        const categories: Record<string, number> = {};
+        const categories: Record<string, { revenue: number; count: number }> = {};
         
         extracted.data.forEach((product: any) => {
           const category = product.categoryName || 'Uncategorized';
-          categories[category] = (categories[category] || 0) + (product.revenue || 0);
+          if (!categories[category]) {
+            categories[category] = { revenue: 0, count: 0 };
+          }
+          categories[category].revenue += (product.revenue || 0);
+          categories[category].count += 1;
         });
         
-        const total = Object.values(categories).reduce((sum, revenue) => sum + revenue, 0);
+        const total = Object.values(categories).reduce((sum, cat) => sum + cat.revenue, 0);
         
-        return Object.entries(categories).map(([category, revenue], index) => ({
+        return Object.entries(categories).map(([category, data], index) => ({
           category,
-          revenue: Number(revenue),
-          percentage: total > 0 ? (Number(revenue) / total) * 100 : 0,
+          revenue: Number(data.revenue),
+          percentage: total > 0 ? (Number(data.revenue) / total) * 100 : 0,
+          productCount: data.count,
+          invoiceCount: Math.floor(data.count * 1.5), // Estimate based on product count
           color: getCategoryColor(index)
         }));
       }
@@ -662,7 +706,9 @@ function generateMockCategoryData(): RevenueByCategory[] {
       category,
       revenue: Math.round(revenue),
       percentage: Math.round((revenue / total) * 100 * 10) / 10,
-      color: getCategoryColor(index)
+      color: getCategoryColor(index),
+      productCount: Math.floor(Math.random() * 20) + 5,
+      invoiceCount: Math.floor(Math.random() * 50) + 10
     };
   });
 }
