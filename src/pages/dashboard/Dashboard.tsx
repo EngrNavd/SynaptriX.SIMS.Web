@@ -526,7 +526,7 @@ const DashboardPage: React.FC = () => {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={(entry) => `${entry.category}: ${entry.percentage.toFixed(1)}%`}
+                      label={false}
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="revenue"
@@ -537,7 +537,6 @@ const DashboardPage: React.FC = () => {
                       ))}
                     </Pie>
                     <RechartsTooltip formatter={(value) => formatCurrency(Number(value))} />
-                    <Legend formatter={renderColorfulLegendText} />
                   </PieChart>
                 </ResponsiveContainer>
                 
