@@ -7,7 +7,14 @@ const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL ||
                      process.env.VITE_API_BASE_URL || 
                      'http://localhost:3000/api';
 
-console.log('API Base URL:', API_BASE_URL);
+export const TZ = { id: 'Asia/Dubai', offset: '+04:00' } as const;
+
+const ENV_MODE = ((import.meta as any).env?.MODE) || process.env.NODE_ENV || 'development';
+const IS_PROD = ENV_MODE === 'production';
+
+if (!IS_PROD) {
+  console.debug('API Base URL:', API_BASE_URL);
+}
 
 const axiosClient = axios.create({
   baseURL: API_BASE_URL,
@@ -17,18 +24,60 @@ const axiosClient = axios.create({
   },
 });
 
-// Request interceptor for adding auth token
+// Helper: prefer UTC on wire; display-localization happens in UI layer
+
+// Request interceptor for adding auth token and timezone headers
 axiosClient.interceptors.request.use(
   (config) => {
     // Get token from localStorage (don't use Zustand store in interceptor)
     const token = localStorage.getItem('accessToken');
-    console.log('Token check - exists:', !!token, 'URL:', config.url);
+    if (!IS_PROD) {
+      console.debug('Request:', { url: config.url, hasAuth: !!token });
+    }
     
+    // Ensure headers object exists before assignment
+    config.headers = config.headers || {};
+
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      (config.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
       console.log('Authorization header set for:', config.url);
     } else {
       console.warn('No token found for request:', config.url);
+    }
+
+    // Add timezone headers for GMT+4 (Dubai/Abu Dhabi)
+    (config.headers as Record<string, string>)['X-Timezone'] = TZ.id;
+    (config.headers as Record<string, string>)['X-Timezone-Offset'] = TZ.offset;
+
+    // Convert date parameters to ISO strings without mutating original object
+    if (config.params) {
+      const newParams: Record<string, any> = { ...config.params };
+      Object.keys(newParams).forEach(key => {
+        const value = newParams[key];
+        if (value instanceof Date) {
+          newParams[key] = (value as Date).toISOString();
+        } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)) {
+          // Only transform ISO-like strings
+          const d = new Date(value);
+          if (!isNaN(d.getTime())) {
+            newParams[key] = d.toISOString();
+          }
+        }
+      });
+      config.params = newParams;
+    }
+
+    // Shallow-convert top-level Date fields in request body to ISO (avoid deep recursion)
+    if (config.data) {
+      if (typeof config.data === 'object' && !(config.data instanceof FormData)) {
+        const data: Record<string, any> = { ...(config.data as any) };
+        for (const k of Object.keys(data)) {
+          if (data[k] instanceof Date) {
+            data[k] = (data[k] as Date).toISOString();
+          }
+        }
+        config.data = data;
+      }
     }
 
     // Debug: Log customer update requests
@@ -48,29 +97,27 @@ axiosClient.interceptors.request.use(
         console.log('Request Data:', config.data);
       }
       
+      const h = (config.headers ?? {}) as Record<string, unknown>;
       console.log('Headers:', {
-        Authorization: config.headers.Authorization ? 'Bearer [TOKEN PRESENT]' : 'No token',
-        'Content-Type': config.headers['Content-Type'],
+        Authorization: h.Authorization ? 'Bearer [TOKEN PRESENT]' : 'No token',
+        'Content-Type': h['Content-Type'],
+        'X-Timezone': h['X-Timezone'],
+        'X-Timezone-Offset': h['X-Timezone-Offset'],
       });
       console.groupEnd();
     }
 
-    // Debug: Log customer create requests
-    if (config.method?.toUpperCase() === 'POST' && config.url?.includes('/customers') && !config.url.includes('/search') && !config.url.includes('/validate') && !config.url.includes('/check-availability')) {
-      console.group('CUSTOMER CREATE REQUEST DEBUG');
+    // Debug: Log dashboard requests with timezone info
+    if (!IS_PROD && config.url?.includes('/dashboard/')) {
+      console.group('DASHBOARD REQUEST DEBUG');
       console.log('URL:', config.url);
-      
-      // Check if data is string or object before parsing
-      if (typeof config.data === 'string') {
-        try {
-          console.log('Request Data:', JSON.parse(config.data));
-        } catch {
-          console.log('Request Data (raw):', config.data);
-        }
-      } else {
-        console.log('Request Data:', config.data);
-      }
-      
+      console.log('Method:', config.method);
+      console.log('Params:', config.params);
+      const h2 = (config.headers ?? {}) as Record<string, unknown>;
+      console.log('Headers:', {
+        'X-Timezone': h2['X-Timezone'],
+        'X-Timezone-Offset': h2['X-Timezone-Offset'],
+      });
       console.groupEnd();
     }
 
@@ -82,9 +129,11 @@ axiosClient.interceptors.request.use(
   }
 );
 
-// Response interceptor for handling errors
+// Response interceptor for handling errors and timezone conversions
 axiosClient.interceptors.response.use(
   (response) => {
+    // Avoid mutating response shapes globally; consumers should transform as needed
+
     // Debug: Log successful customer update responses
     if (response.config.method?.toUpperCase() === 'PUT' && response.config.url?.includes('/customers/')) {
       console.group('CUSTOMER UPDATE SUCCESS');
@@ -94,12 +143,9 @@ axiosClient.interceptors.response.use(
       console.groupEnd();
     }
 
-    // Debug: Log successful customer create responses
-    if (response.config.method?.toUpperCase() === 'POST' && response.config.url?.includes('/customers') && !response.config.url.includes('/search') && !response.config.url.includes('/validate') && !response.config.url.includes('/check-availability')) {
-      console.group('CUSTOMER CREATE SUCCESS');
-      console.log('Status:', response.status);
-      console.log('Response Data:', response.data);
-      console.groupEnd();
+    // Debug: Log successful dashboard responses
+    if (!IS_PROD && response.config.url?.includes('/dashboard/')) {
+      console.debug('[Dashboard]', response.config.url, response.status);
     }
 
     // Always return the response for successful requests
@@ -130,9 +176,11 @@ axiosClient.interceptors.response.use(
       console.groupEnd();
     }
 
-    // Debug: Log customer create errors
-    if (originalRequest?.method?.toUpperCase() === 'POST' && originalRequest?.url?.includes('/customers') && !originalRequest.url.includes('/search') && !originalRequest.url.includes('/validate') && !originalRequest.url.includes('/check-availability')) {
-      console.group('CUSTOMER CREATE ERROR DEBUG');
+    // Debug: Log dashboard errors
+    if (!IS_PROD && originalRequest?.url?.includes('/dashboard/')) {
+      console.group('DASHBOARD ERROR DEBUG');
+      console.log('URL:', originalRequest.url);
+      console.log('Params:', originalRequest.params);
       console.log('Status:', error.response?.status);
       console.log('Error Response:', error.response?.data);
       console.log('Error Message:', error.message);
@@ -209,9 +257,14 @@ axiosClient.interceptors.response.use(
       // Don't show toast for 404 from invoice endpoints if they're not implemented yet
       const isInvoiceEndpoint = originalRequest?.url?.includes('/invoices');
       const isStatisticsEndpoint = originalRequest?.url?.includes('/statistics');
+      const isDashboardEndpoint = originalRequest?.url?.includes('/dashboard');
       
-      if (!isInvoiceEndpoint || !isStatisticsEndpoint) {
-        toast.error('Resource not found.');
+      if (!(isInvoiceEndpoint || isStatisticsEndpoint)) {
+        if (isDashboardEndpoint) {
+          toast.error('Dashboard endpoint not found. Please check backend implementation.');
+        } else {
+          toast.error('Resource not found.');
+        }
       } else {
         console.log('Invoice/statistics endpoint not implemented yet');
       }
@@ -258,6 +311,107 @@ axiosClient.interceptors.response.use(
 // Export a helper function to extract data from response
 export const extractResponseData = <T>(response: any): T => {
   return response.data;
+};
+
+// Timezone utility functions
+export const DateUtils = {
+  // Convert to ISO UTC string for API (do not offset here)
+  toGMT4String: (date: Date | string): string => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return d.toISOString();
+  },
+
+  // Format for display in GMT+4
+  formatGMT4: (date: Date | string, format: string = 'dd/MM/yyyy HH:mm'): string => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    const gmt4Date = new Date(d.getTime() + (4 * 60 * 60 * 1000));
+    
+    if (format === 'dd/MM/yyyy HH:mm') {
+      return `${gmt4Date.getDate().toString().padStart(2, '0')}/${
+        (gmt4Date.getMonth() + 1).toString().padStart(2, '0')}/${
+        gmt4Date.getFullYear()} ${
+        gmt4Date.getHours().toString().padStart(2, '0')}:${
+        gmt4Date.getMinutes().toString().padStart(2, '0')}`;
+    }
+    
+    return gmt4Date.toLocaleString('en-US', {
+      timeZone: 'Asia/Dubai',
+      ...(format.includes('date') && {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      }),
+      ...(format.includes('time') && {
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    });
+  },
+
+  // Get period dates for filters
+  getPeriodDates: (period: string): { start: Date; end: Date } => {
+    const p = period.toLowerCase();
+    const now = new Date();
+    const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+    const endOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+
+    let start: Date;
+    let end: Date;
+
+    switch (p) {
+      case 'today': {
+        start = startOfDay(now);
+        end = endOfDay(now);
+        break;
+      }
+      case 'yesterday': {
+        const y = new Date(now);
+        y.setDate(now.getDate() - 1);
+        start = startOfDay(y);
+        end = endOfDay(y);
+        break;
+      }
+      case 'thisweek': {
+        const day = now.getDay(); // 0=Sun
+        const s = new Date(now);
+        s.setDate(now.getDate() - day);
+        start = startOfDay(s);
+        const e = new Date(s);
+        e.setDate(s.getDate() + 6);
+        end = endOfDay(e);
+        break;
+      }
+      case 'lastweek': {
+        const day = now.getDay();
+        const s = new Date(now);
+        s.setDate(now.getDate() - day - 7);
+        start = startOfDay(s);
+        const e = new Date(s);
+        e.setDate(s.getDate() + 6);
+        end = endOfDay(e);
+        break;
+      }
+      case 'thismonth': {
+        const s = new Date(now.getFullYear(), now.getMonth(), 1);
+        const e = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        start = startOfDay(s);
+        end = endOfDay(e);
+        break;
+      }
+      case 'lastmonth': {
+        const s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const e = new Date(now.getFullYear(), now.getMonth(), 0);
+        start = startOfDay(s);
+        end = endOfDay(e);
+        break;
+      }
+      default: {
+        start = startOfDay(now);
+        end = endOfDay(now);
+      }
+    }
+    return { start, end };
+  },
 };
 
 export default axiosClient;

@@ -17,7 +17,7 @@ import toast from 'react-hot-toast';
 export default function Login() {
   const navigate = useNavigate();
   const [username, setUsername] = useState('superadmin');
-  const [password, setPassword] = useState('Admin@2024');
+  const [password, setPassword] = useState('Superadmin@2026');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAuthStore();
@@ -147,7 +147,7 @@ export default function Login() {
           </Typography>
           <br />
           <Typography variant="caption" color="text.secondary">
-            Password: <strong>Admin@2024</strong>
+            Password: <strong>Superadmin@2026</strong>
           </Typography>
         </Box>
       </Paper>

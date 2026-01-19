@@ -14,7 +14,21 @@ import {
   Menu,
   MenuItem,
   Button,
-  Divider
+  Divider,
+  Select,
+  FormControl,
+  InputLabel,
+  ToggleButton,
+  ToggleButtonGroup,
+  useTheme,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Avatar,
+  Tooltip,
 } from '@mui/material';
 import {
   TrendingUp,
@@ -29,86 +43,187 @@ import {
   Refresh,
   CalendarToday,
   ShowChart,
-  BarChart,
-  PieChart
+  BarChart as BarChartIcon,
+  PieChart as PieChartIcon,
+  Download,
+  Today,
+  Yesterday,
+  DateRange,
+  Store,
+  Category,
+  ArrowUpward,
+  ArrowDownward,
+  Error,
+  Info,
+  CheckCircle,
 } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
-import dashboardApi from '@/api/dashboard.api';
-import { formatCurrency } from '@/utils/formatters';
+import dashboardApi, { 
+  SalesChartData, 
+  RevenueByCategory, 
+  DashboardPeriodData 
+} from '@/api/dashboard.api';
+import { formatCurrency, formatPercentage } from '@/utils/formatters';
+
+// Recharts imports
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+} from 'recharts';
+
+import YesterdayIcon from '@/components/icons/YesterdayIcon';
+
+// Define period types
+type PeriodType = 'today' | 'yesterday' | 'thisweek' | 'lastweek' | 'thismonth' | 'lastmonth';
 
 const DashboardPage: React.FC = () => {
-  const [period, setPeriod] = useState<string>('today');
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const theme = useTheme();
+  const [period, setPeriod] = useState<PeriodType>('today');
+  const [exportAnchorEl, setExportAnchorEl] = useState<null | HTMLElement>(null);
 
-  // Fetch dashboard overview
+  // Fetch comprehensive dashboard data for the selected period
   const {
-    data: overviewData,
-    isLoading: overviewLoading,
-    error: overviewError,
-    refetch: refetchOverview
+    data: dashboardData,
+    isLoading: dashboardLoading,
+    error: dashboardError,
+    refetch: refetchDashboard,
+  } = useQuery<DashboardPeriodData>({
+    queryKey: ['dashboard', 'period-data', period],
+    queryFn: () => dashboardApi.getDashboardPeriodData(period),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+
+  // Fetch sales chart data
+  const {
+    data: salesChartData,
+    isLoading: chartLoading,
+  } = useQuery<SalesChartData[]>({
+    queryKey: ['dashboard', 'sales-chart', period],
+    queryFn: () => dashboardApi.getSalesChartData(period),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Fetch revenue by category
+  const {
+    data: revenueByCategory,
+    isLoading: categoryLoading,
+  } = useQuery<RevenueByCategory[]>({
+    queryKey: ['dashboard', 'revenue-category', period],
+    queryFn: () => dashboardApi.getRevenueByCategory(period),
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  // Fetch top products - FIXED ISSUE #4, #5, #6
+  const {
+    data: topProducts,
+    isLoading: productsLoading,
   } = useQuery({
-    queryKey: ['dashboard', 'overview'],
-    queryFn: () => dashboardApi.getDashboardOverview(),
+    queryKey: ['dashboard', 'top-products', period, 5],
+    queryFn: () => dashboardApi.getTopProducts(5, period),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Fetch low stock alerts - FIXED ISSUE #4
+  const {
+    data: lowStockAlerts,
+    isLoading: alertsLoading,
+  } = useQuery({
+    queryKey: ['dashboard', 'low-stock-alerts'],
+    queryFn: () => dashboardApi.getLowStockProducts(),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Fetch dashboard alerts
   const {
-    data: alertsData,
-    isLoading: alertsLoading
+    data: dashboardAlerts,
+    isLoading: dashboardAlertsLoading,
   } = useQuery({
     queryKey: ['dashboard', 'alerts'],
     queryFn: () => dashboardApi.getDashboardAlerts(),
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 
-  // Fetch top products
+  // Fetch recent activities
   const {
-    data: topProductsData,
-    isLoading: topProductsLoading
+    data: recentActivities,
+    isLoading: activitiesLoading,
   } = useQuery({
-    queryKey: ['dashboard', 'top-products', 5],
-    queryFn: () => dashboardApi.getTopProducts(5),
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    queryKey: ['dashboard', 'recent-activities'],
+    queryFn: () => dashboardApi.getRecentActivities(),
+    staleTime: 1 * 60 * 1000, // 1 minute
   });
 
-  // Fetch quick stats
-  const {
-    data: quickStatsData,
-    isLoading: quickStatsLoading
-  } = useQuery({
-    queryKey: ['dashboard', 'quick-stats', period],
-    queryFn: () => dashboardApi.getQuickStats(period),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
+  const handleExportMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setExportAnchorEl(event.currentTarget);
   };
 
-  const handleMenuClose = () => {
-    setAnchorEl(null);
+  const handleExportMenuClose = () => {
+    setExportAnchorEl(null);
   };
 
-  const handlePeriodChange = (newPeriod: string) => {
+  const handlePeriodChange = (newPeriod: PeriodType) => {
     setPeriod(newPeriod);
-    handleMenuClose();
   };
 
   const handleRefresh = () => {
-    refetchOverview();
+    refetchDashboard();
   };
 
-  if (overviewLoading || quickStatsLoading) {
+  const handleExport = async (format: 'csv' | 'excel') => {
+    try {
+      const blob = await dashboardApi.exportDashboardData(period, format);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `dashboard_${period}_${new Date().toISOString().split('T')[0]}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      // TODO: surface user-facing error (e.g., toast/snackbar)
+    }
+    handleExportMenuClose();
+  };
+
+  // Period options with icons
+  const periodOptions = [
+    { value: 'today' as PeriodType, label: 'Today', icon: <Today /> },
+	{ value: 'yesterday' as PeriodType, label: 'Yesterday', icon: <YesterdayIcon /> },
+    { value: 'thisweek' as PeriodType, label: 'This Week', icon: <DateRange /> },
+    { value: 'lastweek' as PeriodType, label: 'Last Week', icon: <DateRange /> },
+    { value: 'thismonth' as PeriodType, label: 'This Month', icon: <DateRange /> },
+    { value: 'lastmonth' as PeriodType, label: 'Last Month', icon: <DateRange /> },
+  ];
+
+  // Get current period label
+  const currentPeriodLabel = periodOptions.find(p => p.value === period)?.label || 'Today';
+
+  if (dashboardLoading) {
     return (
       <Box sx={{ width: '100%', p: 3 }}>
         <LinearProgress />
-        <Typography variant="body2" sx={{ mt: 2 }}>Loading dashboard data...</Typography>
+        <Typography variant="body2" sx={{ mt: 2 }}>
+          Loading dashboard data for {currentPeriodLabel.toLowerCase()}...
+        </Typography>
       </Box>
     );
   }
 
-  if (overviewError) {
+  if (dashboardError) {
     return (
       <Alert
         severity="error"
@@ -119,102 +234,141 @@ const DashboardPage: React.FC = () => {
           </Button>
         }
       >
-        Error loading dashboard data. Please try again later.
+        Error loading dashboard data. Please try again.
       </Alert>
     );
   }
 
-  const overview = overviewData?.data;
-  const alerts = alertsData?.data || [];
-  const topProducts = topProductsData?.data || [];
-  const quickStats = quickStatsData?.data;
+  const data = dashboardData || {} as DashboardPeriodData;
+  const chartData = salesChartData || [];
+  const categories = revenueByCategory || [];
+  const topProductsData = topProducts?.data || [];
+  const alerts = lowStockAlerts?.data || [];
+  const dashboardAlertsData = dashboardAlerts?.data || [];
+  const activities = recentActivities || [];
 
   // KPI Cards Data
   const kpiCards = [
     {
-      title: "Today's Sales",
-      value: formatCurrency(overview?.todaySales || 0),
+      title: 'Total Revenue',
+      value: formatCurrency(data.totalRevenue || 0),
       icon: <AttachMoney fontSize="large" />,
-      trend: overview?.salesGrowthVsYesterday || 0,
-      subtitle: `vs yesterday: ${Math.abs(overview?.salesGrowthVsYesterday || 0).toFixed(1)}%`,
-      color: '#1976d2'
+      trend: data.salesGrowth || 0,
+      subtitle: `${data.salesCount || 0} transactions`,
+      color: theme.palette.primary.main,
+      period: data.period || currentPeriodLabel,
+      metric: 'revenue',
     },
     {
-      title: "Total Customers",
-      value: overview?.totalCustomers || 0,
+      title: 'Total Orders',
+      value: data.totalOrders || 0,
+      icon: <ShoppingCart fontSize="large" />,
+      trend: data.orderGrowth || 0,
+      subtitle: `${data.pendingOrders || 0} pending`,
+      color: theme.palette.success.main,
+      metric: 'orders',
+    },
+    {
+      title: 'Active Customers',
+      value: data.activeCustomers || 0,
       icon: <People fontSize="large" />,
-      trend: 0,
-      subtitle: `+${overview?.newCustomersThisMonth || 0} this month`,
-      color: '#2e7d32'
+      trend: data.customerGrowth || 0,
+      subtitle: `${data.newCustomers || 0} new customers`,
+      color: theme.palette.info.main,
+      metric: 'customers',
     },
     {
-      title: "Today's Invoices",
-      value: overview?.invoicesToday || 0,
-      icon: <Receipt fontSize="large" />,
-      trend: 0,
-      subtitle: `${overview?.overdueInvoices || 0} overdue`,
-      color: '#ed6c02'
-    },
-    {
-      title: "Low Stock Products",
-      value: overview?.lowStockProducts || 0,
+      title: 'Inventory Status',
+      value: data.lowStockCount || 0,
       icon: <Inventory fontSize="large" />,
       trend: 0,
-      subtitle: overview?.lowStockProducts > 0 ? 'Needs attention' : 'All good',
-      color: overview?.lowStockProducts > 0 ? '#d32f2f' : '#2e7d32'
-    }
+      subtitle: `${data.totalProducts || 0} total products`,
+      color: data.lowStockCount > 0 ? theme.palette.error.main : theme.palette.success.main,
+      metric: 'inventory',
+    },
   ];
 
-  // Available time periods
-  const timePeriods = [
-    { value: 'today', label: 'Today' },
-    { value: 'yesterday', label: 'Yesterday' },
-    { value: 'thisweek', label: 'This Week' },
-    { value: 'lastweek', label: 'Last Week' },
-    { value: 'thismonth', label: 'This Month' },
-    { value: 'lastmonth', label: 'Last Month' },
-  ];
+  // Custom Tooltip for charts
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <Paper sx={{ p: 2, border: `1px solid ${theme.palette.divider}`, bgcolor: 'background.paper' }}>
+          <Typography variant="body2" fontWeight="bold">{label}</Typography>
+          {payload.map((pld: any, index: number) => (
+            <Typography key={index} variant="body2" sx={{ color: pld.color, mt: 0.5 }}>
+              {pld.name}: {pld.name.includes('Revenue') ? formatCurrency(pld.value) : pld.value}
+            </Typography>
+          ))}
+        </Paper>
+      );
+    }
+    return null;
+  };
+
+  // Custom Legend for charts
+  const renderColorfulLegendText = (value: string, entry: any) => {
+    const { color } = entry;
+    return <span style={{ color }}>{value}</span>;
+  };
 
   return (
     <Box sx={{ flexGrow: 1, p: 3 }}>
-      {/* Page Header */}
+      {/* Header with Filters - FIXED ISSUE #2 */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Box>
-          <Typography variant="h4" gutterBottom>
+          <Typography variant="h4" gutterBottom fontWeight="bold">
             Dashboard Overview
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Real-time business insights and analytics
+            {currentPeriodLabel} • GMT+4 (Dubai Time) • Last updated: {data.lastUpdated || 'Just now'}
           </Typography>
         </Box>
-        
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <IconButton onClick={handleRefresh} color="primary">
+
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          {/* Period Selector - FIXED ISSUE #2 */}
+          <FormControl variant="outlined" size="small" sx={{ minWidth: 180 }}>
+            <InputLabel id="period-select-label">Time Period</InputLabel>
+            <Select
+              labelId="period-select-label"
+              value={period}
+              onChange={(e) => setPeriod(e.target.value as PeriodType)}
+              label="Time Period"
+              startAdornment={<CalendarToday sx={{ mr: 1, color: 'text.secondary' }} />}
+            >
+              {periodOptions.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {option.icon}
+                    {option.label}
+                  </Box>
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <IconButton onClick={handleRefresh} color="primary" title="Refresh data">
             <Refresh />
           </IconButton>
-          
+
           <Button
-            variant="outlined"
-            startIcon={<CalendarToday />}
-            onClick={handleMenuOpen}
+            variant="contained"
+            startIcon={<Download />}
+            onClick={handleExportMenuOpen}
           >
-            {timePeriods.find(p => p.value === period)?.label || 'Today'}
+            Export
           </Button>
-          
+
           <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
+            anchorEl={exportAnchorEl}
+            open={Boolean(exportAnchorEl)}
+            onClose={handleExportMenuClose}
           >
-            {timePeriods.map((periodOption) => (
-              <MenuItem
-                key={periodOption.value}
-                onClick={() => handlePeriodChange(periodOption.value)}
-                selected={period === periodOption.value}
-              >
-                {periodOption.label}
-              </MenuItem>
-            ))}
+            <MenuItem onClick={() => handleExport('excel')}>
+              Export as Excel
+            </MenuItem>
+            <MenuItem onClick={() => handleExport('csv')}>
+              Export as CSV
+            </MenuItem>
           </Menu>
         </Box>
       </Box>
@@ -227,11 +381,11 @@ const DashboardPage: React.FC = () => {
               sx={{
                 height: '100%',
                 borderLeft: `4px solid ${kpi.color}`,
-                transition: 'transform 0.2s',
+                transition: 'transform 0.2s, box-shadow 0.2s',
                 '&:hover': {
                   transform: 'translateY(-4px)',
-                  boxShadow: 3
-                }
+                  boxShadow: 6,
+                },
               }}
             >
               <CardContent>
@@ -243,26 +397,32 @@ const DashboardPage: React.FC = () => {
                     <Typography variant="h4" component="div">
                       {kpi.value}
                     </Typography>
+                    {kpi.period && (
+                      <Chip
+                        label={kpi.period}
+                        size="small"
+                        sx={{ mt: 1 }}
+                        color="primary"
+                        variant="outlined"
+                      />
+                    )}
                   </Box>
-                  <Box sx={{ color: kpi.color }}>
-                    {kpi.icon}
-                  </Box>
+                  <Box sx={{ color: kpi.color }}>{kpi.icon}</Box>
                 </Box>
-                
-                <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
-                  {kpi.trend !== 0 && (
-                    <Chip
-                      icon={kpi.trend > 0 ? <TrendingUp /> : <TrendingDown />}
-                      label={`${kpi.trend > 0 ? '+' : ''}${kpi.trend.toFixed(1)}%`}
-                      size="small"
-                      color={kpi.trend > 0 ? "success" : "error"}
-                      variant="outlined"
-                      sx={{ mr: 1 }}
-                    />
-                  )}
+
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 2 }}>
                   <Typography variant="body2" color="text.secondary">
                     {kpi.subtitle}
                   </Typography>
+                  {kpi.trend !== 0 && (
+                    <Chip
+                      icon={kpi.trend > 0 ? <ArrowUpward /> : <ArrowDownward />}
+                      label={`${kpi.trend > 0 ? '+' : ''}${kpi.trend.toFixed(1)}%`}
+                      size="small"
+                      color={kpi.trend > 0 ? 'success' : 'error'}
+                      variant="outlined"
+                    />
+                  )}
                 </Box>
               </CardContent>
             </Card>
@@ -270,46 +430,395 @@ const DashboardPage: React.FC = () => {
         ))}
       </Grid>
 
-      {/* Alerts Section */}
-      {alerts.length > 0 && (
-        <Paper sx={{ p: 3, mb: 4 }}>
+      {/* Charts Row */}
+      <Grid container spacing={3}>
+        {/* Sales Trend Chart */}
+        <Grid item xs={12} md={8}>
+          <Paper sx={{ p: 3, height: '100%' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
+                <BarChartIcon sx={{ mr: 1 }} />
+                Sales Trend - {currentPeriodLabel}
+              </Typography>
+              <ToggleButtonGroup
+                value={period}
+                exclusive
+                onChange={(e, newPeriod) => newPeriod && setPeriod(newPeriod)}
+                size="small"
+              >
+                <ToggleButton value="today">Day</ToggleButton>
+                <ToggleButton value="thisweek">Week</ToggleButton>
+                <ToggleButton value="thismonth">Month</ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+
+            {chartLoading ? (
+              <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <LinearProgress sx={{ width: '100%' }} />
+              </Box>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+                  <XAxis 
+                    dataKey="label" 
+                    stroke={theme.palette.text.secondary}
+                    fontSize={12}
+                  />
+                  <YAxis 
+                    stroke={theme.palette.text.secondary}
+                    fontSize={12}
+                    tickFormatter={(value) => formatCurrency(value)}
+                  />
+                  <RechartsTooltip content={<CustomTooltip />} />
+                  <Legend formatter={renderColorfulLegendText} />
+                  <Area
+                    type="monotone"
+                    dataKey="revenue"
+                    name="Revenue"
+                    stroke={theme.palette.primary.main}
+                    fill={theme.palette.primary.light}
+                    fillOpacity={0.3}
+                    strokeWidth={2}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="orders"
+                    name="Orders"
+                    stroke={theme.palette.success.main}
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+
+            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="body2" color="text.secondary">
+                Data displayed in GMT+4 (Dubai Time)
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {chartData.length} data points
+              </Typography>
+            </Box>
+          </Paper>
+        </Grid>
+
+        {/* Revenue by Category Pie Chart */}
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 3, height: '100%' }}>
+            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+              <PieChartIcon sx={{ mr: 1 }} />
+              Revenue by Category
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+
+            {categoryLoading ? (
+              <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <LinearProgress sx={{ width: '100%' }} />
+              </Box>
+            ) : categories.length > 0 ? (
+              <Box>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={categories}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={(entry) => `${entry.category}: ${entry.percentage.toFixed(1)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="revenue"
+                      nameKey="category"
+                    >
+                      {categories.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color || getCategoryColor(index)} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip formatter={(value) => formatCurrency(Number(value))} />
+                    <Legend formatter={renderColorfulLegendText} />
+                  </PieChart>
+                </ResponsiveContainer>
+                
+                <Box sx={{ mt: 2 }}>
+                  {categories.slice(0, 3).map((category, index) => (
+                    <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <Box
+                        sx={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: '50%',
+                          bgcolor: category.color,
+                          mr: 1,
+                        }}
+                      />
+                      <Typography variant="body2" sx={{ flex: 1 }}>
+                        {category.category}
+                      </Typography>
+                      <Typography variant="body2" fontWeight="bold">
+                        {formatCurrency(category.revenue)}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                        ({category.percentage.toFixed(1)}%)
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+            ) : (
+              <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                  No category data available
+                </Typography>
+              </Box>
+            )}
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Second Charts Row */}
+      <Grid container spacing={3} sx={{ mt: 0 }}>
+        {/* Top Products Chart - FIXED ISSUE #4, #5, #6 */}
+        <Grid item xs={12} md={8}>
+          <Paper sx={{ p: 3, height: '100%' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
+                <Store sx={{ mr: 1 }} />
+                Top Products - {currentPeriodLabel}
+              </Typography>
+              <Button size="small" startIcon={<ShowChart />}>
+                View All Products
+              </Button>
+            </Box>
+
+            {productsLoading ? (
+              <LinearProgress />
+            ) : topProductsData.length > 0 ? (
+              <Box>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={topProductsData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+                    <XAxis 
+                      dataKey="productName" 
+                      stroke={theme.palette.text.secondary}
+                      fontSize={12}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis 
+                      stroke={theme.palette.text.secondary}
+                      fontSize={12}
+                      tickFormatter={(value) => formatCurrency(value)}
+                    />
+                    <RechartsTooltip formatter={(value) => formatCurrency(Number(value))} />
+                    <Legend formatter={renderColorfulLegendText} />
+                    <Bar 
+                      dataKey="revenue" 
+                      name="Revenue" 
+                      fill={theme.palette.primary.main}
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar 
+                      dataKey="profit" 
+                      name="Profit" 
+                      fill={theme.palette.success.main}
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+
+                {/* Products Table with SKU Display - FIXED ISSUE #6 */}
+                <TableContainer sx={{ mt: 2 }}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Product</TableCell>
+                        <TableCell>SKU</TableCell>
+                        <TableCell align="right">Quantity</TableCell>
+                        <TableCell align="right">Revenue</TableCell>
+                        <TableCell align="right">Profit</TableCell>
+                        <TableCell align="right">Avg. Price</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {topProductsData.map((product: any, index: number) => (
+                        <TableRow key={product.productId || index} hover>
+                          <TableCell>
+                            <Typography variant="body2" fontWeight="medium">
+                              {product.productName}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={product.sku || 'N/A'} 
+                              size="small" 
+                              variant="outlined"
+                              sx={{ fontFamily: 'monospace' }}
+                            />
+                          </TableCell>
+                          <TableCell align="right">
+                            {product.quantitySold || 0}
+                          </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+                            {formatCurrency(product.revenue || 0)}
+                          </TableCell>
+                          <TableCell align="right" sx={{ 
+                            color: (product.profit || 0) > 0 ? 'success.main' : 'error.main',
+                            fontWeight: 'bold'
+                          }}>
+                            {formatCurrency(product.profit || 0)}
+                          </TableCell>
+                          <TableCell align="right">
+                            {formatCurrency(product.averagePrice || 0)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            ) : (
+              <Box sx={{ py: 4, textAlign: 'center' }}>
+                <Store sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+                <Typography variant="body2" color="text.secondary">
+                  No product data available
+                </Typography>
+              </Box>
+            )}
+          </Paper>
+        </Grid>
+
+        {/* Recent Activities & Quick Stats */}
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 3, height: '100%' }}>
+            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+              <Category sx={{ mr: 1 }} />
+              Performance Metrics
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+
+            <Box sx={{ mb: 3 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Avg. Order Value
+                    </Typography>
+                    <Typography variant="h5">
+                      {formatCurrency(data.averageOrderValue || 0)}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6}>
+                  <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Conversion Rate
+                    </Typography>
+                    <Typography variant="h5">
+                      {data.conversionRate || 0}%
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'success.light', borderRadius: 1 }}>
+                <Typography variant="body2" color="success.contrastText">
+                  Top Product
+                </Typography>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'success.contrastText' }}>
+                  {data.topProduct || 'N/A'}
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Recent Activities */}
+            <Typography variant="subtitle2" gutterBottom>
+              Recent Activities
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+
+            {activitiesLoading ? (
+              <LinearProgress />
+            ) : activities.length > 0 ? (
+              <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
+                {activities.slice(0, 5).map((activity: any, index: number) => (
+                  <Box
+                    key={activity.id || index}
+                    sx={{
+                      p: 1.5,
+                      mb: 1,
+                      borderRadius: 1,
+                      bgcolor: index % 2 === 0 ? 'action.hover' : 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Avatar sx={{ width: 32, height: 32, mr: 1.5, bgcolor: 'primary.main' }}>
+                      {activity.user?.[0]?.toUpperCase() || 'S'}
+                    </Avatar>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                        {activity.description}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {activity.timestamp} (GMT+4)
+                      </Typography>
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+            ) : (
+              <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+                No recent activities
+              </Typography>
+            )}
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Dashboard Alerts */}
+      {dashboardAlertsData.length > 0 && (
+        <Paper sx={{ p: 3, mt: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
             <Warning color="warning" sx={{ mr: 1 }} />
-            <Typography variant="h6">Alerts & Notifications</Typography>
+            <Typography variant="h6">System Alerts</Typography>
             <Chip
-              label={`${alerts.length} alert${alerts.length > 1 ? 's' : ''}`}
+              label={`${dashboardAlertsData.length} alert${dashboardAlertsData.length > 1 ? 's' : ''}`}
               color="warning"
               size="small"
               sx={{ ml: 2 }}
             />
           </Box>
-          
+
           <Grid container spacing={2}>
-            {alerts.slice(0, 3).map((alert, index) => (
-              <Grid item xs={12} key={index}>
+            {dashboardAlertsData.slice(0, 4).map((alert: any, index: number) => (
+              <Grid item xs={12} sm={6} md={3} key={index}>
                 <Alert
                   severity={
                     alert.priority === 'High' ? 'error' :
                     alert.priority === 'Medium' ? 'warning' : 'info'
                   }
                   variant="outlined"
+                  sx={{ height: '100%' }}
                   iconMapping={{
-                    error: <Warning fontSize="inherit" />,
-                    warning: <Warning fontSize="inherit" />,
-                    info: <Warning fontSize="inherit" />,
+                    error: <Error />,
+                    warning: <Warning />,
+                    info: <Info />,
                   }}
                 >
-                  <Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                      {alert.title}
+                  <Typography variant="subtitle2" fontWeight="bold">
+                    {alert.title}
+                  </Typography>
+                  <Typography variant="body2">
+                    {alert.message}
+                  </Typography>
+                  {alert.createdAt && (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                      {alert.createdAt}
                     </Typography>
-                    <Typography variant="body2" sx={{ mt: 0.5 }}>
-                      {alert.message}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                      {new Date(alert.createdAt).toLocaleString()}
-                    </Typography>
-                  </Box>
+                  )}
                 </Alert>
               </Grid>
             ))}
@@ -317,203 +826,124 @@ const DashboardPage: React.FC = () => {
         </Paper>
       )}
 
-      {/* Main Content Area */}
-      <Grid container spacing={3}>
-        {/* Top Products Section */}
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3, height: '100%' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
-                <ShoppingCart sx={{ mr: 1 }} />
-                Top Selling Products
-              </Typography>
-              <Button
-                size="small"
-                startIcon={<ShowChart />}
-                onClick={() => dashboardApi.getTopProducts(10)}
-              >
-                View All
-              </Button>
-            </Box>
-            
-            {topProductsLoading ? (
-              <LinearProgress />
-            ) : topProducts.length > 0 ? (
-              <Box sx={{ overflowX: 'auto' }}>
-                <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <Box component="tr" sx={{ borderBottom: '2px solid', borderColor: 'divider' }}>
-                      <Box component="th" sx={{ textAlign: 'left', p: 2, fontWeight: 'bold' }}>Product</Box>
-                      <Box component="th" sx={{ textAlign: 'left', p: 2, fontWeight: 'bold' }}>SKU</Box>
-                      <Box component="th" sx={{ textAlign: 'left', p: 2, fontWeight: 'bold' }}>Quantity</Box>
-                      <Box component="th" sx={{ textAlign: 'left', p: 2, fontWeight: 'bold' }}>Revenue</Box>
-                      <Box component="th" sx={{ textAlign: 'left', p: 2, fontWeight: 'bold' }}>Profit</Box>
-                    </Box>
-                  </thead>
-                  <tbody>
-                    {topProducts.map((product) => (
-                      <Box
-                        component="tr"
-                        key={product.productId}
-                        sx={{
-                          borderBottom: '1px solid',
-                          borderColor: 'divider',
-                          '&:hover': { backgroundColor: 'action.hover' }
-                        }}
-                      >
-                        <Box component="td" sx={{ p: 2 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                            {product.productName}
-                          </Typography>
-                        </Box>
-                        <Box component="td" sx={{ p: 2 }}>
-                          <Chip label={product.sku} size="small" variant="outlined" />
-                        </Box>
-                        <Box component="td" sx={{ p: 2 }}>
-                          <Typography variant="body2">{product.quantitySold}</Typography>
-                        </Box>
-                        <Box component="td" sx={{ p: 2 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                            {formatCurrency(product.revenue)}
-                          </Typography>
-                        </Box>
-                        <Box component="td" sx={{ p: 2 }}>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              fontWeight: 'medium',
-                              color: product.profit > 0 ? 'success.main' : 'error.main'
-                            }}
-                          >
-                            {formatCurrency(product.profit)}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    ))}
-                  </tbody>
-                </Box>
-              </Box>
-            ) : (
-              <Box sx={{ py: 4, textAlign: 'center' }}>
-                <ShoppingCart sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
-                <Typography variant="body2" color="text.secondary">
-                  No product sales data available
-                </Typography>
-              </Box>
-            )}
-          </Paper>
-        </Grid>
+      {/* Low Stock Alerts - FIXED ISSUE #4 */}
+      {alerts.length > 0 && (
+        <Paper sx={{ p: 3, mt: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <Inventory color="warning" sx={{ mr: 1 }} />
+            <Typography variant="h6">Low Stock Alerts</Typography>
+            <Chip
+              label={`${alerts.length} product${alerts.length > 1 ? 's' : ''}`}
+              color="warning"
+              size="small"
+              sx={{ ml: 2 }}
+            />
+          </Box>
 
-        {/* Quick Stats Sidebar */}
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, height: '100%' }}>
-            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-              <BarChart sx={{ mr: 1 }} />
-              Quick Stats
-            </Typography>
-            
-            <Box sx={{ mt: 2 }}>
-              <Box sx={{ mb: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Total Revenue ({period})
-                </Typography>
-                <Typography variant="h5">
-                  {formatCurrency(quickStats?.totalRevenue || 0)}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {quickStats?.totalInvoices || 0} invoices
-                </Typography>
-              </Box>
-
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Box sx={{ p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Avg. Invoice
+          <Grid container spacing={2}>
+            {alerts.slice(0, 4).map((alert: any, index: number) => (
+              <Grid item xs={12} sm={6} md={3} key={index}>
+                <Alert
+                  severity={
+                    alert.alertLevel === 'High' ? 'error' :
+                    alert.alertLevel === 'Medium' ? 'warning' : 'info'
+                  }
+                  variant="outlined"
+                  sx={{ height: '100%' }}
+                  icon={<Inventory />}
+                >
+                  <Typography variant="subtitle2" fontWeight="bold">
+                    {alert.name || alert.productName}
+                  </Typography>
+                  <Typography variant="body2">
+                    SKU: <strong>{alert.sku || 'N/A'}</strong>
+                  </Typography>
+                  <Typography variant="body2">
+                    Stock: <strong>{alert.currentStock || 0}</strong> / Min: {alert.reorderLevel || 5}
+                  </Typography>
+                  {alert.lastUpdated && (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                      Updated: {alert.lastUpdated}
                     </Typography>
-                    <Typography variant="h6">
-                      {formatCurrency(quickStats?.averageInvoiceValue || 0)}
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={6}>
-                  <Box sx={{ p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Customers Served
-                    </Typography>
-                    <Typography variant="h6">
-                      {quickStats?.customersServed || 0}
-                    </Typography>
-                  </Box>
-                </Grid>
+                  )}
+                </Alert>
               </Grid>
-
-              {quickStats?.topProductName && (
-                <Box sx={{ mt: 3, p: 2, bgcolor: 'success.light', borderRadius: 1 }}>
-                  <Typography variant="body2" color="success.contrastText">
-                    Top Product
-                  </Typography>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'success.contrastText' }}>
-                    {quickStats.topProductName}
-                  </Typography>
-                  <Typography variant="body2" color="success.contrastText">
-                    {formatCurrency(quickStats.topProductRevenue)} revenue
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-          </Paper>
-        </Grid>
-      </Grid>
-
-      {/* Monthly Overview */}
-      <Paper sx={{ p: 3, mt: 3 }}>
-        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-          <PieChart sx={{ mr: 1 }} />
-          Monthly Overview
-        </Typography>
-        
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <Box sx={{ p: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                This Month Sales
-              </Typography>
-              <Typography variant="h4">
-                {formatCurrency(overview?.thisMonthSales || 0)}
-              </Typography>
-              <Typography
-                variant="body2"
-                color={overview?.salesGrowthVsLastMonth > 0 ? 'success.main' : 'error.main'}
-                sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}
-              >
-                {overview?.salesGrowthVsLastMonth > 0 ? (
-                  <TrendingUp fontSize="small" sx={{ mr: 0.5 }} />
-                ) : (
-                  <TrendingDown fontSize="small" sx={{ mr: 0.5 }} />
-                )}
-                {Math.abs(overview?.salesGrowthVsLastMonth || 0).toFixed(1)}% vs last month
-              </Typography>
-            </Box>
+            ))}
           </Grid>
           
-          <Grid item xs={12} md={6}>
-            <Box sx={{ p: 2 }}>
+          {alerts.length > 4 && (
+            <Box sx={{ mt: 2, textAlign: 'center' }}>
+              <Button size="small" startIcon={<Inventory />}>
+                View All Low Stock Items ({alerts.length})
+              </Button>
+            </Box>
+          )}
+        </Paper>
+      )}
+
+      {/* Footer with Quick Stats */}
+      <Paper sx={{ p: 3, mt: 3 }}>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={3}>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="h6" color="primary">
+                {formatCurrency(data.totalRevenue || 0)}
+              </Typography>
               <Typography variant="body2" color="text.secondary">
-                Product Inventory
+                Total Revenue
               </Typography>
-              <Typography variant="h4">
-                {overview?.totalProducts || 0}
+            </Box>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="h6" color="primary">
+                {data.totalOrders || 0}
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                {overview?.lowStockProducts || 0} low stock
+              <Typography variant="body2" color="text.secondary">
+                Total Orders
+              </Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="h6" color="primary">
+                {data.totalCustomers || 0}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Total Customers
+              </Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="h6" color="primary">
+                {data.totalProducts || 0}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Total Products
               </Typography>
             </Box>
           </Grid>
         </Grid>
+        
+        <Divider sx={{ my: 2 }} />
+        
+        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+          <Typography variant="caption" color="text.secondary">
+            All data is displayed in GMT+4 (Dubai Time) • Last updated: {data.lastUpdated || 'N/A'}
+          </Typography>
+        </Box>
       </Paper>
     </Box>
   );
+};
+
+// Helper function for category colors
+const getCategoryColor = (index: number): string => {
+  const colors = [
+    '#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088fe', '#00c49f', '#ffbb28', '#ff8042'
+  ];
+  return colors[index % colors.length];
 };
 
 export default DashboardPage;

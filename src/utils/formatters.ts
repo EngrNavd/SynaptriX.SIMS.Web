@@ -13,19 +13,46 @@ export const formatPercentage = (value: number): string => {
 };
 
 export const formatDate = (date: Date | string): string => {
+  const d = typeof date === 'string' ? new Date(date) : date;
   return new Intl.DateTimeFormat('en-GB', {
     day: '2-digit',
     month: 'short',
-    year: 'numeric'
-  }).format(new Date(date));
+    year: 'numeric',
+    timeZone: 'Asia/Dubai'
+  }).format(d);
 };
 
 export const formatDateTime = (date: Date | string): string => {
+  const d = typeof date === 'string' ? new Date(date) : date;
   return new Intl.DateTimeFormat('en-GB', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
-  }).format(new Date(date));
+    minute: '2-digit',
+    timeZone: 'Asia/Dubai'
+  }).format(d);
+};
+
+export const formatDateTimeGMT4 = (date: Date | string): string => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const gmt4Date = new Date(d.getTime() + (4 * 60 * 60 * 1000));
+  
+  return `${gmt4Date.getDate().toString().padStart(2, '0')}/${
+    (gmt4Date.getMonth() + 1).toString().padStart(2, '0')}/${
+    gmt4Date.getFullYear()} ${
+    gmt4Date.getHours().toString().padStart(2, '0')}:${
+    gmt4Date.getMinutes().toString().padStart(2, '0')}`;
+};
+
+export const formatTimeGMT4 = (date: Date | string): string => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const gmt4Date = new Date(d.getTime() + (4 * 60 * 60 * 1000));
+  
+  return `${gmt4Date.getHours().toString().padStart(2, '0')}:${
+    gmt4Date.getMinutes().toString().padStart(2, '0')}`;
+};
+
+export const formatNumber = (num: number): string => {
+  return new Intl.NumberFormat('en-US').format(num);
 };
